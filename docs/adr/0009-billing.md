@@ -10,6 +10,12 @@ ids are rows in `plans`, edited in the super-admin console. No price or limit ap
 Effective limits = plan limits, then add-ons, then super-admin overrides. One `entitlements(tenant)`
 function answers every "may this tenant…" question, in the UI, on the server and in triggers.
 
+## Seller
+
+The Stripe account is Mexican. Prices are defined in MXN and USD. Which Stripe tax features and
+invoice requirements apply to a Mexican seller is verified at the start of the billing phase,
+before any live charge.
+
 ## Proposed plans
 
 Prices are a starting hypothesis to test with your first five customers, not constants.

@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/* Utilities are bound to tokens only. The default Tailwind palette and radius scale are removed, so
+   a class such as bg-emerald-500 produces nothing (and fails lint). Token values are rendered into
+   <head> by the server (src/theme), never hard-coded here. */
+@theme inline {
+  --color-*: initial;
+  --color-surface: var(--s-color-surface);
+  --color-surface-raised: var(--s-color-surface-raised);
+  --color-on-surface: var(--s-color-on-surface);
+  --color-on-surface-muted: var(--s-color-on-surface-muted);
+  --color-primary: var(--s-color-primary);
+  --color-on-primary: var(--s-color-on-primary);
+  --color-accent: var(--s-color-accent);
+  --color-on-accent: var(--s-color-on-accent);
+  --color-border: var(--s-color-border);
+
+  --radius-*: initial;
+  --radius-control: var(--s-radius-control);
+  --radius-surface: var(--s-radius-surface);
+
+  --font-sans: var(--s-font-sans);
+}
+
+@layer base {
+  body {
+    background: var(--s-color-surface);
+    color: var(--s-color-on-surface-muted);
+    font-family: var(--s-font-sans);
+  }
+}

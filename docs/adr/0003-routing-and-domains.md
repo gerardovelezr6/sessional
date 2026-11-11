@@ -6,14 +6,14 @@ Status: proposed · Date: 2026-11-10
 
 | Host | Serves |
 |---|---|
-| `sessional.net`, `www` | Marketing, pricing, legal, changelog, gallery |
-| `app.sessional.net` | Signup, account, "your conferences" switcher, billing return, OAuth callback |
-| `admin.sessional.net` | Super-admin console (platform admins, MFA required) |
-| `status.sessional.net` | Status page (hosted off-platform so it survives an outage) |
-| `{slug}.sessional.net` | A tenant |
+| `sessional.app`, `www` | Marketing, pricing, legal, changelog, gallery |
+| `app.sessional.app` | Signup, account, "your conferences" switcher, billing return, OAuth callback |
+| `admin.sessional.app` | Super-admin console (platform admins, MFA required) |
+| `status.sessional.app` | Status page (hosted off-platform so it survives an outage) |
+| `{slug}.sessional.app` | A tenant |
 | Customer domain | The same tenant, once verified |
 
-The root domain is one environment variable, so nothing in code names `sessional.net`.
+The root domain is one environment variable, so nothing in code names `sessional.app`.
 
 ## Resolution
 
@@ -24,7 +24,7 @@ id travels in a request header set by the proxy and is never taken from the clie
 
 Sessions are per host: cookies are not shared across subdomains, so a custom domain behaves exactly
 like a subdomain and one school's page cannot read another's cookie. Google and Microsoft sign-in
-return to `app.sessional.net` and hand over to the tenant host with a single-use code, so customer
+return to `app.sessional.app` and hand over to the tenant host with a single-use code, so customer
 domains need no change to the OAuth allow-list.
 
 Previews and local development have no wildcard host: `slug.localhost:3000` locally, and a

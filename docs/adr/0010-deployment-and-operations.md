@@ -10,7 +10,7 @@ Status: proposed · Date: 2026-11-10
 | CI | build and tests | scratch Postgres per run |
 | Preview | Vercel preview per pull request, path-mode tenants | shared staging project |
 | Staging | `*.staging` wildcard | staging project, synthetic data only |
-| Production | `*.sessional.net` | production project |
+| Production | `*.sessional.app` | production project |
 
 Secrets live in Vercel and GitHub environment settings only. A CI check fails the build if the
 service-role key name appears in client code, and secret scanning runs on every push.
@@ -26,7 +26,7 @@ One shared database means one migration reaches every tenant at once, so:
 
 - timestamped files in `supabase/migrations/`, additive and re-runnable, mirrored in `schema.sql`
   with a CI drift check;
-- CI applies them fresh, twice, and over the last release's schema, then runs the pgTAP isolation
+- CI applies them fresh, twice, and over the last release's schema, then runs the isolation
   matrix (ADR-0002);
 - breaking changes go expand → backfill in batches per tenant → contract, across releases;
 - production is migrated by a manually approved GitHub Action, never from a laptop.

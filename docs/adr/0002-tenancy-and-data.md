@@ -96,7 +96,7 @@ All three iterate a registry of tenant tables in dependency order and filter by 
    session and grading tables), each additive and re-runnable, mirrored into `schema.sql`.
 2. CI applies them to a scratch Postgres three ways: fresh, twice in a row, and on top of the
    previous release.
-3. pgTAP isolation matrix: for every table × every role × {own tenant, other tenant, anonymous,
+3. Isolation matrix (Vitest against a scratch Postgres): for every table × every role × {own tenant, other tenant, anonymous,
    display grant}, attempt select, insert, update, delete and assert the outcome.
 
 ## PASMUN as a demo tenant

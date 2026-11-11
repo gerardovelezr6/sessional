@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: proposed, waiting for approval. No application code has been written.
+Status: Phase 0 (foundation) is built. Phase 1 is next.
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a
 "what to verify" checklist. Effort is in pull requests (a PR is roughly one focused working
@@ -15,7 +15,7 @@ the flows that exist so far. I will say plainly what I could not test.
 
 | # | Phase | PRs | Delivers | Accepted when |
 |---|---|---|---|---|
-| 0 | Foundation | 1 | Repo scaffold, strict TypeScript, token-only lint rules, Vitest, Playwright, pgTAP harness, CI, env template, brand assets wired, docs skeleton | CI is green on an empty app; a raw hex colour or literal UI string fails lint |
+| 0 | Foundation | 1 | Repo scaffold, strict TypeScript, token-only lint rules, Vitest, Playwright, database test harness, CI, env template, brand assets wired, docs skeleton | CI is green on an empty app; a raw hex colour or literal UI string fails lint |
 | 1 | Tenancy and routing | 3 | Core schema, RLS helpers, host resolution, reserved slugs and renames, login, invite and reset with `token_hash` confirm, tenant switcher, audit log, verified-write helper | Two seeded tenants on two subdomains; the isolation matrix passes for every table and role; an invite opened by a link preview still works afterwards |
 | 2 | Configuration | 3 | Zod schema, settings registry, versions, draft, preview, publish, rollback, pack export and import, settings shell with sticky save bar and unsaved marker, generated `CONFIG.md` | A setting changes in preview without affecting others, publishes, rolls back; CI fails on a setting without labels or test |
 | 3 | Theming | 3 | Token engine with contrast guarantee, six presets, live editor, server-rendered theme, fonts, sandboxed CSS, login and loading looks | No flash on hard refresh; every preset passes contrast on every surface; hostile CSS is rejected; safe mode recovers |

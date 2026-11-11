@@ -18,17 +18,30 @@ as a pull request into `main`.
 
 ## 3. Domain `sessional.app` (after step 2)
 
-Wildcard addresses such as `yourschool.sessional.app` need Vercel to manage the domain's DNS.
+The domain is registered at Cloudflare, which does not let a domain leave Cloudflare's nameservers.
+That is fine: DNS stays at Cloudflare and four records point the domain at Vercel. No paid plan is
+needed on Cloudflare for this.
 
 1. In Vercel: Project → Settings → Domains → add `sessional.app`, then add `*.sessional.app`.
-2. Vercel shows two nameservers: `ns1.vercel-dns.com` and `ns2.vercel-dns.com`.
-3. Sign in where you bought the domain (the registrar). Open the domain → Nameservers (sometimes
-   under DNS) → choose "custom nameservers" → replace the existing ones with the two above → save.
-4. Wait. It usually takes under an hour, at most two days. Vercel shows a green tick when done.
+   Vercel shows the exact record values for each; use those if they differ from the table below.
+2. In Cloudflare: the domain → DNS → Records → Add record, four times:
 
-Before step 3: if the domain already has email or other DNS records, copy them into Vercel
-(Domains → the domain → DNS Records) first, or that email stops arriving. A new, unused domain needs
-nothing.
+| Type | Name | Target | Proxy status |
+|---|---|---|---|
+| CNAME (or the A record Vercel shows) | `@` | value shown by Vercel | DNS only (grey cloud) |
+| CNAME | `*` | value shown by Vercel (`cname.vercel-dns-0.com` or similar) | DNS only (grey cloud) |
+| NS | `_acme-challenge` | `ns1.vercel-dns.com` | — |
+| NS | `_acme-challenge` | `ns2.vercel-dns.com` | — |
+
+3. Back in Vercel, both domains turn green within a few minutes to an hour.
+
+What they do: the first two send visitors to Vercel. The two NS records let Vercel prove ownership
+and issue the wildcard HTTPS certificate; they must stay in place for renewals. Keep the proxy
+switched off (grey cloud) on the first two, otherwise Cloudflare sits in front of Vercel and
+certificates fail.
+
+Source: Vercel's guide
+[Can I use wildcard domains without switching to Vercel nameservers?](https://vercel.com/kb/guide/wildcard-domain-without-vercel-nameservers)
 
 ## 4. Supabase (keys needed in Phase 1, not before)
 

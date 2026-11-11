@@ -49,7 +49,11 @@ claimed by anyone else for 12 months. Emailed links always use the current prima
 
 A domain can belong to one tenant only, and must prove ownership by DNS before it serves anything.
 
-## Requirement on you
+## DNS for the root domain
 
-Wildcard TLS on Vercel needs the apex domain's nameservers pointed at Vercel
-([source](https://vercel.com/docs/multi-tenant/limits)). That is the first open question.
+`sessional.app` is registered at Cloudflare, whose registrar does not allow other nameservers. DNS
+therefore stays at Cloudflare (records unproxied) and only `_acme-challenge` is delegated to Vercel
+by NS records, which is Vercel's documented way to issue a wildcard certificate without its
+nameservers ([guide](https://vercel.com/kb/guide/wildcard-domain-without-vercel-nameservers)).
+Steps are in `docs/SETUP.md`. Having DNS at Cloudflare also shortens the fallback path to
+Cloudflare for SaaS (ADR-0001).

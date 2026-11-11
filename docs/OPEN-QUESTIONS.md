@@ -4,7 +4,7 @@ Only the decisions that are hard to undo or that change the plan.
 
 | # | Question | Status |
 |---|---|---|
-| 1 | Domain | **Answered:** `sessional.app`. Nameserver steps are in [`SETUP.md`](SETUP.md); nothing to do until the Vercel project exists |
+| 1 | Domain | **Answered:** `sessional.app`. Registered at Cloudflare, so DNS stays there; the four records to add are in [`SETUP.md`](SETUP.md) |
 | 2 | Accounts | **Partly done:** Supabase and Stripe exist. Vercel and an email provider are still to create (see `SETUP.md`) |
 | 3 | First data region | **Open:** which region did you pick for the Supabase project? If it is not in the Americas (US East preferred), recreate it now while it is empty; it cannot be moved later |
 | 4 | Do delegates get accounts? | **Assumed no** (my recommendation): delegates stay records and use read-only links and QR codes |

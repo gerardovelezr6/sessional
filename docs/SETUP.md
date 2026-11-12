@@ -44,15 +44,35 @@ certificates fail.
 Source: Vercel's guide
 [Can I use wildcard domains without switching to Vercel nameservers?](https://vercel.com/kb/guide/wildcard-domain-without-vercel-nameservers)
 
-## 4. Supabase (keys needed in Phase 1, not before)
+## 4. Supabase keys in Vercel (needed from Phase 1 part 2)
 
-- Region `us-west-1`: confirmed.
-- Later, in Vercel → Project → Settings → Environment Variables, add from Supabase → Project
-  Settings → API: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY` (do not tick anything that exposes this one to the browser), and
-  `ROOT_DOMAIN=sessional.app`.
-- The database is set up by running `supabase/schema.sql` in the SQL Editor. It is safe to re-run
-  after every merge. The Phase 1 pull request will say when.
+In Vercel → Project → Settings → Environment Variables, add these four for Production and Preview.
+The first three values are in Supabase → Project Settings → API.
+
+| Name | Value |
+|---|---|
+| `ROOT_DOMAIN` | `sessional.app` |
+| `NEXT_PUBLIC_SUPABASE_URL` | the Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the `anon` / publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` / secret key. Mark it Sensitive. Never share it |
+
+Then redeploy (Deployments → the latest → Redeploy) so the values take effect.
+
+### After every merge that changes the database
+
+Supabase → SQL Editor → paste the whole of `supabase/schema.sql` → Run. It is safe to re-run. Each
+pull request says whether this is needed.
+
+### Create a first tenant to look at
+
+1. Supabase → Authentication → Users → Add user: your own email and a password.
+2. SQL Editor, with your email and the address you want:
+
+```sql
+select app.create_tenant('demo', 'Demo School', (select id from auth.users where email = 'you@example.com'));
+```
+
+3. Open `https://demo.sessional.app`. It shows "Demo School".
 
 ## 5. Stripe (billing phase)
 

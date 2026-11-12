@@ -1,5 +1,13 @@
 {
   "brand.wordmarkAlt": "sessional",
   "home.tagline": "Gestión de conferencias para Modelos de Naciones Unidas",
-  "home.status": "Próximamente"
+  "home.status": "Próximamente",
+  "common.poweredBy": "Desarrollado con",
+  "notFound.title": "Aquí no hay ninguna conferencia",
+  "notFound.body": "Revisa la dirección o pide el enlace correcto a tus organizadores.",
+  "tenant.ready": "Tu espacio de conferencia está listo. El inicio de sesión llega en la próxima actualización.",
+  "tenant.unavailable.title": "Esta conferencia no está disponible",
+  "tenant.unavailable.body": "Ponte en contacto con tus organizadores.",
+  "tenant.unconfigured.title": "Aún sin conexión",
+  "tenant.unconfigured.body": "Este despliegue no tiene una base de datos configurada."
 }

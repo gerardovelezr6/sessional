@@ -2,11 +2,12 @@
 
 Never paste a key into a chat, an issue or a commit. Keys go only into Vercel and GitHub settings.
 
-## 1. GitHub: create `main` (now, 1 minute)
+## 1. GitHub: `main` (done)
 
-Repository → Settings → General → Default branch is currently the working branch. Either rename it
-to `main` (Branches → pencil icon), or tell me to push `main` myself. After that every phase arrives
-as a pull request into `main`.
+Every phase arrives as a pull request into `main`. You review, merge and preview on Vercel.
+
+Dependabot also opens pull requests for library updates. Merge the small grouped ones when CI is
+green; leave major-version jumps (TypeScript 7, ESLint 10) closed until I schedule them.
 
 ## 2. Vercel (whenever you like; there is now a page to deploy)
 
@@ -45,7 +46,7 @@ Source: Vercel's guide
 
 ## 4. Supabase (keys needed in Phase 1, not before)
 
-- Check the project's region now (Project Settings → General). See open question 3.
+- Region `us-west-1`: confirmed.
 - Later, in Vercel → Project → Settings → Environment Variables, add from Supabase → Project
   Settings → API: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY` (do not tick anything that exposes this one to the browser), and

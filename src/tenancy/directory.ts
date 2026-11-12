@@ -17,9 +17,12 @@ export type Resolution =
   | { kind: 'tenant'; tenant: Tenant }
   | { kind: 'renamed'; slug: string }
   | { kind: 'none' }
-  | { kind: 'unconfigured' };
+  | { kind: 'unconfigured' }
+  // The database did not answer in time or answered with an error. Never cached.
+  | { kind: 'error' };
 
 const TTL_MS = 60_000;
+const LOOKUP_TIMEOUT_MS = 5_000;
 const MAX_ENTRIES = 5_000;
 const cache = new Map<string, { at: number; value: Resolution }>();
 
@@ -40,18 +43,30 @@ export async function resolveTenant(address: { slug: string } | { host: string }
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.value;
 
-  const res = await fetch(`${env.url}/rest/v1/rpc/resolve_tenant`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      apikey: env.serviceRoleKey,
-      authorization: `Bearer ${env.serviceRoleKey}`,
-    },
-    body: JSON.stringify('slug' in address ? { p_slug: address.slug } : { p_host: address.host }),
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`Tenant lookup failed with status ${res.status}`);
-  const value = parse(await res.json());
+  let value: Resolution;
+  try {
+    const res = await fetch(`${env.url}/rest/v1/rpc/resolve_tenant`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        apikey: env.serviceRoleKey,
+        authorization: `Bearer ${env.serviceRoleKey}`,
+      },
+      body: JSON.stringify('slug' in address ? { p_slug: address.slug } : { p_host: address.host }),
+      cache: 'no-store',
+      // A page must never hang on the database: give up and say so.
+      signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      // Shows up in the server logs with the reason, never with a key or an address.
+      console.error(JSON.stringify({ event: 'tenant_lookup_failed', status: res.status, detail: (await res.text()).slice(0, 300) }));
+      return { kind: 'error' };
+    }
+    value = parse(await res.json());
+  } catch (e) {
+    console.error(JSON.stringify({ event: 'tenant_lookup_failed', reason: e instanceof Error ? `${e.name}: ${e.message}` : 'unknown' }));
+    return { kind: 'error' };
+  }
 
   if (cache.size >= MAX_ENTRIES) cache.clear();
   cache.set(key, { at: Date.now(), value });

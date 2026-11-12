@@ -9,5 +9,7 @@
   "tenant.unavailable.title": "This conference is not available",
   "tenant.unavailable.body": "Please contact your organisers.",
   "tenant.unconfigured.title": "Not connected yet",
-  "tenant.unconfigured.body": "This deployment has no database configured."
+  "tenant.unconfigured.body": "This deployment has no database configured, or its database address is not valid.",
+  "tenant.error.title": "Temporarily unavailable",
+  "tenant.error.body": "We could not reach the conference right now. Please try again in a moment."
 }

@@ -9,5 +9,7 @@
   "tenant.unavailable.title": "Esta conferencia no está disponible",
   "tenant.unavailable.body": "Ponte en contacto con tus organizadores.",
   "tenant.unconfigured.title": "Aún sin conexión",
-  "tenant.unconfigured.body": "Este despliegue no tiene una base de datos configurada."
+  "tenant.unconfigured.body": "Este despliegue no tiene una base de datos configurada, o su dirección no es válida.",
+  "tenant.error.title": "No disponible por el momento",
+  "tenant.error.body": "No pudimos conectar con la conferencia. Inténtalo de nuevo en un momento."
 }

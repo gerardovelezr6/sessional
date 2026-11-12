@@ -39,6 +39,9 @@ export default async function TenantLayout({ params, children }: Props) {
   if (found.kind === 'unconfigured') {
     return <Notice title={t('tenant.unconfigured.title')} body={t('tenant.unconfigured.body')} />;
   }
+  if (found.kind === 'error') {
+    return <Notice title={t('tenant.error.title')} body={t('tenant.error.body')} />;
+  }
   if (isHidden(found.tenant.status)) {
     return <Notice title={t('tenant.unavailable.title')} body={t('tenant.unavailable.body')} />;
   }

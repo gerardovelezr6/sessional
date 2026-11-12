@@ -26,6 +26,8 @@ createServer((req, res) => {
   req.on('data', (c) => (raw += c));
   req.on('end', () => {
     const { p_slug, p_host } = JSON.parse(raw || '{}');
+    if (p_slug === 'broken') return send(500, { message: 'boom' });
+    if (p_slug === 'stalled') return; // never answers
     send(200, (p_slug && BY_SLUG[p_slug]) || (p_host && BY_HOST[p_host]) || { kind: 'none' });
   });
 }).listen(PORT, () => console.log(`mock supabase on ${PORT}`));

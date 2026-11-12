@@ -68,5 +68,5 @@ dependency scanning, security headers and a strict content security policy.
 ## Data region
 
 One region at launch. `tenants.cell` exists from day one so a second regional project can be added
-later without redesign; moving an existing tenant between cells is an export and import. The choice
-of first region is an open question because it cannot be changed cheaply.
+later without redesign; moving an existing tenant between cells is an export and import. The first
+cell is Supabase `us-west-1` (N. California).

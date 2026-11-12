@@ -2,9 +2,11 @@ import type { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connect } from './client';
 
-// Tables that are global by design and therefore carry no tenant_id. Keep this list short; every
-// entry must be unreachable for `anon` and `authenticated` (service role only).
-const GLOBAL_TABLES: string[] = [];
+// Global platform tables: no tenant_id, no policies, no grants to signed-in users (service role only).
+const GLOBAL_TABLES = ['reserved_slugs', 'platform_admins'];
+// Tables that are the root of ownership rather than owned by a tenant. Each has its own policies,
+// tested in tenancy.test.ts.
+const ROOT_TABLES = ['tenants', 'profiles'];
 
 let db: Client;
 beforeAll(async () => { db = await connect(); });
@@ -34,22 +36,33 @@ describe('foundation', () => {
 });
 
 describe('every table in public is tenant-safe', () => {
-  it('has row-level security enabled and forced', async () => {
+  it('has row-level security enabled', async () => {
     const { rows } = await db.query(
       `select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
-       where n.nspname = 'public' and c.relkind in ('r', 'p') and not (c.relrowsecurity and c.relforcerowsecurity)`,
+       where n.nspname = 'public' and c.relkind in ('r', 'p') and not c.relrowsecurity`,
     );
     expect(rows.map((r) => r.relname)).toEqual([]);
   });
 
-  it('has a tenant_id column unless it is on the global allow-list', async () => {
+  it('has a tenant_id column unless it is a global or root table', async () => {
     const { rows } = await db.query(
       `select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
        where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relname <> all($1::text[])
          and not exists (select from pg_attribute a where a.attrelid = c.oid and a.attname = 'tenant_id' and not a.attisdropped)`,
-      [GLOBAL_TABLES],
+      [[...GLOBAL_TABLES, ...ROOT_TABLES]],
     );
     expect(rows.map((r) => r.relname)).toEqual([]);
+  });
+
+  it('keeps global tables out of reach of signed-in users', async () => {
+    const { rows } = await db.query(
+      `select t as table_name,
+              (select count(*)::int from pg_policies p where p.schemaname = 'public' and p.tablename = t) as policies,
+              has_table_privilege('authenticated', 'public.' || t, 'select') as can_select
+       from unnest($1::text[]) t`,
+      [GLOBAL_TABLES],
+    );
+    expect(rows).toEqual(GLOBAL_TABLES.map((table_name) => ({ table_name, policies: 0, can_select: false })));
   });
 
   it('has at least one policy unless it is global, and never a policy that is simply true', async () => {

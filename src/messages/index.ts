@@ -8,7 +8,18 @@ export type Locale = keyof typeof catalogs;
 export type MessageKey = keyof typeof en;
 export const DEFAULT_LOCALE: Locale = 'en';
 
-export function translator(locale: Locale) {
+export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+export function translator(locale: Locale): Translate {
   const messages: Record<MessageKey, string> = catalogs[locale];
-  return (key: MessageKey): string => messages[key];
+  return (key, vars) => {
+    let text = messages[key];
+    if (vars) for (const [name, value] of Object.entries(vars)) text = text.split(`{${name}}`).join(String(value));
+    return text;
+  };
+}
+
+// Picks the text for a locale from tenant-authored content such as {"en": "Chair", "es": "Mesa"}.
+export function localize(text: Record<string, string> | null | undefined, locale: Locale, fallback = ''): string {
+  return text?.[locale] || text?.[DEFAULT_LOCALE] || Object.values(text ?? {})[0] || fallback;
 }

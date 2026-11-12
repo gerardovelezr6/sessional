@@ -77,11 +77,40 @@ select app.create_tenant('demo-school', 'Demo School', (select id from auth.user
 The address must be 3–40 lowercase letters, digits or hyphens. Names the product needs itself
 (`demo`, `www`, `app`, `admin`, `api` and similar) are reserved and answer `slug_reserved`.
 
+### Sign in and invite your team (from Phase 1 part 3)
+
+1. Open `https://demo-school.sessional.app`. It sends you to the sign-in page. Use the email and
+   password of the user you added in Supabase → Authentication → Users. You arrive as Owner.
+2. A new school has only the Owner role. Until the role editor exists (Phase 9), add the usual
+   three with this query in the SQL Editor (change the address on the first line if yours differs):
+
+```sql
+with t as (select id from tenants where slug = 'demo-school'),
+r as (
+  insert into roles (tenant_id, key, name, rank, scope)
+  select t.id, v.key, v.name::jsonb, v.rank, v.scope from t,
+    (values ('advisor', '{"en":"Advisor","es":"Asesor"}', 10, 'tenant'),
+            ('high_command', '{"en":"High Command","es":"Alto Mando"}', 20, 'tenant'),
+            ('chair', '{"en":"Chair","es":"Mesa"}', 30, 'assigned')) as v(key, name, rank, scope)
+  on conflict do nothing
+)
+insert into role_permissions (tenant_id, role_key, permission)
+select t.id, k.key, p.permission from t,
+  (values ('advisor'), ('high_command')) as k(key),
+  (values ('users.view'), ('users.manage'), ('roles.manage'), ('conference.manage'), ('tenant.manage'), ('audit.view')) as p(permission)
+on conflict do nothing;
+```
+
+3. Home → "People and invitations" → fill in a name, email and role → "Create invitation".
+4. Copy the link and send it to the person yourself (WhatsApp, email). Nothing is emailed
+   automatically yet. The link works once, and only when they press Continue, so chat previews
+   do not use it up.
+
 ## 5. Stripe (billing phase)
 
 Stay in test mode. Nothing to do yet.
 
-## 6. Email provider (Phase 1 invites)
+## 6. Email provider (later)
 
-Create a Resend account. The key and the DNS records are requested in the pull request that
-needs them.
+Invitations are links you copy and send yourself for now. Automatic emails with your own sender
+address arrive in the email phase; a Resend account will be needed then, not before.

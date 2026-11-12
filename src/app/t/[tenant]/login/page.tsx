@@ -1,0 +1,25 @@
+import { redirect } from 'next/navigation';
+import { ActionForm } from '@/components/ActionForm';
+import { Field } from '@/components/Field';
+import { Shell } from '@/components/Shell';
+import { DEFAULT_LOCALE, translator } from '@/messages';
+import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { signInAction } from '../actions';
+
+export default async function LoginPage({ params }: { params: Promise<{ tenant: string }> }) {
+  const t = translator(DEFAULT_LOCALE);
+  const { tenant: key } = await params;
+  const tenant = await requireTenant(key);
+  if (await tenantContext(tenant.id)) redirect(`${await basePath()}/`);
+
+  return (
+    <Shell title={t('auth.signIn.title', { name: tenant.name })}>
+      <div className="card">
+        <ActionForm action={signInAction.bind(null, key)} submitLabel={t('auth.signIn')}>
+          <Field label={t('auth.email')} name="email" type="email" autoComplete="username" />
+          <Field label={t('auth.password')} name="password" type="password" autoComplete="current-password" />
+        </ActionForm>
+      </div>
+    </Shell>
+  );
+}

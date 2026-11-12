@@ -4,23 +4,23 @@ const PORT = 3100;
 const at = (host: string, path = '/') => `http://${host}:${PORT}${path}`;
 
 test('a tenant subdomain shows that tenant', async ({ page }) => {
-  const res = await page.goto(at('alpha.localhost'));
+  const res = await page.goto(at('alpha.localhost', '/login'));
   expect(res?.status()).toBe(200);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('School Alpha');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to School Alpha');
   await expect(page).toHaveTitle('School Alpha');
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   // The internal path never shows in the address bar.
-  expect(new URL(page.url()).pathname).toBe('/');
+  expect(new URL(page.url()).pathname).toBe('/login');
 });
 
 test('two subdomains show two different tenants', async ({ page }) => {
   await page.goto(at('beta.localhost'));
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('School Beta');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to School Beta');
 });
 
 test('a verified customer domain shows its tenant', async ({ page }) => {
   await page.goto(at('mun.example.test'));
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('School Alpha');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to School Alpha');
 });
 
 test('an unknown subdomain or domain is a 404', async ({ page }) => {
@@ -33,8 +33,8 @@ test('an unknown subdomain or domain is a 404', async ({ page }) => {
 
 test('an old address redirects to the new one', async ({ page }) => {
   await page.goto(at('beta-old.localhost'));
-  await expect(page).toHaveURL(at('beta.localhost'));
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('School Beta');
+  await expect(page).toHaveURL(at('beta.localhost', '/login'));
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to School Beta');
 });
 
 test('a suspended tenant shows nothing of itself', async ({ page }) => {
@@ -66,6 +66,7 @@ test('the service-role key never reaches the browser', async ({ page }) => {
   await page.goto(at('alpha.localhost'));
   await page.waitForLoadState('networkidle');
   expect(bodies.join('\n')).not.toContain('test-service-role-key');
+  expect(bodies.join('\n')).not.toContain('test-anon-key');
 });
 
 test('a database error shows a message instead of a broken page', async ({ page }) => {

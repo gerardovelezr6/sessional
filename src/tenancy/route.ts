@@ -7,9 +7,12 @@ import { isValidSlugFormat } from './slug';
 
 export const TENANT_PREFIX = '/t';
 export const CUSTOM_HOST_MARK = '~';
+// Set by the proxy (never accepted from the visitor): the path prefix of the tenant, if any.
+export const BASE_PATH_HEADER = 'x-sessional-base';
 
 export type RouteDecision =
-  | { action: 'next' }
+  // basePath is set when the request is a tenant page reached by path (previews).
+  | { action: 'next'; basePath?: string }
   | { action: 'rewrite'; path: string }
   | { action: 'not-found' };
 
@@ -42,7 +45,7 @@ export function decideRoute(hostHeader: string | null, pathname: string, opts: R
       if (!opts.allowTenantPaths) return { action: 'not-found' };
       // Path mode never reaches a custom-domain key: those are addressed by host only.
       const key = pathname.split('/')[2] ?? '';
-      return isValidSlugFormat(key) ? { action: 'next' } : { action: 'not-found' };
+      return isValidSlugFormat(key) ? { action: 'next', basePath: `${TENANT_PREFIX}/${key}` } : { action: 'not-found' };
     }
     case 'tenant':
       return { action: 'rewrite', path: `${TENANT_PREFIX}/${target.slug}${pathname === '/' ? '' : pathname}` };

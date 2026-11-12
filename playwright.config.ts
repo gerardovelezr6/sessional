@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = 3100;
 const MOCK_PORT = 3199;
 const SERVICE_KEY = 'test-service-role-key';
+const ANON_KEY = 'test-anon-key';
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -27,7 +28,7 @@ export default defineConfig({
     {
       command: 'node tests/e2e/support/mock-supabase.mjs',
       url: `http://localhost:${MOCK_PORT}/health`,
-      env: { MOCK_SUPABASE_PORT: String(MOCK_PORT), SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY },
+      env: { MOCK_SUPABASE_PORT: String(MOCK_PORT), SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY, NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY },
       reuseExistingServer: !process.env.CI,
     },
     {
@@ -37,6 +38,7 @@ export default defineConfig({
         ROOT_DOMAIN: `localhost:${PORT}`,
         NEXT_PUBLIC_SUPABASE_URL: `http://localhost:${MOCK_PORT}`,
         SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY,
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY,
       },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

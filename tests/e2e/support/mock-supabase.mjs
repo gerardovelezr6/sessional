@@ -15,6 +15,7 @@ const TENANTS = {
   'beta-old': { kind: 'renamed', slug: 'beta' },
   frozen: { kind: 'tenant', id: tid(3), slug: 'frozen', name: 'Frozen School', status: 'suspended' },
   gamma: { kind: 'tenant', id: tid(4), slug: 'gamma', name: 'New School', status: 'trialing' },
+  delta: { kind: 'tenant', id: tid(5), slug: 'delta', name: 'Colegio Delta', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -46,6 +47,17 @@ seed('hc@alpha.test', 'Hector Command', tid(1), 'high_command');
 seed('chair@alpha.test', 'Carla Chair', tid(1), 'chair');
 seed('owner@beta.test', 'Bruno Beta', tid(2), 'owner');
 seed('owner@gamma.test', 'Gina Gamma', tid(4), 'owner');
+seed('owner@delta.test', 'Diego Delta', tid(5), 'owner');
+
+// Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
+// and one broken stored value, which must fall back to its default instead of breaking the page.
+const CONFIG = {
+  [tid(5)]: {
+    locale: { version: 2, schema_version: 1, data: { defaultLocale: 'es' } },
+    people: { version: 1, schema_version: 1, data: { passwordMinLength: 12 } },
+    identity: { version: 3, schema_version: 1, data: { tagline: { es: 'La diplomacia primero', en: 'Diplomacy first' }, timeZone: 'Nowhere/Land' } },
+  },
+};
 addUser('stranger@else.test', 'correct-password', 'Sam Stranger');
 
 function issue(userId, lifetimeSeconds = 3600) {
@@ -105,6 +117,7 @@ const rpcs = {
     (EXTRA_ROLES[p_tenant] ??= []).push(...fresh);
     return { body: { added: fresh.length } };
   },
+  config_published: ({ p_tenant }) => ({ body: CONFIG[p_tenant] ?? {} }),
   find_account: ({ p_email }) => {
     const u = byEmail(String(p_email).trim().toLowerCase());
     return { body: u ? { id: u.id, password_set: u.password_set } : null };
@@ -118,7 +131,7 @@ const rpcs = {
     return { body: { user_id: p_user, activated: pending.length } };
   },
 };
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding']);
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {

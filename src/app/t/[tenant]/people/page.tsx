@@ -4,7 +4,8 @@ import { ActionForm } from '@/components/ActionForm';
 import { Field } from '@/components/Field';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
-import { DEFAULT_LOCALE, localize, translator, type MessageKey } from '@/messages';
+import { tenantTranslator } from '@/config/store';
+import { localize, type MessageKey } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { addStarterRolesAction, inviteAction, newLinkAction, type InviteState } from './actions';
 import { loadPeople, type Person } from './data';
@@ -17,13 +18,13 @@ const STATUS_KEY: Record<Person['status'], MessageKey> = {
 };
 
 export default async function PeoplePage({ params }: { params: Promise<{ tenant: string }> }) {
-  const t = translator(DEFAULT_LOCALE);
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
+  const { t, locale } = await tenantTranslator(tenant.id);
   const base = await basePath();
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
-  if (!ctx.can('users.view')) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} />;
+  if (!ctx.can('users.view')) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
 
   const people = await loadPeople(tenant.id, ctx.token);
   const canManage = ctx.can('users.manage');
@@ -32,7 +33,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
   const resultLabels = { link: t('people.invite.link'), copy: t('people.invite.copy'), copied: t('people.invite.copied') };
 
   return (
-    <Shell title={t('people.title')} wide>
+    <Shell title={t('people.title')} wide locale={locale}>
       <div className="flex flex-col gap-6">
         {onlyOwnerRole ? (
           <section className="card flex flex-col gap-4">
@@ -55,7 +56,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
                 <select className="input" id="role" name="role" required defaultValue={people.roles.at(-1)?.key}>
                   {people.roles.map((r) => (
                     <option key={r.key} value={r.key}>
-                      {localize(r.name, DEFAULT_LOCALE, r.key)}
+                      {localize(r.name, locale, r.key)}
                     </option>
                   ))}
                 </select>
@@ -83,7 +84,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
                   <tr key={m.userId} className="border-b border-border align-top">
                     <td className="py-3 pe-4 font-semibold text-on-surface">{m.fullName || '—'}</td>
                     <td className="py-3 pe-4">{m.email}</td>
-                    <td className="py-3 pe-4">{localize(m.roleName, DEFAULT_LOCALE, m.roleKey)}</td>
+                    <td className="py-3 pe-4">{localize(m.roleName, locale, m.roleKey)}</td>
                     <td className="py-3 pe-4">{t(STATUS_KEY[m.status])}</td>
                     <td className="py-3">
                       {canManage && m.status === 'invited' ? <NewLinkForm action={newLink} label={t('people.invite.newLink')} resultLabels={resultLabels} /> : null}

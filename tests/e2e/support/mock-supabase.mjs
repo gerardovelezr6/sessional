@@ -16,6 +16,7 @@ const TENANTS = {
   frozen: { kind: 'tenant', id: tid(3), slug: 'frozen', name: 'Frozen School', status: 'suspended' },
   gamma: { kind: 'tenant', id: tid(4), slug: 'gamma', name: 'New School', status: 'trialing' },
   delta: { kind: 'tenant', id: tid(5), slug: 'delta', name: 'Colegio Delta', status: 'active' },
+  epsilon: { kind: 'tenant', id: tid(6), slug: 'epsilon', name: 'Settings School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -48,6 +49,8 @@ seed('chair@alpha.test', 'Carla Chair', tid(1), 'chair');
 seed('owner@beta.test', 'Bruno Beta', tid(2), 'owner');
 seed('owner@gamma.test', 'Gina Gamma', tid(4), 'owner');
 seed('owner@delta.test', 'Diego Delta', tid(5), 'owner');
+seed('owner@epsilon.test', 'Erin Epsilon', tid(6), 'owner');
+seed('chair@epsilon.test', 'Cy Chair', tid(6), 'chair');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -117,7 +120,54 @@ const rpcs = {
     (EXTRA_ROLES[p_tenant] ??= []).push(...fresh);
     return { body: { added: fresh.length } };
   },
-  config_published: ({ p_tenant }) => ({ body: CONFIG[p_tenant] ?? {} }),
+  config_published: ({ p_tenant }) => {
+    const live = Object.fromEntries(
+      Object.entries(EDITS[p_tenant] ?? {})
+        .filter(([, s]) => s.published_version)
+        .map(([name, s]) => [name, { version: s.published_version, ...s.versions.find((v) => v.version === s.published_version).stored }]),
+    );
+    return { body: { ...(CONFIG[p_tenant] ?? {}), ...live } };
+  },
+  config_editor_state: ({ p_tenant }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { body: {} };
+    return {
+      body: Object.fromEntries(
+        Object.entries(EDITS[p_tenant] ?? {}).map(([name, s]) => [name, {
+          published_version: s.published_version,
+          published: s.published_version ? s.versions.find((v) => v.version === s.published_version).stored : null,
+          draft: s.draft,
+          history: [...s.versions].reverse().map((v) => ({ version: v.version, note: v.note, rolled_back_from: v.rolled_back_from, created_at: v.created_at, created_by_name: users.get(v.created_by)?.full_name ?? null })),
+        }]),
+      ),
+    };
+  },
+  config_save_draft: ({ p_tenant, p_section, p_data, p_schema_version }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return DENIED;
+    const s = sectionOf(p_tenant, p_section);
+    s.draft = { data: p_data, schema_version: p_schema_version, updated_at: new Date().toISOString() };
+    return { body: { section: p_section, draft: p_data } };
+  },
+  config_discard_draft: ({ p_tenant, p_section }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { body: null };
+    const s = sectionOf(p_tenant, p_section);
+    if (!s.draft) return { body: null };
+    s.draft = null;
+    return { body: { section: p_section, draft: null } };
+  },
+  config_publish: ({ p_tenant, p_section, p_note }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { body: null };
+    const s = sectionOf(p_tenant, p_section);
+    if (!s.draft) return { body: null };
+    const stored = { data: s.draft.data, schema_version: s.draft.schema_version };
+    s.draft = null;
+    return { body: append(s, stored, p_note, null, userId) };
+  },
+  config_rollback: ({ p_tenant, p_section, p_version, p_note }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { body: null };
+    const s = sectionOf(p_tenant, p_section);
+    const old = s.versions.find((v) => v.version === p_version);
+    return { body: old ? append(s, old.stored, p_note, p_version, userId) : null };
+  },
   find_account: ({ p_email }) => {
     const u = byEmail(String(p_email).trim().toLowerCase());
     return { body: u ? { id: u.id, password_set: u.password_set } : null };
@@ -131,6 +181,18 @@ const rpcs = {
     return { body: { user_id: p_user, activated: pending.length } };
   },
 };
+// Settings being edited in the tests: tenant -> section -> { published_version, draft, versions }.
+const EDITS = {};
+const DENIED = { status: 403, body: { code: '42501', message: 'new row violates row-level security policy' } };
+function sectionOf(tenant, section) {
+  return ((EDITS[tenant] ??= {})[section] ??= { published_version: null, draft: null, versions: [] });
+}
+function append(s, stored, note, rolledBackFrom, userId) {
+  const version = s.versions.length + 1;
+  s.versions.push({ version, stored, note: note ?? '', rolled_back_from: rolledBackFrom, created_at: new Date().toISOString(), created_by: userId });
+  s.published_version = version;
+  return { version, note: note ?? '', rolled_back_from: rolledBackFrom };
+}
 const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published']);
 
 const auth = {

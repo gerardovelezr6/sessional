@@ -160,3 +160,46 @@ describe('server-only functions', () => {
     expect(await call('service', 'complete_onboarding($1)', [randomUUID()])).toBeNull();
   });
 });
+
+describe('apply_role_preset', () => {
+  const preset = JSON.stringify([
+    { key: 'advisor', name: { en: 'Advisor' }, rank: 10, scope: 'tenant', permissions: ['users.view', 'users.manage'] },
+    { key: 'chair', name: { en: 'Changed' }, rank: 5, scope: 'tenant', permissions: ['users.manage'] },
+    { key: 'page', name: { en: 'Page' }, rank: 40, scope: 'assigned', permissions: [] },
+  ]);
+
+  it('lets an owner add roles with their permissions, leaving existing roles untouched', async () => {
+    const out = await as('owner', async (q) => {
+      const added = (await q(`select apply_role_preset($1, $2::jsonb) as r`, [A, preset])).rows[0].r;
+      const roles = (await q(`select key, rank, scope, name from roles where tenant_id = $1 and key in ('advisor', 'chair', 'page') order by key`, [A])).rows;
+      const perms = (await q(`select role_key, permission from role_permissions where tenant_id = $1 and role_key in ('advisor', 'chair', 'page') order by 1, 2`, [A])).rows;
+      const again = (await q(`select apply_role_preset($1, $2::jsonb) as r`, [A, preset])).rows[0].r;
+      return { added, roles, perms, again };
+    });
+    expect(out.added).toEqual({ added: 2 });
+    expect(out.roles).toEqual([
+      { key: 'advisor', rank: 10, scope: 'tenant', name: { en: 'Advisor' } },
+      { key: 'chair', rank: 30, scope: 'tenant', name: { en: 'Chair' } },
+      { key: 'page', rank: 40, scope: 'assigned', name: { en: 'Page' } },
+    ]);
+    expect(out.perms).toEqual([
+      { role_key: 'advisor', permission: 'users.manage' },
+      { role_key: 'advisor', permission: 'users.view' },
+    ]);
+    expect(out.again).toEqual({ added: 0 });
+  });
+
+  it('applies the rank rules: High Command cannot create a role above itself', async () => {
+    expect(await failure('hc', 'apply_role_preset($1, $2::jsonb)', [A, preset])).toMatch(/row-level security|above your own/);
+  });
+  it('is refused for people without the permission, other tenants and signed-out visitors', async () => {
+    expect(await failure('chair', 'apply_role_preset($1, $2::jsonb)', [A, preset])).toMatch(/row-level security|above your own/);
+    // A chair is stopped even for a role below their own rank: the permission is what counts.
+    expect(await failure('chair', 'apply_role_preset($1, $2::jsonb)', [A, '[{"key":"page","rank":40}]'])).toMatch(/row-level security/);
+    expect(await failure('owner', 'apply_role_preset($1, $2::jsonb)', [B, preset])).toMatch(/row-level security|Not a member/);
+    expect(await failure('anon', 'apply_role_preset($1, $2::jsonb)', [A, preset])).toMatch(/permission denied/);
+  });
+  it('rejects a malformed preset', async () => {
+    expect(await failure('owner', 'apply_role_preset($1, $2::jsonb)', [A, '{"key":"x"}'])).toMatch(/invalid preset/);
+  });
+});

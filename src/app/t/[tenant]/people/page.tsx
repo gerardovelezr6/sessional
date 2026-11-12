@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ActionForm } from '@/components/ActionForm';
 import { Field } from '@/components/Field';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
 import { DEFAULT_LOCALE, localize, translator, type MessageKey } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
-import { inviteAction, newLinkAction, type InviteState } from './actions';
+import { addStarterRolesAction, inviteAction, newLinkAction, type InviteState } from './actions';
 import { loadPeople, type Person } from './data';
 import { InviteForm, NewLinkForm } from './InviteForms';
 
@@ -26,11 +27,21 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
 
   const people = await loadPeople(tenant.id, ctx.token);
   const canManage = ctx.can('users.manage');
+  // A brand-new school: the only role that exists is Owner, so nobody can be invited as anything else.
+  const onlyOwnerRole = ctx.can('roles.manage') && people.roles.length === 1 && people.roles[0]?.key === 'owner';
   const resultLabels = { link: t('people.invite.link'), copy: t('people.invite.copy'), copied: t('people.invite.copied') };
 
   return (
     <Shell title={t('people.title')} wide>
       <div className="flex flex-col gap-6">
+        {onlyOwnerRole ? (
+          <section className="card flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-on-surface">{t('people.roles.title')}</h2>
+            <p>{t('people.roles.body')}</p>
+            <ActionForm action={addStarterRolesAction.bind(null, key)} submitLabel={t('people.roles.add')} />
+          </section>
+        ) : null}
+
         {canManage ? (
           <section className="card">
             <h2 className="mb-4 text-lg font-bold text-on-surface">{t('people.invite.title')}</h2>

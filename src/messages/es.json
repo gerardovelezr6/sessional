@@ -62,5 +62,9 @@
   "people.invite.error.role": "Elige un rol que puedas otorgar.",
   "people.invite.error.forbidden": "No tienes permiso para hacer eso.",
   "people.invite.error.member": "Esa persona ya está aquí.",
-  "people.invite.error.failed": "La invitación no se guardó. No se cambió nada; inténtalo de nuevo."
+  "people.invite.error.failed": "La invitación no se guardó. No se cambió nada; inténtalo de nuevo.",
+  "people.roles.title": "Agrega roles para tu equipo",
+  "people.roles.body": "Esta conferencia solo tiene el rol de Propietario por ahora. Agrega los roles iniciales habituales (Asesor, Alto Mando y Mesa) para invitar personas con ellos. Podrás renombrarlos o cambiarlos después.",
+  "people.roles.add": "Agregar roles estándar",
+  "people.roles.error.failed": "Los roles no se agregaron. No se cambió nada; inténtalo de nuevo."
 }

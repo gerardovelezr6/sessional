@@ -14,6 +14,9 @@
   --color-accent: var(--s-color-accent);
   --color-on-accent: var(--s-color-on-accent);
   --color-border: var(--s-color-border);
+  --color-border-strong: var(--s-color-border-strong);
+  --color-danger: var(--s-color-danger);
+  --color-on-danger: var(--s-color-on-danger);
 
   --radius-*: initial;
   --radius-control: var(--s-radius-control);
@@ -28,4 +31,21 @@
     color: var(--s-color-on-surface-muted);
     font-family: var(--s-font-sans);
   }
+}
+
+/* Shared control styles. Tokens only. */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-semibold transition-colors;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary { @apply bg-primary text-on-primary; }
+  .btn-secondary { @apply border border-border-strong bg-surface-raised text-on-surface; }
+  .input {
+    @apply w-full rounded-control border border-border-strong bg-surface-raised px-3 py-2 text-sm text-on-surface;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent;
+  }
+  .label { @apply mb-1 block text-xs font-bold tracking-widest text-on-surface-muted uppercase; }
+  .card { @apply rounded-surface border border-border bg-surface-raised p-6; }
+  .error-text { @apply text-sm font-semibold text-danger; }
 }

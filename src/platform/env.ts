@@ -17,6 +17,8 @@ export function isSecureOrigin(): boolean {
 export interface DatabaseEnv {
   url: string;
   serviceRoleKey: string;
+  // Public key that identifies the project; grants nothing by itself.
+  anonKey: string;
 }
 
 // Null when the deployment has no database configured yet.
@@ -26,5 +28,5 @@ export function databaseEnv(): DatabaseEnv | null {
   if (!url || !serviceRoleKey) return null;
   // Must be the project's API address (https://<ref>.supabase.co), not a database connection string.
   if (!/^https?:\/\/[^/\s]+$/.test(url)) return null;
-  return { url, serviceRoleKey };
+  return { url, serviceRoleKey, anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || '' };
 }

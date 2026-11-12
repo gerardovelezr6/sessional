@@ -11,6 +11,7 @@ const palette = {
   mist: '#DCE1E9',
   paper: '#F4F1EA',
   white: '#FFFFFF',
+  red: '#B3261E',
 } as const;
 
 export const defaultTokens: Tokens = {
@@ -23,6 +24,9 @@ export const defaultTokens: Tokens = {
   '--s-color-accent': palette.amber,
   '--s-color-on-accent': palette.navy,
   '--s-color-border': palette.mist,
+  '--s-color-border-strong': palette.slate,
+  '--s-color-danger': palette.red,
+  '--s-color-on-danger': palette.white,
   '--s-radius-control': '0.5rem',
   '--s-radius-surface': '0.75rem',
   '--s-font-sans': '"Montserrat Variable", Montserrat, ui-sans-serif, system-ui, sans-serif',
@@ -36,6 +40,9 @@ export const contrastPairs: ReadonlyArray<readonly [text: keyof Tokens, backgrou
   ['--s-color-on-surface-muted', '--s-color-surface-raised'],
   ['--s-color-on-primary', '--s-color-primary'],
   ['--s-color-on-accent', '--s-color-accent'],
+  ['--s-color-on-danger', '--s-color-danger'],
+  ['--s-color-danger', '--s-color-surface'],
+  ['--s-color-danger', '--s-color-surface-raised'],
 ];
 
 export function renderTokens(tokens: Tokens): string {

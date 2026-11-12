@@ -77,7 +77,7 @@ describe('decideRoute', () => {
     expect(decideRoute('sessional.app', '/t', prod)).toEqual({ action: 'not-found' });
   });
   it('allows the internal path on previews, for slugs only', () => {
-    expect(decideRoute('sessional-git-x.vercel.app', '/t/alpha/login', preview)).toEqual({ action: 'next' });
+    expect(decideRoute('sessional-git-x.vercel.app', '/t/alpha/login', preview)).toEqual({ action: 'next', basePath: '/t/alpha' });
     expect(decideRoute('sessional-git-x.vercel.app', '/t/~mun.school.edu', preview)).toEqual({ action: 'not-found' });
     expect(decideRoute('sessional-git-x.vercel.app', '/t/%7Emun.school.edu', preview)).toEqual({ action: 'not-found' });
   });

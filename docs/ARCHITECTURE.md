@@ -83,3 +83,29 @@ The internal `/t/…` path is refused on production hosts. On Vercel previews, w
 wildcard subdomains, `/t/{slug}` is allowed so a tenant can still be opened.
 
 A rename can take up to 60 seconds to be seen by every server instance.
+
+## Sign-in and invitations (Phase 1, part 3)
+
+- **Session:** two cookies (`s_at`, `s_rt`) that page scripts cannot read, scoped to the current
+  host only. A session on one school's address does not exist on another's. The request proxy
+  renews the session shortly before it expires.
+- **No keys or tokens in the browser:** the server talks to the authentication service and the
+  database (`src/auth/gotrue.ts`, `src/data/rpc.ts`: thin adapters over REST, each with a
+  5-second limit).
+- **Who may do what** comes from the database on every page (`tenant_context`), with the
+  person's own token, so row-level security decides. The server checks the permission again
+  before acting, and the database checks a third time on the write.
+- **Invitations:** the server creates the account and a one-time token; the link points at our
+  own `/set-password` page, which only shows a Continue button. The token is spent when the
+  person presses it, never on page load. A new link replaces the old one. Choosing a password
+  activates every pending invitation of that person.
+- **Someone who already has an account** (another school, an earlier year) is added as active
+  straight away and just signs in.
+- **Verified writes:** every write goes through `verifiedWrite`, which treats "no row came back"
+  as "not saved". The interface shows a confirmation only after the server returned the row.
+- **After a successful form action** the browser loads the next page afresh. A redirect issued
+  inside a server action would be rendered without the request proxy and show the wrong site.
+
+Not built yet: automatic invitation emails, the "your conferences" switcher on `app.`, the role
+editor, password reset started by the person themself, and sign-in rate limits beyond those of
+the authentication service.

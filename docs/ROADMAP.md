@@ -1,7 +1,7 @@
 # Roadmap
 
 Status: Phase 0 is merged. Phase 1 is in progress: part 1 of 3 (core schema, security policies,
-isolation tests) is up for review; part 2 is host routing, part 3 is sign-in and invites.
+isolation tests) is merged; part 2 (host routing) is up for review; part 3 is sign-in and invites.
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a
 "what to verify" checklist. Effort is in pull requests (a PR is roughly one focused working

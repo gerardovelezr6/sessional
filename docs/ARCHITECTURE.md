@@ -62,3 +62,24 @@ suspended or deleted tenant is invisible to its members.
 
 `tests/db/tenancy.test.ts` is the isolation matrix. A test fails if a table with `tenant_id` is
 missing from it.
+
+## Routing (Phase 1, part 2)
+
+| Host | Goes to |
+|---|---|
+| `sessional.app`, `www.` | Marketing pages |
+| `{slug}.sessional.app` | That tenant |
+| A verified customer domain | Its tenant |
+| `app.`, `admin.` | 404 until those areas are built |
+| Anything malformed | 404 |
+
+`src/proxy.ts` only classifies the host (`src/tenancy/host.ts`, `route.ts`: pure functions) and
+rewrites tenant requests to the internal path `/t/{key}/…`. It never touches the database. The
+tenant layout (`src/app/t/[tenant]/layout.tsx`) then resolves the tenant on the server through
+`resolve_tenant` (service role, cached for 60 seconds) and decides: render, 404, redirect an old
+address, or show "not available" for a suspended or deleted tenant without revealing its name.
+
+The internal `/t/…` path is refused on production hosts. On Vercel previews, which have no
+wildcard subdomains, `/t/{slug}` is allowed so a tenant can still be opened.
+
+A rename can take up to 60 seconds to be seen by every server instance.

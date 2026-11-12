@@ -1,5 +1,13 @@
 {
   "brand.wordmarkAlt": "sessional",
   "home.tagline": "Conference management for Model UN",
-  "home.status": "Coming soon"
+  "home.status": "Coming soon",
+  "common.poweredBy": "Powered by",
+  "notFound.title": "There is no conference here",
+  "notFound.body": "Check the address, or ask your organisers for the right link.",
+  "tenant.ready": "Your conference space is ready. Sign-in arrives in the next update.",
+  "tenant.unavailable.title": "This conference is not available",
+  "tenant.unavailable.body": "Please contact your organisers.",
+  "tenant.unconfigured.title": "Not connected yet",
+  "tenant.unconfigured.body": "This deployment has no database configured."
 }

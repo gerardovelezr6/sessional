@@ -69,10 +69,13 @@ pull request says whether this is needed.
 2. SQL Editor, with your email and the address you want:
 
 ```sql
-select app.create_tenant('demo', 'Demo School', (select id from auth.users where email = 'you@example.com'));
+select app.create_tenant('demo-school', 'Demo School', (select id from auth.users where email = 'you@example.com'));
 ```
 
-3. Open `https://demo.sessional.app`. It shows "Demo School".
+3. Open `https://demo-school.sessional.app`. It shows "Demo School".
+
+The address must be 3–40 lowercase letters, digits or hyphens. Names the product needs itself
+(`demo`, `www`, `app`, `admin`, `api` and similar) are reserved and answer `slug_reserved`.
 
 ## 5. Stripe (billing phase)
 

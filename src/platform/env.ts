@@ -23,5 +23,8 @@ export interface DatabaseEnv {
 export function databaseEnv(): DatabaseEnv | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, '');
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  return url && serviceRoleKey ? { url, serviceRoleKey } : null;
+  if (!url || !serviceRoleKey) return null;
+  // Must be the project's API address (https://<ref>.supabase.co), not a database connection string.
+  if (!/^https?:\/\/[^/\s]+$/.test(url)) return null;
+  return { url, serviceRoleKey };
 }

@@ -67,3 +67,15 @@ test('the service-role key never reaches the browser', async ({ page }) => {
   await page.waitForLoadState('networkidle');
   expect(bodies.join('\n')).not.toContain('test-service-role-key');
 });
+
+test('a database error shows a message instead of a broken page', async ({ page }) => {
+  await page.goto(at('broken.localhost'));
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Temporarily unavailable');
+});
+
+test('a database that never answers does not hang the page', async ({ page }) => {
+  const started = Date.now();
+  await page.goto(at('stalled.localhost'), { timeout: 15_000 });
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Temporarily unavailable');
+  expect(Date.now() - started).toBeLessThan(12_000);
+});

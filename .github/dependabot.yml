@@ -6,6 +6,12 @@ updates:
     open-pull-requests-limit: 5
     groups:
       minor-and-patch: { update-types: [minor, patch] }
+    ignore:
+      # Major jumps of the toolchain are scheduled by hand, not by bot.
+      - { dependency-name: typescript, update-types: ['version-update:semver-major'] }
+      - { dependency-name: eslint, update-types: ['version-update:semver-major'] }
+      # Pinned to the browser build used for local verification.
+      - { dependency-name: '@playwright/test' }
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }

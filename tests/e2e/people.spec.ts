@@ -210,3 +210,22 @@ test('an expiring session is renewed without signing the person out', async ({ p
   const after = (await jar.cookies()).find((c) => c.name === 's_at');
   expect(after?.value).not.toBe(short.access_token);
 });
+
+test('a new school with only the Owner role can add the standard roles in one click', async ({ page }) => {
+  await signIn(page, 'gamma.localhost', 'owner@gamma.test');
+  await page.goto(at('gamma.localhost', '/people'));
+  await expect(page.getByLabel('Role').locator('option')).toHaveText(['Owner']);
+  await expect(page.getByRole('heading', { name: 'Add roles for your team' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add standard roles' }).click();
+  await expect(page.getByLabel('Role').locator('option')).toHaveText(['Owner', 'Advisor', 'High Command', 'Chair']);
+  // Chair, the least senior, is preselected, and the prompt is gone.
+  await expect(page.getByLabel('Role')).toHaveValue('chair');
+  await expect(page.getByRole('heading', { name: 'Add roles for your team' })).toHaveCount(0);
+});
+
+test('schools that already have roles are not offered the starter set', async ({ page }) => {
+  await signIn(page, 'alpha.localhost', 'owner@alpha.test');
+  await page.goto(at('alpha.localhost', '/people'));
+  await expect(page.getByRole('button', { name: 'Add standard roles' })).toHaveCount(0);
+});

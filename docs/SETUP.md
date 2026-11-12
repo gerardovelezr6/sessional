@@ -81,25 +81,8 @@ The address must be 3–40 lowercase letters, digits or hyphens. Names the produ
 
 1. Open `https://demo-school.sessional.app`. It sends you to the sign-in page. Use the email and
    password of the user you added in Supabase → Authentication → Users. You arrive as Owner.
-2. A new school has only the Owner role. Until the role editor exists (Phase 9), add the usual
-   three with this query in the SQL Editor (change the address on the first line if yours differs):
-
-```sql
-with t as (select id from tenants where slug = 'demo-school'),
-r as (
-  insert into roles (tenant_id, key, name, rank, scope)
-  select t.id, v.key, v.name::jsonb, v.rank, v.scope from t,
-    (values ('advisor', '{"en":"Advisor","es":"Asesor"}', 10, 'tenant'),
-            ('high_command', '{"en":"High Command","es":"Alto Mando"}', 20, 'tenant'),
-            ('chair', '{"en":"Chair","es":"Mesa"}', 30, 'assigned')) as v(key, name, rank, scope)
-  on conflict do nothing
-)
-insert into role_permissions (tenant_id, role_key, permission)
-select t.id, k.key, p.permission from t,
-  (values ('advisor'), ('high_command')) as k(key),
-  (values ('users.view'), ('users.manage'), ('roles.manage'), ('conference.manage'), ('tenant.manage'), ('audit.view')) as p(permission)
-on conflict do nothing;
-```
+2. A new school has only the Owner role. On the People page, press "Add standard roles" to add
+   Advisor, High Command and Chair. (The role editor arrives in Phase 9.)
 
 3. Home → "People and invitations" → fill in a name, email and role → "Create invitation".
 4. Copy the link and send it to the person yourself (WhatsApp, email). Nothing is emailed

@@ -14,6 +14,7 @@ const TENANTS = {
   beta: { kind: 'tenant', id: tid(2), slug: 'beta', name: 'School Beta', status: 'active' },
   'beta-old': { kind: 'renamed', slug: 'beta' },
   frozen: { kind: 'tenant', id: tid(3), slug: 'frozen', name: 'Frozen School', status: 'suspended' },
+  gamma: { kind: 'tenant', id: tid(4), slug: 'gamma', name: 'New School', status: 'trialing' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -22,7 +23,10 @@ const ROLES = [
   { key: 'high_command', name: { en: 'High Command' }, rank: 20, all: false, permissions: ['users.view', 'users.manage'] },
   { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, permissions: [] },
 ];
-const roleOf = (key) => ROLES.find((r) => r.key === key);
+// A brand-new school has only the Owner role until its owner adds more.
+const EXTRA_ROLES = { [tid(4)]: [] };
+const rolesIn = (tenant) => (EXTRA_ROLES[tenant] ? [ROLES[0], ...EXTRA_ROLES[tenant]] : ROLES);
+const roleOf = (key) => [...ROLES, ...Object.values(EXTRA_ROLES).flat()].find((r) => r.key === key);
 
 const users = new Map(); // id -> { id, email, password, full_name, password_set }
 const memberships = []; // { tenant_id, user_id, role_key, status }
@@ -41,6 +45,7 @@ seed('owner@alpha.test', 'Olivia Owner', tid(1), 'owner');
 seed('hc@alpha.test', 'Hector Command', tid(1), 'high_command');
 seed('chair@alpha.test', 'Carla Chair', tid(1), 'chair');
 seed('owner@beta.test', 'Bruno Beta', tid(2), 'owner');
+seed('owner@gamma.test', 'Gina Gamma', tid(4), 'owner');
 addUser('stranger@else.test', 'correct-password', 'Sam Stranger');
 
 function issue(userId, lifetimeSeconds = 3600) {
@@ -82,7 +87,7 @@ const rpcs = {
     const members = visible
       .map((m) => ({ user_id: m.user_id, email: users.get(m.user_id).email, full_name: users.get(m.user_id).full_name, role_key: m.role_key, role_name: roleOf(m.role_key).name, rank: roleOf(m.role_key).rank, status: m.status, password_set: users.get(m.user_id).password_set }))
       .sort((a, b) => a.rank - b.rank || a.email.localeCompare(b.email));
-    const roles = ROLES.filter((r) => r.rank >= roleOf(mine.role_key).rank).map((r) => ({ key: r.key, name: r.name, rank: r.rank }));
+    const roles = rolesIn(p_tenant).filter((r) => r.rank >= roleOf(mine.role_key).rank).map((r) => ({ key: r.key, name: r.name, rank: r.rank }));
     return { body: { members, roles } };
   },
   add_member: ({ p_tenant, p_user, p_role, p_status }, userId) => {
@@ -92,6 +97,13 @@ const rpcs = {
     const row = { tenant_id: p_tenant, user_id: p_user, role_key: p_role, status: p_status ?? 'invited' };
     memberships.push(row);
     return { body: row };
+  },
+  apply_role_preset: ({ p_tenant, p_roles }, userId) => {
+    if (!can(userId, p_tenant, 'roles.manage')) return { status: 403, body: { code: '42501', message: 'new row violates row-level security policy' } };
+    const existing = rolesIn(p_tenant).map((r) => r.key);
+    const fresh = p_roles.filter((r) => !existing.includes(r.key)).map((r) => ({ key: r.key, name: r.name, rank: r.rank, all: false, permissions: r.permissions }));
+    (EXTRA_ROLES[p_tenant] ??= []).push(...fresh);
+    return { body: { added: fresh.length } };
   },
   find_account: ({ p_email }) => {
     const u = byEmail(String(p_email).trim().toLowerCase());

@@ -62,5 +62,9 @@
   "people.invite.error.role": "Choose a role you are allowed to give.",
   "people.invite.error.forbidden": "You are not allowed to do that.",
   "people.invite.error.member": "That person is already here.",
-  "people.invite.error.failed": "The invitation was not saved. Nothing was changed; please try again."
+  "people.invite.error.failed": "The invitation was not saved. Nothing was changed; please try again.",
+  "people.roles.title": "Add roles for your team",
+  "people.roles.body": "This conference only has the Owner role so far. Add the usual starting roles (Advisor, High Command and Chair) to invite people with them. You can rename or change them later.",
+  "people.roles.add": "Add standard roles",
+  "people.roles.error.failed": "The roles were not added. Nothing was changed; please try again."
 }

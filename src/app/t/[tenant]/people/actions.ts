@@ -1,8 +1,10 @@
 'use server';
 import { generateLink } from '@/auth/gotrue';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
+import type { FormState } from '@/components/ActionForm';
 import { DEFAULT_LOCALE, translator } from '@/messages';
-import { requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
+import { STARTER_ROLES } from '@/presets/roles';
+import { basePath, requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
 import { loadPeople } from './data';
 
 export interface InviteState {
@@ -100,4 +102,21 @@ export async function inviteAction(tenantKey: string, _state: InviteState, data:
 
 export async function newLinkAction(tenantKey: string, userId: string): Promise<InviteState> {
   return invite(tenantKey, { resendFor: userId });
+}
+
+// Gives a school that only has the Owner role the usual starting set.
+export async function addStarterRolesAction(tenantKey: string): Promise<FormState> {
+  const t = translator(DEFAULT_LOCALE);
+  const tenant = await requireTenant(tenantKey);
+  const ctx = await tenantContext(tenant.id);
+  if (!ctx?.can('roles.manage')) return { error: t('people.invite.error.forbidden') };
+  try {
+    const result = verifiedWrite(await rpc<{ added: number } | null>('apply_role_preset', { p_tenant: tenant.id, p_roles: STARTER_ROLES }, { token: ctx.token }), 'apply_role_preset');
+    if (result.added === 0) return { error: t('people.roles.error.failed') };
+  } catch (e) {
+    if (e instanceof RpcError && e.forbidden) return { error: t('people.invite.error.forbidden') };
+    if (e instanceof RpcError || e instanceof WriteNotApplied) return { error: t('people.roles.error.failed') };
+    throw e;
+  }
+  return { redirectTo: `${await basePath()}/people` };
 }

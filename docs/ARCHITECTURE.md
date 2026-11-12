@@ -131,4 +131,30 @@ Adding a setting means: the schema, a registry entry, labels in English and Span
 `tests/unit/config.test.ts` fail until all three exist and agree with each other.
 
 Already read from settings: the language of a school's pages, the minimum password length, and
-the tagline on the sign-in page. There is no screen to edit them yet (part 2).
+the tagline on the sign-in page.
+
+## Settings screens (Phase 2, part 2)
+
+`/settings` on a school's address, for people with `tenant.manage`.
+
+- **Generated, not hand-written:** each section's form is built from the registry
+  (`src/config/form.ts` and the settings page). Adding a setting to the schema and registry makes
+  it appear with its label, help text and the right control.
+- **Save, then publish:** "Save draft" stores the values after strict validation; nothing changes
+  for anyone. "Publish" makes the draft live as a new version, with an optional note.
+  "Discard draft" drops it.
+- **Unsaved changes** are marked next to the save control, which stays in view at the bottom of
+  the window, and the browser warns before leaving with them.
+- **Preview:** an editor can switch on "Preview my drafts" and browse the school with their
+  drafts applied, under a banner that stays until they leave preview. It is a cookie on that
+  address plus the permission; the cookie alone does nothing, and nobody else is affected.
+- **History:** every published version with who, when and why. "Restore this version" publishes a
+  copy of it as a new version; history is never rewritten.
+- **Messages only after the server confirmed:** each action answers with the saved row or an
+  error; an invalid value is reported next to its field and nothing is saved.
+
+A published change shows at once on the server instance that handled it and within 30 seconds
+on the others.
+
+Not built yet: preview of the sign-in page (preview needs a signed-in editor), a side-by-side
+diff between versions, and packs (part 3).

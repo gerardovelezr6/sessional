@@ -41,6 +41,13 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
             </Link>
           </p>
         ) : null}
+        {ctx.can('tenant.manage') ? (
+          <p>
+            <Link className="btn btn-secondary" href={`${base}/settings`}>
+              {t('home.settings')}
+            </Link>
+          </p>
+        ) : null}
         {signOut}
       </div>
     </Shell>

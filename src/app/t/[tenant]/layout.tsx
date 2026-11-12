@@ -6,6 +6,8 @@ import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
 import { parseTenantKey } from '@/tenancy/route';
+import { setPreviewAction, type SettingsState } from './settings/actions';
+import { ActionButton } from './settings/SectionForm';
 
 type Props = { params: Promise<{ tenant: string }>; children: React.ReactNode };
 
@@ -31,7 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // anything renders.
 export default async function TenantLayout({ params, children }: Props) {
   const t = translator(DEFAULT_LOCALE);
-  const found = await lookup((await params).tenant);
+  const key = (await params).tenant;
+  const found = await lookup(key);
 
   if (found.kind === 'none') notFound();
   if (found.kind === 'renamed') {
@@ -47,5 +50,17 @@ export default async function TenantLayout({ params, children }: Props) {
     const own = await tenantTranslator(found.tenant.id);
     return <Notice title={own.t('tenant.unavailable.title')} body={own.t('tenant.unavailable.body')} locale={own.locale} />;
   }
-  return children;
+  // An editor previewing their drafts always sees that they are: the banner cannot be dismissed
+  // while preview is on.
+  const own = await tenantTranslator(found.tenant.id);
+  if (!own.preview) return children;
+  return (
+    <>
+      <div role="status" className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-4 bg-accent px-4 py-2 text-sm font-semibold text-on-accent">
+        <span>{own.t('settings.preview.banner')}</span>
+        <ActionButton action={setPreviewAction.bind(null, key, false) as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('settings.preview.off')} />
+      </div>
+      {children}
+    </>
+  );
 }

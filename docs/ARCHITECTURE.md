@@ -109,3 +109,26 @@ A rename can take up to 60 seconds to be seen by every server instance.
 Not built yet: automatic invitation emails, the "your conferences" switcher on `app.`, the role
 editor, password reset started by the person themself, and sign-in rate limits beyond those of
 the authentication service.
+
+## Configuration (Phase 2, part 1)
+
+Everything a school can customise is one typed schema in `src/config/schema.ts`, stored as data.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Schema | `src/config/schema.ts` | Sections (`identity`, `locale`, `people` so far), each setting with its validation and default |
+| Registry | `src/config/registry.ts` | One entry per setting: label and help in every language, the control that edits it, who may change it. Drives the settings screens and `CONFIG.md` (next parts) |
+| Resolution | `src/config/resolve.ts` | Strict when saving (every problem reported, unknown settings refused); forgiving when rendering (a broken stored value falls back to its default and is logged, so a page never breaks) |
+| Migrations | `src/config/migrate.ts` | Stored settings are upgraded in code, one schema version at a time; never by SQL that patches JSON |
+| Store | `src/config/store.ts` | The live settings of a tenant for rendering, cached for 30 seconds per server instance |
+| Database | `config_versions`, `config_state` | Published versions are append-only; each section has at most one draft. Functions: save draft, discard, publish, roll back (publishes a copy of an older version), editor state |
+
+Publishing and rolling back are written to the audit log (section, version, note; never the
+content). Settings are read with the service role because pages for signed-out visitors need
+them too; editing needs the `tenant.manage` permission and is refused on a read-only tenant.
+
+Adding a setting means: the schema, a registry entry, labels in English and Spanish. The tests in
+`tests/unit/config.test.ts` fail until all three exist and agree with each other.
+
+Already read from settings: the language of a school's pages, the minimum password length, and
+the tagline on the sign-in page. There is no screen to edit them yet (part 2).

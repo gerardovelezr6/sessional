@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
+import { tenantTranslator } from '@/config/store';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
@@ -43,7 +44,8 @@ export default async function TenantLayout({ params, children }: Props) {
     return <Notice title={t('tenant.error.title')} body={t('tenant.error.body')} />;
   }
   if (isHidden(found.tenant.status)) {
-    return <Notice title={t('tenant.unavailable.title')} body={t('tenant.unavailable.body')} />;
+    const own = await tenantTranslator(found.tenant.id);
+    return <Notice title={own.t('tenant.unavailable.title')} body={own.t('tenant.unavailable.body')} locale={own.locale} />;
   }
   return children;
 }

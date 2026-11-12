@@ -2,12 +2,12 @@
 import { signInWithPassword, signOut } from '@/auth/gotrue';
 import { accessToken, clearSession, setSession } from '@/auth/session';
 import type { FormState } from '@/components/ActionForm';
-import { DEFAULT_LOCALE, translator } from '@/messages';
+import { tenantTranslator } from '@/config/store';
 import { basePath, requireTenant } from '@/tenancy/context';
 
 export async function signInAction(tenantKey: string, _state: FormState, data: FormData): Promise<FormState> {
-  const t = translator(DEFAULT_LOCALE);
-  await requireTenant(tenantKey);
+  const tenant = await requireTenant(tenantKey);
+  const { t } = await tenantTranslator(tenant.id);
   const email = String(data.get('email') ?? '').trim().toLowerCase();
   const password = String(data.get('password') ?? '');
   if (!email || !password) return { error: t('auth.error.missing') };

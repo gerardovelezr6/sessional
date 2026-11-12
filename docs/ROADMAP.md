@@ -1,8 +1,8 @@
 # Roadmap
 
-Status: Phase 0 is merged. Phase 1 is in progress: parts 1 and 2 are merged;
-part 3 (sign-in, invitations, people list) is up for review. The "your conferences" switcher moves to the
-start of Phase 2.
+Status: Phases 0 and 1 are merged. Phase 2 is in progress: part 1 (settings schema, versions,
+store) is up for review; part 2 is the settings screens with preview; part 3 is packs and the
+generated `CONFIG.md`. The "your conferences" switcher follows as its own small pull request.
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a
 "what to verify" checklist. Effort is in pull requests (a PR is roughly one focused working

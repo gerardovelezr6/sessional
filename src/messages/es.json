@@ -66,5 +66,18 @@
   "people.roles.title": "Agrega roles para tu equipo",
   "people.roles.body": "Esta conferencia solo tiene el rol de Propietario por ahora. Agrega los roles iniciales habituales (Asesor, Alto Mando y Mesa) para invitar personas con ellos. Podrás renombrarlos o cambiarlos después.",
   "people.roles.add": "Agregar roles estándar",
-  "people.roles.error.failed": "Los roles no se agregaron. No se cambió nada; inténtalo de nuevo."
+  "people.roles.error.failed": "Los roles no se agregaron. No se cambió nada; inténtalo de nuevo.",
+  "settings.identity": "Identidad",
+  "settings.locale": "Idioma",
+  "settings.people": "Personas e inicio de sesión",
+  "settings.identity.tagline": "Lema",
+  "settings.identity.tagline.help": "Una línea breve que aparece bajo el nombre de tu conferencia en la página de inicio de sesión.",
+  "settings.identity.timeZone": "Zona horaria",
+  "settings.identity.timeZone.help": "Las fechas y horas se muestran en esta zona horaria.",
+  "settings.locale.defaultLocale": "Idioma predeterminado",
+  "settings.locale.defaultLocale.help": "El idioma de las páginas de tu conferencia.",
+  "settings.people.passwordMinLength": "Longitud mínima de la contraseña",
+  "settings.people.passwordMinLength.help": "La menor cantidad de caracteres que puede tener una contraseña (de 8 a 128).",
+  "language.en": "Inglés",
+  "language.es": "Español"
 }

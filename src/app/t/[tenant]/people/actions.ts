@@ -2,7 +2,7 @@
 import { generateLink } from '@/auth/gotrue';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
 import type { FormState } from '@/components/ActionForm';
-import { DEFAULT_LOCALE, translator } from '@/messages';
+import { tenantTranslator } from '@/config/store';
 import { STARTER_ROLES } from '@/presets/roles';
 import { basePath, requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
 import { loadPeople } from './data';
@@ -30,8 +30,8 @@ async function setPasswordLink(email: string, fullName: string): Promise<string 
 
 // Invites a person, or (resendFor) issues a fresh link to someone already invited.
 async function invite(tenantKey: string, input: { email: string; fullName: string; roleKey: string } | { resendFor: string }): Promise<InviteState> {
-  const t = translator(DEFAULT_LOCALE);
   const tenant = await requireTenant(tenantKey);
+  const { t } = await tenantTranslator(tenant.id);
   const ctx = await tenantContext(tenant.id);
   if (!ctx?.can('users.manage')) return { error: t('people.invite.error.forbidden') };
 
@@ -106,8 +106,8 @@ export async function newLinkAction(tenantKey: string, userId: string): Promise<
 
 // Gives a school that only has the Owner role the usual starting set.
 export async function addStarterRolesAction(tenantKey: string): Promise<FormState> {
-  const t = translator(DEFAULT_LOCALE);
   const tenant = await requireTenant(tenantKey);
+  const { t } = await tenantTranslator(tenant.id);
   const ctx = await tenantContext(tenant.id);
   if (!ctx?.can('roles.manage')) return { error: t('people.invite.error.forbidden') };
   try {

@@ -65,6 +65,8 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   tenant_domains: { insert: `insert into tenant_domains (tenant_id, host) values ($1, 'intruder-${run}.example.org')`, params: (t) => [t] },
   tenant_slug_history: { insert: `insert into tenant_slug_history (tenant_id, slug, redirect_until, reserved_until) values ($1, 'intruder-${run}', now(), now())`, params: (t) => [t] },
   audit_log: { insert: `insert into audit_log (tenant_id, action) values ($1, 'intruder')`, params: (t) => [t] },
+  config_versions: { insert: `insert into config_versions (tenant_id, section, version, data, schema_version) values ($1, 'people', 99, '{}', 1)`, params: (t) => [t] },
+  config_state: { insert: `insert into config_state (tenant_id, section, draft, draft_schema_version) values ($1, 'locale', '{}', 1)`, params: (t) => [t] },
 };
 
 beforeAll(async () => {
@@ -93,6 +95,11 @@ beforeAll(async () => {
   );
   confA = (await db.query(`insert into conferences (tenant_id, name) values ($1, 'A 2027') returning id`, [A])).rows[0].id;
   confB = (await db.query(`insert into conferences (tenant_id, name) values ($1, 'B 2027') returning id`, [B])).rows[0].id;
+  // Published settings and a draft in each tenant, so there is something to steal.
+  for (const t of [A, B]) {
+    await db.query(`select app.config_append($1, null, 'people', '{"passwordMinLength": 12}', 1, 'seed', null)`, [t]);
+    await db.query(`insert into config_state (tenant_id, section, draft, draft_schema_version) values ($1, 'identity', '{}', 1)`, [t]);
+  }
   await db.query(`select app.rename_tenant($1, $2)`, [B, `gamma-${run}`]);
 });
 

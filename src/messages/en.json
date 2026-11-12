@@ -66,5 +66,18 @@
   "people.roles.title": "Add roles for your team",
   "people.roles.body": "This conference only has the Owner role so far. Add the usual starting roles (Advisor, High Command and Chair) to invite people with them. You can rename or change them later.",
   "people.roles.add": "Add standard roles",
-  "people.roles.error.failed": "The roles were not added. Nothing was changed; please try again."
+  "people.roles.error.failed": "The roles were not added. Nothing was changed; please try again.",
+  "settings.identity": "Identity",
+  "settings.locale": "Language",
+  "settings.people": "People and sign-in",
+  "settings.identity.tagline": "Tagline",
+  "settings.identity.tagline.help": "A short line shown under your conference name on the sign-in page.",
+  "settings.identity.timeZone": "Time zone",
+  "settings.identity.timeZone.help": "Dates and times are shown in this time zone.",
+  "settings.locale.defaultLocale": "Default language",
+  "settings.locale.defaultLocale.help": "The language of your conference's pages.",
+  "settings.people.passwordMinLength": "Minimum password length",
+  "settings.people.passwordMinLength.help": "The fewest characters a password may have (8 to 128).",
+  "language.en": "English",
+  "language.es": "Spanish"
 }

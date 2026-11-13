@@ -30,7 +30,9 @@ test('an owner signs in, sees their role, and signs out', async ({ page }) => {
   await signIn(page, 'alpha.localhost', 'owner@alpha.test');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('School Alpha');
   await expect(page.getByText('Your role: Owner')).toBeVisible();
-  await expect(page.getByText('Signed in as Olivia Owner')).toBeVisible();
+  await expect(page.getByText('Welcome, Olivia Owner')).toBeVisible();
+  // The header names who is signed in.
+  await expect(page.locator('header.app-header')).toContainText('Olivia Owner');
 
   // Tokens are not readable by page scripts.
   expect(await page.evaluate(() => document.cookie)).toBe('');
@@ -61,21 +63,21 @@ test('someone who is not a member gets no access', async ({ page }) => {
 test('a chair cannot open the people page', async ({ page }) => {
   await signIn(page, 'alpha.localhost', 'chair@alpha.test');
   await expect(page.getByText('Your role: Chair')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'People and invitations' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'People', exact: true })).toHaveCount(0);
   await page.goto(at('alpha.localhost', '/people'));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('You do not have access to this page');
 });
 
 test('High Command can only grant roles at or below its own', async ({ page }) => {
   await signIn(page, 'alpha.localhost', 'hc@alpha.test');
-  await page.getByRole('link', { name: 'People and invitations' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'People', exact: true }).click();
   await expect(page.getByLabel('Role').locator('option')).toHaveText(['High Command', 'Chair']);
 });
 
 test('invitation: link previews do not use it up, it works once, and the person ends up active', async ({ page, browser }) => {
   const email = `new-${unique()}@alpha.test`;
   await signIn(page, 'alpha.localhost', 'owner@alpha.test');
-  await page.getByRole('link', { name: 'People and invitations' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'People', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('People');
 
   await page.getByLabel('Name').fill('Nadia New');
@@ -117,7 +119,7 @@ test('invitation: link previews do not use it up, it works once, and the person 
   await guest.getByLabel('Repeat the password').fill('a-long-password');
   await guest.getByRole('button', { name: 'Save password' }).click();
   await expect(guest.getByText('Your role: Chair')).toBeVisible();
-  await expect(guest.getByText('Signed in as Nadia New')).toBeVisible();
+  await expect(guest.getByText('Welcome, Nadia New')).toBeVisible();
 
   // The link is spent.
   await guest.getByRole('button', { name: 'Sign out' }).click();

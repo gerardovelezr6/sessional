@@ -14,7 +14,7 @@ export default async function LoginPage({ params }: { params: Promise<{ tenant: 
   if (await tenantContext(tenant.id)) redirect(`${await basePath()}/`);
 
   return (
-    <Shell title={t('auth.signIn.title', { name: tenant.name })} subtitle={localize(config.identity.tagline, locale) || undefined} locale={locale}>
+    <Shell centered title={t('auth.signIn.title', { name: tenant.name })} subtitle={localize(config.identity.tagline, locale) || undefined} locale={locale}>
       <div className="card">
         <ActionForm action={signInAction.bind(null, key)} submitLabel={t('auth.signIn')}>
           <Field label={t('auth.email')} name="email" type="email" autoComplete="username" />

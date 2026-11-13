@@ -81,6 +81,46 @@
   }
   .error-text { @apply text-sm font-semibold text-danger; }
 
+  /* Choices shown as buttons or cards: a hidden radio followed by its visible face. */
+  .choice-face {
+    @apply inline-flex items-center gap-2 bg-surface-raised text-sm text-on-surface;
+    border: var(--s-border-width) solid var(--s-color-border-strong);
+    border-radius: var(--s-radius-control);
+    padding: var(--s-space-control-y) var(--s-space-control-x);
+  }
+  .choice-card {
+    @apply flex h-full flex-col gap-1 bg-surface-raised text-on-surface;
+    border: var(--s-border-width) solid var(--s-color-border-strong);
+    border-radius: var(--s-radius-surface);
+    padding: 0.75rem 1rem;
+  }
+  input:checked + .choice-face {
+    background: var(--s-color-primary);
+    color: var(--s-color-on-primary);
+    border-color: var(--s-color-primary);
+  }
+  input:checked + .choice-card {
+    border-color: var(--s-color-primary);
+    box-shadow: inset 0 0 0 2px var(--s-color-primary);
+  }
+  input:focus-visible + .choice-face,
+  input:focus-visible + .choice-card {
+    outline: 2px solid var(--s-color-accent);
+    outline-offset: 2px;
+  }
+
+  /* The settings menu: a vertical list on wide screens, a row on narrow ones. */
+  .side-nav a {
+    @apply block text-sm font-semibold text-on-surface-muted;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--s-radius-control);
+  }
+  .side-nav a[aria-current] {
+    background: var(--s-color-surface-raised);
+    color: var(--s-color-on-surface);
+    box-shadow: inset 3px 0 0 var(--s-color-primary);
+  }
+
   /* The bar at the top of every school page. */
   .app-header {
     @apply flex items-center gap-3 font-bold;
@@ -90,6 +130,17 @@
     padding: 0.75rem var(--s-space-surface);
   }
   .app-header img { @apply block h-8 w-auto; max-width: 12rem; }
+  .app-nav a {
+    @apply text-sm font-semibold;
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--s-radius-control);
+    opacity: 0.85;
+  }
+  .app-nav a:hover { opacity: 1; }
+  .app-nav a[aria-current] {
+    opacity: 1;
+    box-shadow: inset 0 -2px 0 currentColor;
+  }
 
   /* Page titles, optionally with a brand bar and an accent mark underneath. */
   .page-title { @apply relative font-bold text-on-surface; padding-bottom: 0.75rem; }
@@ -122,4 +173,9 @@
     border-color: var(--s-tab-active-border);
     box-shadow: inset 0 -3px 0 var(--s-tab-active-line);
   }
+}
+
+/* The current-item marker sits on the start side: the right in right-to-left pages. */
+[dir="rtl"] .side-nav a[aria-current] {
+  box-shadow: inset -3px 0 0 var(--s-color-primary);
 }

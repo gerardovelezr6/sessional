@@ -3,16 +3,18 @@ import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { NavLinks } from '@/components/NavLinks';
 import { enabledLocales, tenantTranslator } from '@/config/store';
 import { languageName } from '@/i18n/locales';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
+import { basePath, tenantContext } from '@/tenancy/context';
 import { parseTenantKey, SAFE_MODE_HEADER } from '@/tenancy/route';
 import { sanitizeCustomCss } from '@/theme/custom-css';
 import { assetUrl } from '@/data/storage';
 import { buildTheme, themeCss } from '@/theme/engine';
-import { setLanguageAction } from './actions';
+import { setLanguageAction, signOutAction } from './actions';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
 
@@ -96,14 +98,28 @@ export default async function TenantLayout({ params, children }: Props) {
   );
   const logo = assetUrl(found.tenant.id, own.config.theme.logo);
   const languages = enabledLocales(own.config);
+  const base = await basePath();
+  const ctx = await tenantContext(found.tenant.id).catch(() => null);
+  // Only the places this person can use.
+  const links = ctx?.membership
+    ? [
+        { href: `${base}/`, label: own.t('nav.home'), exact: true },
+        ...(ctx.can('users.view') ? [{ href: `${base}/people`, label: own.t('nav.people') }] : []),
+        ...(ctx.can('tenant.manage') ? [{ href: `${base}/settings`, label: own.t('nav.settings') }] : []),
+      ]
+    : [];
   const header = (
-    <header className="app-header">
-      {logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt={found.tenant.name} />
-      ) : (
-        <span>{found.tenant.name}</span>
-      )}
+    <header className="app-header flex-wrap">
+      <a href={`${base}/`} className="flex items-center">
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt={found.tenant.name} />
+        ) : (
+          <span>{found.tenant.name}</span>
+        )}
+      </a>
+      {links.length > 1 ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
+      <div className="ms-auto flex flex-wrap items-center gap-3">
       {languages.length > 1 ? (
         <LanguageSwitch
           action={setLanguageAction.bind(null, key)}
@@ -113,6 +129,13 @@ export default async function TenantLayout({ params, children }: Props) {
           labels={{ language: own.t('language.label'), change: own.t('language.change') }}
         />
       ) : null}
+      {ctx ? (
+        <div className="flex items-center gap-2 text-sm font-normal">
+          <span className="hidden sm:inline">{ctx.user.fullName || ctx.user.email}</span>
+          <ActionButton action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
+        </div>
+      ) : null}
+      </div>
     </header>
   );
   if (!own.preview) {

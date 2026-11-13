@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { choose, saveAndPublish } from './support/settings';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -64,25 +65,30 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-  await page.goto(at('zeta.localhost', '/settings'));
-  const design = page.getByRole('region', { name: 'Design' });
+  await page.goto(at('zeta.localhost', '/settings?section=theme'));
+  let design = page.locator('section#theme');
 
-  // Not a colour: refused, nothing saved.
-  await design.getByLabel('Brand colour').fill('red');
+  // Not a colour: refused, nothing saved, and what was typed stays.
+  await design.getByLabel('Brand colour, colour code').fill('red');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await expect(design.getByText('Some values are not valid. Nothing was saved.')).toBeVisible();
-  await expect(design.getByLabel('Brand colour')).toHaveValue('red');
+  await expect(design.getByLabel('Brand colour, colour code')).toHaveValue('red');
 
   // A rounded preset, with a brand colour far too pale for a button on a light page.
-  await design.getByLabel('Design preset').selectOption('modern-rounded');
-  await design.getByLabel('Brand colour').fill('#FDE68A');
-  await design.getByLabel('Uppercase labels').selectOption('on');
+  await choose(design, 'Design preset', 'Modern rounded');
+  await design.getByLabel('Brand colour, colour code').fill('#FDE68A');
+  await choose(design, 'Uppercase labels', 'On');
   await design.getByRole('button', { name: 'Save draft' }).click();
-  await expect(page.getByRole('region', { name: 'Design' }).getByText('Draft saved, not live yet')).toBeVisible();
+  await page.waitForURL(/done=draft/);
+  design = page.locator('section#theme');
+  await expect(design.getByText(/^You have unpublished changes/)).toBeVisible();
+  // The choices are kept: the card and the colour show what was saved.
+  await expect(design.getByRole('radio', { name: /Modern rounded/ })).toBeChecked();
+  await expect(design.getByLabel('Brand colour', { exact: true })).toHaveValue('#fde68a');
   // Still the old look: a draft is not live.
   expect(await style(page, '.btn-primary', 'border-radius')).toBe('8px');
 
-  await page.getByRole('button', { name: 'Preview my drafts' }).click();
+  await design.getByRole('button', { name: 'Preview my drafts' }).click();
   await expect(page.getByText('Preview: you are seeing your unpublished drafts.')).toBeVisible();
   await expect.poll(() => style(page, '.btn-primary', 'border-radius')).toBe('14px');
   expect(await style(page, '.label', 'text-transform')).toBe('uppercase');
@@ -100,9 +106,10 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   expect(await style(visitor, 'button[type=submit]', 'border-radius')).toBe('8px');
 
   await page.getByRole('button', { name: 'Leave preview' }).first().click();
-  await page.goto(at('zeta.localhost', '/settings'));
-  await page.getByRole('region', { name: 'Design' }).getByRole('button', { name: 'Publish' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Published. It is live now.' })).toBeVisible();
+  await page.goto(at('zeta.localhost', '/settings?section=theme'));
+  await page.locator('section#theme').getByRole('button', { name: 'Publish now' }).click();
+  await page.waitForURL(/done=published/);
+  await expect(page.locator('section#theme').getByRole('status')).toHaveText('Published. It is live now.');
 
   await visitor.reload();
   expect(await style(visitor, 'button[type=submit]', 'border-radius')).toBe('14px');
@@ -117,12 +124,10 @@ test('automatic mode follows the device: dark colours for a device set to dark',
   await owner.getByLabel('Password').fill('correct-password');
   await owner.getByRole('button', { name: 'Sign in' }).click();
   await owner.waitForURL((url) => !url.pathname.endsWith('/login'));
-  await owner.goto(at('zeta.localhost', '/settings'));
-  const design = owner.getByRole('region', { name: 'Design' });
-  await design.getByLabel('Light or dark').selectOption('auto');
-  await design.getByRole('button', { name: 'Save draft' }).click();
-  await owner.getByRole('region', { name: 'Design' }).getByRole('button', { name: 'Publish' }).click();
-  await expect(owner.getByRole('status').filter({ hasText: 'Published. It is live now.' })).toBeVisible();
+  await owner.goto(at('zeta.localhost', '/settings?section=theme'));
+  const design = owner.locator('section#theme');
+  await choose(design, 'Light or dark', 'Automatic');
+  await saveAndPublish(design);
   await owner.context().close();
 
   for (const scheme of ['light', 'dark'] as const) {

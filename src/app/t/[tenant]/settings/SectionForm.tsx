@@ -2,6 +2,9 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { SettingsState } from './actions';
+import { SettingField, type FieldLabels, type FieldView } from './fields';
+
+export type { FieldView };
 
 type Action = (state: SettingsState, data: FormData) => Promise<SettingsState>;
 
@@ -23,47 +26,40 @@ function useNavigateWhenDone(state: SettingsState) {
   }, [state]);
 }
 
-export interface FieldView {
-  // Setting key, used to match server-side field errors.
-  settingKey: string;
-  label: string;
-  help: string;
-  inputs: {
-    name: string;
-    caption?: string;
-    value: string;
-    kind: 'number' | 'text' | 'select' | 'asset' | 'textarea';
-    min?: number;
-    max?: number;
-    maxLength?: number;
-    options?: { value: string; label: string }[];
-    // Image settings: where the current image is shown from, and what the file picker accepts.
-    currentUrl?: string | null;
-    accept?: string;
-  }[];
+export interface FieldGroup {
+  id: string;
+  title?: string;
+  help?: string;
+  // Shown folded, for options most people never need; open when it already holds something.
+  collapsed?: boolean;
+  open?: boolean;
+  fields: FieldView[];
 }
 
-export interface AssetLabels {
-  remove: string;
-  none: string;
-  choose: string;
+function SubmitPublish({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" name="intent" value="publish" className="btn btn-primary" disabled={pending} aria-busy={pending}>
+      {label}
+    </button>
+  );
 }
 
-// The editable form of one section. Tracks unsaved changes, warns before leaving with them, and
-// keeps the save control in view.
+// The editable form of one section: its settings in titled groups, and one bar at the bottom to
+// save a draft or save and publish. Marks unsaved changes and warns before leaving with them.
 export function SectionForm({
   action,
-  fields,
+  groups,
   labels,
+  fieldLabels,
   formId,
-  assetLabels,
 }: {
   action: Action;
-  fields: FieldView[];
-  labels: { unsaved: string; save: string };
+  groups: FieldGroup[];
+  labels: { unsaved: string; save: string; saveAndPublish: string };
+  fieldLabels: FieldLabels;
   // Lets other components (the live preview) read this form as it changes.
   formId?: string;
-  assetLabels?: AssetLabels;
 }) {
   const [state, formAction] = useActionState(action, {});
   const [dirty, setDirty] = useState(false);
@@ -85,6 +81,15 @@ export function SectionForm({
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty, state.redirectTo]);
 
+  const errorOf = (view: FieldView) => [view.settingKey, ...(view.errorKeys ?? [])].map((k) => state.fieldErrors?.[k]).find(Boolean);
+  const fields = (list: FieldView[]) => (
+    <div className="flex flex-col gap-6">
+      {list.map((view) => (
+        <SettingField key={view.settingKey} view={view} valueOf={valueOf} error={errorOf(view)} labels={fieldLabels} />
+      ))}
+    </div>
+  );
+
   return (
     <form
       ref={form}
@@ -92,111 +97,42 @@ export function SectionForm({
       action={formAction}
       onInput={() => setDirty(snapshot() !== initial.current)}
       onChange={() => setDirty(snapshot() !== initial.current)}
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-8"
     >
-      {fields.map((field) => {
-        const error = state.fieldErrors?.[field.settingKey];
-        const helpId = `${field.inputs[0]!.name}-help`;
-        return (
-          <fieldset key={field.settingKey} className="grid grid-cols-1 gap-2 sm:grid-cols-[14rem_1fr]">
-            <legend className="label sm:float-start sm:w-56">{field.label}</legend>
-            <div className="flex flex-col gap-2 sm:col-start-2">
-              {field.inputs.map((input) => (
-                <div key={input.name} className="flex items-center gap-2">
-                  {input.caption ? (
-                    <label htmlFor={input.name} className="w-20 shrink-0 text-xs font-semibold text-on-surface-muted">
-                      {input.caption}
-                    </label>
-                  ) : null}
-                  {input.kind === 'asset' ? (
-                    <div className="flex flex-wrap items-center gap-3">
-                      <input type="hidden" name={input.name} value={valueOf(input.name, input.value)} />
-                      {input.currentUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={input.currentUrl} alt="" className="h-10 w-auto rounded-control border border-border" />
-                      ) : (
-                        <span className="text-xs text-on-surface-muted">{assetLabels?.none}</span>
-                      )}
-                      <input
-                        className="text-sm"
-                        type="file"
-                        id={input.name}
-                        name={`${input.name}.file`}
-                        accept={input.accept}
-                        aria-label={`${field.label}: ${assetLabels?.choose ?? ''}`}
-                        aria-describedby={helpId}
-                        aria-invalid={!!error}
-                      />
-                      {input.currentUrl ? (
-                        <label className="flex items-center gap-1 text-sm">
-                          <input type="checkbox" name={`${input.name}.remove`} defaultChecked={state.values?.[`${input.name}.remove`] === 'on'} aria-label={`${field.label}: ${assetLabels?.remove ?? ''}`} />
-                          {assetLabels?.remove}
-                        </label>
-                      ) : null}
-                    </div>
-                  ) : input.kind === 'textarea' ? (
-                    <textarea
-                      className="input font-mono"
-                      id={input.name}
-                      name={input.name}
-                      defaultValue={valueOf(input.name, input.value)}
-                      rows={8}
-                      maxLength={input.maxLength}
-                      spellCheck={false}
-                      aria-label={field.label}
-                      aria-describedby={helpId}
-                      aria-invalid={!!error}
-                    />
-                  ) : input.kind === 'select' ? (
-                    <select className="input" id={input.name} name={input.name} defaultValue={valueOf(input.name, input.value)} aria-label={input.caption ? undefined : field.label} aria-describedby={helpId} aria-invalid={!!error}>
-                      {input.options!.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      className="input"
-                      id={input.name}
-                      name={input.name}
-                      type={input.kind}
-                      defaultValue={valueOf(input.name, input.value)}
-                      min={input.min}
-                      max={input.max}
-                      maxLength={input.maxLength}
-                      aria-label={input.caption ? undefined : field.label}
-                      aria-describedby={helpId}
-                      aria-invalid={!!error}
-                    />
-                  )}
-                </div>
-              ))}
-              <p id={helpId} className="text-xs text-on-surface-muted">
-                {field.help}
-              </p>
-              {error ? (
-                <p role="alert" className="error-text whitespace-pre-line">
-                  {error}
-                </p>
-              ) : null}
-            </div>
-          </fieldset>
-        );
-      })}
+      {groups.map((g) =>
+        g.collapsed ? (
+          <details key={g.id} className="rounded-control border border-border p-4" open={g.open || g.fields.some((f) => !!errorOf(f))}>
+            <summary className="cursor-pointer font-bold text-on-surface">{g.title}</summary>
+            <p className="mb-4 mt-1 text-sm">{g.help}</p>
+            {fields(g.fields)}
+          </details>
+        ) : (
+          <section key={g.id} aria-labelledby={g.title ? `group-${g.id}` : undefined} className="flex flex-col gap-4">
+            {g.title ? (
+              <div>
+                <h3 id={`group-${g.id}`} className="text-base font-bold text-on-surface">
+                  {g.title}
+                </h3>
+                {g.help ? <p className="text-sm">{g.help}</p> : null}
+              </div>
+            ) : null}
+            {fields(g.fields)}
+          </section>
+        ),
+      )}
       {state.error ? (
         <p role="alert" className="error-text">
           {state.error}
         </p>
       ) : null}
-      {/* Always reachable: sticks to the bottom of the window while the form is on screen. */}
       <div className="card-footer">
         {dirty ? (
           <p role="status" className="text-sm font-semibold text-on-surface">
             {labels.unsaved}
           </p>
         ) : null}
-        <Submit label={labels.save} />
+        <Submit label={labels.save} variant="secondary" />
+        <SubmitPublish label={labels.saveAndPublish} />
       </div>
     </form>
   );

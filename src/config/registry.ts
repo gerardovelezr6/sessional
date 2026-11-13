@@ -22,15 +22,48 @@ export type Control =
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
+// How a choice is shown: a row of buttons for a few short options, cards for richer ones.
+export type Presentation = 'buttons' | 'cards' | 'dropdown';
+
 export interface Setting {
   section: SectionName;
   key: string;
+  // A heading the setting is listed under, within its section.
+  group?: SettingGroup;
+  presentation?: Presentation;
   labelKey: MessageKey;
   helpKey: MessageKey;
   // Who may change it.
   permission: string;
   control: Control;
 }
+
+export type SettingGroup = 'start' | 'brand' | 'type' | 'layout' | 'access' | 'advanced';
+
+export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: MessageKey }> = {
+  start: { title: 'settings.group.start', help: 'settings.group.start.help' },
+  brand: { title: 'settings.group.brand', help: 'settings.group.brand.help' },
+  type: { title: 'settings.group.type', help: 'settings.group.type.help' },
+  layout: { title: 'settings.group.layout', help: 'settings.group.layout.help' },
+  access: { title: 'settings.group.access', help: 'settings.group.access.help' },
+  advanced: { title: 'settings.group.advanced', help: 'settings.group.advanced.help' },
+};
+
+// The settings menu: sections grouped the way people look for them.
+export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
+  { label: 'settings.menu.conference', sections: ['identity', 'theme'] },
+  { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
+  { label: 'settings.menu.people', sections: ['people'] },
+];
+
+export const SECTION_HELP: Record<SectionName, MessageKey> = {
+  identity: 'settings.identity.description',
+  locale: 'settings.locale.description',
+  terminology: 'settings.terminology.description',
+  translations: 'settings.translations.description',
+  theme: 'settings.theme.description',
+  people: 'settings.people.description',
+};
 
 export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   identity: 'settings.identity',
@@ -63,7 +96,7 @@ export const registry: Setting[] = [
     control: { kind: 'locale' },
   },
   {
-    section: 'terminology', key: 'pack', permission: 'tenant.manage',
+    section: 'terminology', key: 'pack', permission: 'tenant.manage', presentation: 'cards',
     labelKey: 'settings.terminology.pack', helpKey: 'settings.terminology.pack.help',
     control: {
       kind: 'select',
@@ -86,87 +119,87 @@ export const registry: Setting[] = [
     control: { kind: 'translations' },
   },
   {
-    section: 'theme', key: 'preset', permission: 'theme.edit',
+    section: 'theme', key: 'preset', permission: 'theme.edit', group: 'start', presentation: 'cards',
     labelKey: 'settings.theme.preset', helpKey: 'settings.theme.preset.help',
     control: { kind: 'select', options: [{ value: 'sessional', labelKey: 'settings.theme.preset.sessional' }, { value: 'flat-institutional', labelKey: 'settings.theme.preset.flat-institutional' }, { value: 'classic-formal', labelKey: 'settings.theme.preset.classic-formal' }, { value: 'modern-rounded', labelKey: 'settings.theme.preset.modern-rounded' }, { value: 'high-contrast', labelKey: 'settings.theme.preset.high-contrast' }, { value: 'playful-school', labelKey: 'settings.theme.preset.playful-school' }] },
   },
   {
-    section: 'theme', key: 'logo', permission: 'theme.edit',
+    section: 'theme', key: 'logo', permission: 'theme.edit', group: 'brand',
     labelKey: 'settings.theme.logo', helpKey: 'settings.theme.logo.help',
     control: { kind: 'asset', asset: 'logo' },
   },
   {
-    section: 'theme', key: 'favicon', permission: 'theme.edit',
+    section: 'theme', key: 'favicon', permission: 'theme.edit', group: 'brand',
     labelKey: 'settings.theme.favicon', helpKey: 'settings.theme.favicon.help',
     control: { kind: 'asset', asset: 'favicon' },
   },
   {
-    section: 'theme', key: 'brand', permission: 'theme.edit',
+    section: 'theme', key: 'brand', permission: 'theme.edit', group: 'brand',
     labelKey: 'settings.theme.brand', helpKey: 'settings.theme.brand.help',
     control: { kind: 'color' },
   },
   {
-    section: 'theme', key: 'accent', permission: 'theme.edit',
+    section: 'theme', key: 'accent', permission: 'theme.edit', group: 'brand',
     labelKey: 'settings.theme.accent', helpKey: 'settings.theme.accent.help',
     control: { kind: 'color' },
   },
   {
-    section: 'theme', key: 'background', permission: 'theme.edit',
+    section: 'theme', key: 'background', permission: 'theme.edit', group: 'brand',
     labelKey: 'settings.theme.background', helpKey: 'settings.theme.background.help',
     control: { kind: 'color' },
   },
   {
-    section: 'theme', key: 'font', permission: 'theme.edit',
+    section: 'theme', key: 'font', permission: 'theme.edit', group: 'type', presentation: 'cards',
     labelKey: 'settings.theme.font', helpKey: 'settings.theme.font.help',
     control: { kind: 'select', optional: true, options: [{ value: 'montserrat', labelKey: 'settings.theme.font.montserrat' }, { value: 'inter', labelKey: 'settings.theme.font.inter' }, { value: 'source-serif', labelKey: 'settings.theme.font.source-serif' }, { value: 'nunito', labelKey: 'settings.theme.font.nunito' }, { value: 'atkinson', labelKey: 'settings.theme.font.atkinson' }, { value: 'system', labelKey: 'settings.theme.font.system' }] },
   },
   {
-    section: 'theme', key: 'radius', permission: 'theme.edit',
+    section: 'theme', key: 'radius', permission: 'theme.edit', group: 'type', presentation: 'buttons',
     labelKey: 'settings.theme.radius', helpKey: 'settings.theme.radius.help',
     control: { kind: 'select', optional: true, options: [{ value: 'none', labelKey: 'settings.theme.radius.none' }, { value: 'small', labelKey: 'settings.theme.radius.small' }, { value: 'medium', labelKey: 'settings.theme.radius.medium' }, { value: 'large', labelKey: 'settings.theme.radius.large' }] },
   },
   {
-    section: 'theme', key: 'density', permission: 'theme.edit',
+    section: 'theme', key: 'density', permission: 'theme.edit', group: 'type', presentation: 'buttons',
     labelKey: 'settings.theme.density', helpKey: 'settings.theme.density.help',
     control: { kind: 'select', optional: true, options: [{ value: 'compact', labelKey: 'settings.theme.density.compact' }, { value: 'comfortable', labelKey: 'settings.theme.density.comfortable' }, { value: 'spacious', labelKey: 'settings.theme.density.spacious' }] },
   },
   {
-    section: 'theme', key: 'uppercaseLabels', permission: 'theme.edit',
+    section: 'theme', key: 'uppercaseLabels', permission: 'theme.edit', group: 'type', presentation: 'buttons',
     labelKey: 'settings.theme.uppercaseLabels', helpKey: 'settings.theme.uppercaseLabels.help',
     control: { kind: 'select', optional: true, options: [{ value: 'on', labelKey: 'settings.theme.uppercaseLabels.on' }, { value: 'off', labelKey: 'settings.theme.uppercaseLabels.off' }] },
   },
   {
-    section: 'theme', key: 'shadows', permission: 'theme.edit',
+    section: 'theme', key: 'shadows', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
     labelKey: 'settings.theme.shadows', helpKey: 'settings.theme.shadows.help',
     control: { kind: 'select', optional: true, options: [{ value: 'on', labelKey: 'settings.theme.shadows.on' }, { value: 'off', labelKey: 'settings.theme.shadows.off' }] },
   },
   {
-    section: 'theme', key: 'contrast', permission: 'theme.edit',
+    section: 'theme', key: 'contrast', permission: 'theme.edit', group: 'access', presentation: 'buttons',
     labelKey: 'settings.theme.contrast', helpKey: 'settings.theme.contrast.help',
     control: { kind: 'select', optional: true, options: [{ value: 'standard', labelKey: 'settings.theme.contrast.standard' }, { value: 'high', labelKey: 'settings.theme.contrast.high' }] },
   },
   {
-    section: 'theme', key: 'headerStyle', permission: 'theme.edit',
+    section: 'theme', key: 'headerStyle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
     labelKey: 'settings.theme.headerStyle', helpKey: 'settings.theme.headerStyle.help',
     control: { kind: 'select', optional: true, options: [{ value: 'light', labelKey: 'settings.theme.headerStyle.light' }, { value: 'brand', labelKey: 'settings.theme.headerStyle.brand' }] },
   },
   {
-    section: 'theme', key: 'pageTitle', permission: 'theme.edit',
+    section: 'theme', key: 'pageTitle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
     labelKey: 'settings.theme.pageTitle', helpKey: 'settings.theme.pageTitle.help',
     control: { kind: 'select', optional: true, options: [{ value: 'plain', labelKey: 'settings.theme.pageTitle.plain' }, { value: 'bar', labelKey: 'settings.theme.pageTitle.bar' }] },
   },
   {
-    section: 'theme', key: 'tabStyle', permission: 'theme.edit',
+    section: 'theme', key: 'tabStyle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
     labelKey: 'settings.theme.tabStyle', helpKey: 'settings.theme.tabStyle.help',
     control: { kind: 'select', optional: true, options: [{ value: 'underline', labelKey: 'settings.theme.tabStyle.underline' }, { value: 'pill', labelKey: 'settings.theme.tabStyle.pill' }, { value: 'boxed', labelKey: 'settings.theme.tabStyle.boxed' }] },
   },
   {
-    section: 'theme', key: 'colorMode', permission: 'theme.edit',
+    section: 'theme', key: 'colorMode', permission: 'theme.edit', group: 'access', presentation: 'buttons',
     labelKey: 'settings.theme.colorMode', helpKey: 'settings.theme.colorMode.help',
     control: { kind: 'select', options: [{ value: 'light', labelKey: 'settings.theme.colorMode.light' }, { value: 'dark', labelKey: 'settings.theme.colorMode.dark' }, { value: 'auto', labelKey: 'settings.theme.colorMode.auto' }] },
   },
   {
-    section: 'theme', key: 'customCss', permission: 'theme.edit',
+    section: 'theme', key: 'customCss', permission: 'theme.edit', group: 'advanced',
     labelKey: 'settings.theme.customCss', helpKey: 'settings.theme.customCss.help',
     control: { kind: 'code', maxLength: 10000 },
   },

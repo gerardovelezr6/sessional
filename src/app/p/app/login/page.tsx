@@ -11,7 +11,7 @@ export default async function AppLoginPage() {
   const t = translator(DEFAULT_LOCALE);
   if (await accessToken()) redirect(`${await basePath()}/`);
   return (
-    <Shell title={t('app.signIn.title')}>
+    <Shell centered title={t('app.signIn.title')}>
       <div className="card">
         <ActionForm action={appSignInAction} submitLabel={t('auth.signIn')}>
           <Field label={t('auth.email')} name="email" type="email" autoComplete="username" />

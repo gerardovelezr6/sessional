@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { Field } from '@/components/Field';
@@ -96,11 +95,6 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
           </table>
         </section>
 
-        <p>
-          <Link className="btn btn-secondary" href={`${base}/`}>
-            {t('common.back')}
-          </Link>
-        </p>
       </div>
     </Shell>
   );

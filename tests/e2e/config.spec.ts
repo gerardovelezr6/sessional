@@ -25,7 +25,7 @@ test("a school's password rule is shown and enforced by the server", async ({ pa
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
   await expect(page.getByText('Tu rol: Propietario')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Personas e invitaciones' }).click();
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Personas', exact: true }).click();
   await page.getByLabel('Correo electrónico').fill(`nuevo-${Date.now().toString(36)}@delta.test`);
   await page.getByRole('button', { name: 'Crear invitación' }).click();
   const link = await page.getByLabel('Enlace de invitación').inputValue();

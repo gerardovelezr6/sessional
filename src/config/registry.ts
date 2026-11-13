@@ -53,7 +53,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'theme', 'structure'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'theme', 'structure', 'protocol'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people'] },
 ];
@@ -64,6 +64,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   terminology: 'settings.terminology.description',
   translations: 'settings.translations.description',
   structure: 'settings.structure.description',
+  protocol: 'settings.protocol.description',
   theme: 'settings.theme.description',
   people: 'settings.people.description',
 };
@@ -74,6 +75,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   terminology: 'settings.terminology',
   translations: 'settings.translations',
   structure: 'settings.structure',
+  protocol: 'settings.protocol',
   theme: 'settings.theme',
   people: 'settings.people',
 };
@@ -126,6 +128,11 @@ export const registry: Setting[] = [
     section: 'structure', key: 'types', permission: 'tenant.manage',
     labelKey: 'settings.structure.types', helpKey: 'settings.structure.types.help',
     control: { kind: 'structure' },
+  },
+  {
+    section: 'protocol', key: 'preset', permission: 'tenant.manage', presentation: 'cards',
+    labelKey: 'settings.protocol.preset', helpKey: 'settings.protocol.preset.help',
+    control: { kind: 'select', options: [{ value: 'un_style', labelKey: 'settings.protocol.preset.un_style' }, { value: 'harvard_style', labelKey: 'settings.protocol.preset.harvard_style' }, { value: 'thimun_style', labelKey: 'settings.protocol.preset.thimun_style' }, { value: 'reglamento_es', labelKey: 'settings.protocol.preset.reglamento_es' }] },
   },
   {
     section: 'translations', key: 'messages', permission: 'tenant.manage',

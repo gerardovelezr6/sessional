@@ -8,8 +8,9 @@ const config = [
   ...nextTs,
   {
     files: ['src/**/*.{ts,tsx}'],
-    // src/theme defines the tokens, so it is the one place raw values may appear.
-    ignores: ['src/theme/**'],
+    // src/theme defines the tokens, so it is the one place raw values may appear; preset data
+    // (colours of standard committee categories and parties) is data, not styling.
+    ignores: ['src/theme/**', 'src/structure/presets.ts'],
     plugins: { sessional },
     rules: {
       'sessional/no-raw-design-values': 'error',

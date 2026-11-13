@@ -49,6 +49,7 @@ export function readForm(section: SectionName, form: FormData, locales: string[]
         break;
       }
       case 'translations':
+      case 'structure':
         // Edited on its own page; the settings form never sends it.
         break;
       case 'code':

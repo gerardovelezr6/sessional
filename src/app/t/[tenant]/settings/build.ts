@@ -43,6 +43,7 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
     const c = setting.control;
     switch (c.kind) {
       case 'translations':
+      case 'structure':
       case 'locale':
         break; // shown with the list of languages, or on its own page
       case 'localeList':

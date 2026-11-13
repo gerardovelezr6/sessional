@@ -42,6 +42,7 @@
     padding: var(--s-space-control-y) var(--s-space-control-x);
   }
   .btn-primary { @apply bg-primary text-on-primary; }
+  .btn-danger { @apply bg-danger text-on-danger; }
   .btn-secondary {
     @apply border-border-strong bg-surface-raised text-on-surface;
     border-style: solid;

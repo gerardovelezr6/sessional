@@ -301,3 +301,32 @@ committees), editable email texts (email phase), flags (Phase 5).
   - the Design section is split into Starting point, Logo and colours, Text and shapes, Page
     layout, Readability and Advanced (folded; custom CSS).
 - Registry entries carry an optional `group` and `presentation` (`buttons`, `cards`, `dropdown`).
+
+## Structure: committee types, committees and delegates (Phase 5)
+
+- **Types and categories are configuration**, not tables: the `structure` section of the school's
+  settings (`src/structure/schema.ts`), versioned, previewed and published like any other section,
+  edited on `/settings/structure`. A type decides the delegate list's main column, where flags come
+  from (`country`, `country_in_text`, `us_state`, `group_logo`, `none`), its groups (parties, sides)
+  with colours, short names, aliases and uploaded logos, extra fields, the column order for pasting,
+  and whether it has a confidential topic. The six reference types (Standard, Specialized, US
+  Senate, Mexican Senate, ICC, Crisis) are plain data in `src/structure/presets.ts`, added with one
+  button and editable afterwards. A type or category used by a committee cannot be removed.
+- **Committees and delegates are tables** (`committees`, `committee_chairs`, `delegates`,
+  `committee_secrets`), each with `tenant_id`, composite keys and row-level security, in the
+  isolation matrix. Committees belong to the active `conference`; `type_key` and `category_key`
+  point into the structure and are checked by the server action.
+- **Who sees what**: every member sees committees and their chairs; delegates are read by managers
+  (`committee.manage`) and by a committee's own chairs; chairs with `delegates.manage` edit them.
+  Starter roles gain these permissions in the migration.
+- **Confidential topics** live in their own table. Organisers read them always; chairs only from
+  `conferences.secrets_unlocked_at` (now, a scheduled time, or never). The rule is in the database
+  (`app.secrets_readable()`), so the topic never reaches a chair's browser early. "Show when half
+  the committees are in session" needs sessions and comes with Phase 6.
+- **Bulk add**: `parseBulk` checks pasted rows in the browser (tabs, semicolons or commas; groups
+  matched by name, short name or alias; duplicates; flags previewed); the server checks every row
+  again before one `delegates_add` call of up to 500 rows.
+- **Flags**: countries from `flag-icons`, US states from `public/flags/us`, groups from uploaded
+  logos (PNG, JPEG or WebP, 512 KB). A delegate can override the automatic flag.
+- **Order**: committees are ordered by dragging or arrows; the order is saved at once and kept only
+  if the database confirms every committee moved. Delegates are listed alphabetically.

@@ -23,13 +23,14 @@ const TENANTS = {
   iota: { kind: 'tenant', id: tid(10), slug: 'iota', name: 'Import School', status: 'active' },
   kappa: { kind: 'tenant', id: tid(11), slug: 'kappa', name: 'مدرسة كابا', status: 'active' },
   lambda: { kind: 'tenant', id: tid(12), slug: 'lambda', name: 'Lambda School', status: 'active' },
+  mumun: { kind: 'tenant', id: tid(13), slug: 'mumun', name: 'Committee School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
 const ROLES = [
   { key: 'owner', name: { en: 'Owner', es: 'Propietario' }, rank: 0, all: true, permissions: [] },
   { key: 'high_command', name: { en: 'High Command' }, rank: 20, all: false, permissions: ['users.view', 'users.manage'] },
-  { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, permissions: [] },
+  { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, permissions: ['committee.run', 'delegates.manage'] },
 ];
 // A brand-new school has only the Owner role until its owner adds more.
 const EXTRA_ROLES = { [tid(4)]: [] };
@@ -63,6 +64,10 @@ seed('owner@theta.test', 'Theo Theta', tid(9), 'owner');
 seed('owner@iota.test', 'Ivy Iota', tid(10), 'owner');
 seed('owner@kappa.test', 'Karim Kappa', tid(11), 'owner');
 seed('owner@lambda.test', 'Lena Lambda', tid(12), 'owner');
+seed('owner@mu.test', 'Mia Mu', tid(13), 'owner');
+seed('chair@mu.test', 'Chris Chair', tid(13), 'chair');
+seed('chair2@mu.test', 'Dana Chair', tid(13), 'chair');
+seed('hc@mu.test', 'Hal Command', tid(13), 'high_command');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -233,6 +238,156 @@ function append(s, stored, note, rolledBackFrom, userId) {
   s.published_version = version;
   return { version, note: note ?? '', rolled_back_from: rolledBackFrom };
 }
+// --- Committees (Phase 5): the same rules as the database, kept in memory. ---
+const conferences = []; // { id, tenant_id, name, status, secrets_unlocked_at, created_at }
+const committees = []; // { id, tenant_id, conference_id, name, ..., sort_order }
+const chairs = []; // { committee_id, user_id }
+const delegates = []; // { id, committee_id, label, name, group_key, flag, extra, created_at }
+const secrets = new Map(); // committee id -> topic
+const activeConference = (tenant) => conferences.filter((f) => f.tenant_id === tenant && f.status === 'active').at(-1) ?? null;
+const committeeById = (id) => committees.find((c) => c.id === id);
+const isChairOf = (userId, id) => chairs.some((c) => c.committee_id === id && c.user_id === userId);
+const manages = (userId, tenant) => can(userId, tenant, 'committee.manage');
+const seesDelegates = (userId, c) => manages(userId, c.tenant_id) || (isChairOf(userId, c.id) && (can(userId, c.tenant_id, 'committee.run') || can(userId, c.tenant_id, 'delegates.manage')));
+const editsDelegates = (userId, c) => manages(userId, c.tenant_id) || (isChairOf(userId, c.id) && can(userId, c.tenant_id, 'delegates.manage'));
+const nameOf = (id) => {
+  const u = users.get(id);
+  return u.full_name || u.email;
+};
+const pick = (c) => ({ ...c });
+const delegateRow = (d) => ({ id: d.id, label: d.label, name: d.name, group_key: d.group_key, flag: d.flag, extra: d.extra });
+
+Object.assign(rpcs, {
+  current_conference: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? activeConference(p_tenant) : null }),
+  conference_start: ({ p_tenant, p_name }, userId) => {
+    if (!manages(userId, p_tenant)) return DENIED;
+    const row = { id: randomUUID(), tenant_id: p_tenant, name: String(p_name).trim(), status: 'active', secrets_unlocked_at: null, created_at: new Date().toISOString() };
+    conferences.push(row);
+    return { body: row };
+  },
+  committees_overview: ({ p_tenant }, userId) => {
+    if (!memberOf(userId, p_tenant)) return { body: { conference: null, committees: [] } };
+    const conf = activeConference(p_tenant);
+    const list = conf ? committees.filter((c) => c.conference_id === conf.id).sort((a, b) => a.sort_order - b.sort_order) : [];
+    return {
+      body: {
+        conference: conf,
+        committees: list.map((c) => ({
+          id: c.id, name: c.name, abbreviation: c.abbreviation, topic: c.topic, category_key: c.category_key, type_key: c.type_key, language: c.language, sort_order: c.sort_order,
+          delegates: seesDelegates(userId, c) ? delegates.filter((d) => d.committee_id === c.id).length : 0,
+          chairs: chairs.filter((x) => x.committee_id === c.id).map((x) => ({ user_id: x.user_id, name: nameOf(x.user_id) })),
+          is_chair: isChairOf(userId, c.id),
+        })),
+      },
+    };
+  },
+  committee_detail: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !memberOf(userId, c.tenant_id)) return { body: null };
+    const conf = conferences.find((f) => f.id === c.conference_id);
+    const unlocked = conf.secrets_unlocked_at && new Date(conf.secrets_unlocked_at).getTime() <= Date.now();
+    const readsSecret = manages(userId, c.tenant_id) || can(userId, c.tenant_id, 'crisis.view') || (unlocked && isChairOf(userId, c.id) && can(userId, c.tenant_id, 'committee.run'));
+    return {
+      body: {
+        committee: pick(c),
+        conference: { id: conf.id, name: conf.name, secrets_unlocked_at: conf.secrets_unlocked_at },
+        chairs: chairs.filter((x) => x.committee_id === c.id).map((x) => x.user_id),
+        delegates: seesDelegates(userId, c)
+          ? delegates
+              .filter((d) => d.committee_id === c.id)
+              .sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase()))
+              .map(delegateRow)
+          : [],
+        secret: readsSecret ? (secrets.get(c.id) ?? null) : null,
+      },
+    };
+  },
+  committee_save: ({ p_tenant, p_data }, userId) => {
+    if (!manages(userId, p_tenant)) return DENIED;
+    const fields = {
+      name: String(p_data.name).trim(), abbreviation: p_data.abbreviation ?? '', topic: p_data.topic ?? '', description: p_data.description ?? '',
+      category_key: p_data.category_key || null, type_key: p_data.type_key || 'standard', language: p_data.language || null,
+    };
+    if (!p_data.id) {
+      const conf = activeConference(p_tenant);
+      if (!conf) return { status: 400, body: { code: '22023', message: 'no conference' } };
+      const mine = committees.filter((c) => c.conference_id === conf.id);
+      const row = { id: randomUUID(), tenant_id: p_tenant, conference_id: conf.id, ...fields, sort_order: mine.length ? Math.max(...mine.map((c) => c.sort_order)) + 1 : 0, created_at: new Date().toISOString() };
+      committees.push(row);
+      return { body: row };
+    }
+    const c = committeeById(p_data.id);
+    if (!c || c.tenant_id !== p_tenant) return { body: null };
+    Object.assign(c, fields);
+    return { body: pick(c) };
+  },
+  committee_delete: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !manages(userId, c.tenant_id)) return { body: null };
+    committees.splice(committees.indexOf(c), 1);
+    for (let i = delegates.length - 1; i >= 0; i--) if (delegates[i].committee_id === c.id) delegates.splice(i, 1);
+    for (let i = chairs.length - 1; i >= 0; i--) if (chairs[i].committee_id === c.id) chairs.splice(i, 1);
+    secrets.delete(c.id);
+    return { body: { id: c.id } };
+  },
+  committees_reorder: ({ p_tenant, p_ids }, userId) => {
+    if (!manages(userId, p_tenant)) return { body: 0 };
+    let moved = 0;
+    p_ids.forEach((id, i) => {
+      const c = committeeById(id);
+      if (c && c.tenant_id === p_tenant) {
+        c.sort_order = i + 1;
+        moved++;
+      }
+    });
+    return { body: moved };
+  },
+  committee_set_chairs: ({ p_committee, p_users }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !manages(userId, c.tenant_id)) return { body: null };
+    if (p_users.some((u) => !memberships.some((m) => m.user_id === u && m.tenant_id === c.tenant_id))) return { status: 409, body: { code: '23503', message: 'foreign key violation' } };
+    for (let i = chairs.length - 1; i >= 0; i--) if (chairs[i].committee_id === c.id) chairs.splice(i, 1);
+    p_users.forEach((u) => chairs.push({ committee_id: c.id, user_id: u }));
+    return { body: [...p_users].sort() };
+  },
+  committee_set_secret: ({ p_committee, p_topic }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !manages(userId, c.tenant_id)) return { body: null };
+    const topic = String(p_topic ?? '').trim();
+    if (topic) secrets.set(c.id, topic);
+    else secrets.delete(c.id);
+    return { body: { committee_id: c.id, topic: topic || null } };
+  },
+  conference_set_unlock: ({ p_conference, p_at }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !manages(userId, f.tenant_id)) return { body: null };
+    f.secrets_unlocked_at = p_at;
+    return { body: { id: f.id, secrets_unlocked_at: p_at } };
+  },
+  delegates_add: ({ p_committee, p_rows }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !editsDelegates(userId, c)) return DENIED;
+    const added = p_rows.map((r) => {
+      const d = { id: randomUUID(), committee_id: c.id, label: String(r.label).trim(), name: String(r.name ?? '').trim(), group_key: r.group_key || null, flag: r.flag || null, extra: r.extra ?? {}, created_at: new Date().toISOString() };
+      delegates.push(d);
+      return { id: d.id, label: d.label };
+    });
+    return { body: added };
+  },
+  delegate_update: ({ p_delegate, p_data }, userId) => {
+    const d = delegates.find((x) => x.id === p_delegate);
+    if (!d || !editsDelegates(userId, committeeById(d.committee_id))) return { body: null };
+    Object.assign(d, { label: String(p_data.label).trim(), name: String(p_data.name ?? '').trim(), group_key: p_data.group_key || null, flag: p_data.flag || null, extra: p_data.extra ?? d.extra });
+    return { body: delegateRow(d) };
+  },
+  delegate_delete: ({ p_delegate }, userId) => {
+    const d = delegates.find((x) => x.id === p_delegate);
+    if (!d || !editsDelegates(userId, committeeById(d.committee_id))) return { body: null };
+    delegates.splice(delegates.indexOf(d), 1);
+    return { body: { id: d.id } };
+  },
+});
+
 const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published']);
 
 const auth = {

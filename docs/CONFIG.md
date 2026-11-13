@@ -42,6 +42,15 @@ Spanish: Palabras
 | Advisor (one) | `terminology.advisor` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
 | Advisors (several) | `terminology.advisors` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
 
+## Committee types (`structure`)
+
+Spanish: Tipos de comité
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Categories | `structure.categories` | (none) | edited on the committee types page | `tenant.manage` | Groups of committees, such as General Assembly or Security Council, each with a colour. |
+| Types | `structure.types` | `[{"key":"standard","name":{"en":"Standard","es":"Estándar"},"defaultCategory":null,"labelField":{"en":"Country","es":"País"},"flag":"country","groupLabel":{},"groups":[],"groupRequired":false,"confidentialTopic":false,"fields":[],"bulk":["label","name"]}]` | edited on the committee types page | `tenant.manage` | Kinds of committee: what the delegate list holds, where flags come from, and groups such as parties or sides. |
+
 ## Translations (`translations`)
 
 Spanish: Traducciones

@@ -1,6 +1,6 @@
 # ADR-0007 — Protocol engine
 
-Status: proposed · Date: 2026-11-10
+Status: accepted; built step by step in Phase 6 (part 1: engine, sessions, roll call) · Date: 2026-11-10
 
 ## Decision
 
@@ -60,3 +60,26 @@ revision it was based on.
 Unit tests per rule and preset (quorum tables, majority edge cases, veto, precedence ordering),
 property tests for the reducer (replaying a command twice changes nothing; any order of commuting
 commands gives the same state), and Playwright runs that drop the network mid-vote.
+
+## As built (Phase 6, part 1)
+
+- The pack schema (`src/protocol/schema.ts`) grows one area per pull request, each new field with
+  a default so packs saved earlier stay valid. Part 1 has attendance states, quorum for debate and
+  for voting, named majorities and session rules; thresholds are computed in whole numbers
+  (`src/protocol/rules.ts`), so "more than half" and "at least two-thirds" never round wrongly.
+- Schools choose one of the four presets in Settings → Rules of procedure. The pack editor comes in
+  a later part; until then the chosen preset is the pack.
+- A session stores the pack it opened with (`committee_sessions.protocol`); later edits apply from
+  the next session.
+- The server is authoritative. The chair's own token proves they may run the committee
+  (`committee_can_run`); the server applies the command with the engine and stores the result with
+  `live_commit`, which only the server role may call, so no live state exists that the engine did
+  not produce. `live_commit` is compare-and-swap on the revision and keyed by the command id, so a
+  command resent after a lost answer is applied once.
+- Rebase: a command based on an older revision is accepted only if it commutes
+  (`COMMUTING`, today `attendance.set`) and no non-commuting command happened since (the
+  `barrier` revision). Otherwise the chair sees "someone else changed this committee" and the
+  latest state.
+- The console keeps unsent commands in memory in this part and resends them with the same id until
+  the server answers; the IndexedDB outbox that survives a reload comes with the offline part.
+  Other chairs' changes arrive by polling every five seconds; realtime replaces it in Phase 7.

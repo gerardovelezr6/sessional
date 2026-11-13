@@ -4,6 +4,7 @@ import { ActionForm } from '@/components/ActionForm';
 import { ConfirmButton } from '@/components/ConfirmButton';
 import { Shell } from '@/components/Shell';
 import { enabledLocales, tenantTranslator } from '@/config/store';
+import { rpc } from '@/data/rpc';
 import { assetUrl } from '@/data/storage';
 import { countryCodes, countryName } from '@/i18n/countries';
 import { languageName } from '@/i18n/locales';
@@ -41,6 +42,7 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const languages = enabledLocales(config);
   const committeeLocale = committee.language ?? config.locale.defaultLocale;
 
+  const canRun = await rpc<boolean>('committee_can_run', { p_committee: committee.id }, { token: ctx.token }).catch(() => false);
   const people = manage ? await loadPeople(tenant.id, ctx.token).catch(() => null) : null;
   const candidates = (people?.members ?? []).filter((m) => m.status !== 'disabled');
 
@@ -66,6 +68,12 @@ export default async function CommitteePage({ params, searchParams }: { params: 
           <p role="status" className="card font-semibold text-on-surface">
             {done}
           </p>
+        ) : null}
+        {canRun ? (
+          <Link href={`${base}/committees/${committee.id}/console`} className="card flex flex-col gap-1 hover:border-border-strong">
+            <span className="text-lg font-bold text-on-surface">{t('committee.console.open')}</span>
+            <span className="text-sm">{t('committee.console.help')}</span>
+          </Link>
         ) : null}
 
         <section className="card flex flex-col gap-3" aria-labelledby="details-title">

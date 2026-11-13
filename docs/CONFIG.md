@@ -83,6 +83,14 @@ Spanish: Diseño
 | Light or dark | `theme.colorMode` | `light` | `light` (Light), `dark` (Dark), `auto` (Automatic) | `theme.edit` | Automatic follows each person's device setting. |
 | Custom CSS (advanced) | `theme.customCss` | (empty) | CSS, up to 10000 characters, checked by the custom CSS rules | `theme.edit` | For small adjustments the options above do not cover. Allowed: the classes app-header, page-title, tabs, tab, card, card-footer, btn, btn-primary, btn-secondary, input, label, label-text; colours as #hex or var(--s-color-…); spacing, borders, corners, font size, weight and letter spacing. Not allowed: hiding or moving things, images, imports, !important. Text colours must stay readable. Use Preview my drafts to see it. If a change makes the page hard to use, open the settings in safe mode. |
 
+## Rules of procedure (`protocol`)
+
+Spanish: Reglas de procedimiento
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Starting point | `protocol.preset` | `un_style` | `un_style` (Standard UN-style), `harvard_style` (Harvard-style), `thimun_style` (THIMUN-style), `reglamento_es` (Spanish-language rules) | `tenant.manage` | The rules every committee follows. Changes apply from the next session that opens. |
+
 ## People and sign-in (`people`)
 
 Spanish: Personas e inicio de sesión

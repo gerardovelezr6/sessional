@@ -111,3 +111,15 @@ describe('bulk add', () => {
     expect(matchGroup(groups, 'jury')).toBeNull();
   });
 });
+
+describe('country names that look alike', () => {
+  it('China is China, and Taiwan is Taiwan', async () => {
+    const { resolveCountry } = await import('@/i18n/countries');
+    expect(resolveCountry('China')).toBe('CN');
+    expect(resolveCountry('República Popular China')).toBe('CN');
+    expect(resolveCountry('Taiwan')).toBe('TW');
+    expect(resolveCountry('Republic of China')).toBe('TW');
+    expect(resolveCountry('Republic of Korea')).toBe('KR');
+    expect(resolveCountry('Congo')).toBe('CG');
+  });
+});

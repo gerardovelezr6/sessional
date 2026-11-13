@@ -90,6 +90,7 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
             if (p) Object.assign(o, { swatches: [p.brand, p.accent, p.background], fontFamily: FONT_STACKS[p.font] });
           }
         }
+        if (section === 'protocol') for (const o of options) o.description = t(`settings.protocol.preset.${o.value}.help` as MessageKey);
         if (setting.key === 'font') for (const o of options) if (o.value) o.fontFamily = FONT_STACKS[o.value as FontKey];
         const kind = setting.presentation === 'cards' ? 'cards' : setting.presentation === 'buttons' ? 'buttons' : 'select';
         out.push({ ...base, kind, name, value: current, options });

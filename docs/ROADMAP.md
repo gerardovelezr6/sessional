@@ -1,7 +1,15 @@
 # Roadmap
 
-Status: Phases 0 to 4 and the usability pass are merged. Phase 5 (structure) is complete and up
-for review; the "half of the committees in session" unlock rule waits for sessions in Phase 6.
+Status: Phases 0 to 5 are merged. Phase 6 is in progress, in five parts:
+
+1. Engine, four presets, sessions and roll call, exactly-once commands (up for review).
+2. Speakers lists, timers on the server clock, moderated and unmoderated caucuses.
+3. Motions and points with precedence, voting (roll call, placard, secret, veto).
+4. Documents and the resolution workflow, discipline, the rules-of-procedure editor, and the
+   "half of the committees in session" unlock rule for confidential topics.
+5. The offline outbox (IndexedDB), keyboard shortcuts, tablet and phone layouts, and the network
+   test that pulls the connection mid-vote.
+
 Editable email texts move to the email phase.
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a

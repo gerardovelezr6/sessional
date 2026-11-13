@@ -71,6 +71,10 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   committee_chairs: { insert: `insert into committee_chairs (tenant_id, committee_id, user_id) values ($1, (select id from committees where tenant_id = $1 limit 1), (select user_id from memberships where tenant_id = $1 limit 1))`, params: (t) => [t] },
   delegates: { insert: `insert into delegates (tenant_id, committee_id, label) values ($1, (select id from committees where tenant_id = $1 limit 1), 'Intruder')`, params: (t) => [t] },
   committee_secrets: { insert: `insert into committee_secrets (tenant_id, committee_id, topic) values ($1, (select id from committees where tenant_id = $1 order by created_at desc limit 1), 'Intruder')`, params: (t) => [t] },
+  committee_live: { insert: `insert into committee_live (tenant_id, committee_id) values ($1, (select id from committees where tenant_id = $1 order by created_at desc limit 1))`, params: (t) => [t] },
+  committee_sessions: { insert: `insert into committee_sessions (id, tenant_id, committee_id, number, protocol) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 99, '{}')`, params: (t) => [t] },
+  committee_commands: { insert: `insert into committee_commands (id, tenant_id, committee_id, revision, kind) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 99, 'session.close')`, params: (t) => [t] },
+  roll_calls: { insert: `insert into roll_calls (tenant_id, committee_id, session_id, entries) values ($1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), '[]')`, params: (t) => [t] },
 };
 
 beforeAll(async () => {
@@ -110,6 +114,11 @@ beforeAll(async () => {
     await db.query(`insert into committee_chairs (tenant_id, committee_id, user_id) values ($1, $2, $3)`, [t, c, chair]);
     await db.query(`insert into delegates (tenant_id, committee_id, label, name) values ($1, $2, 'Mexico', 'A student')`, [t, c]);
     await db.query(`insert into committee_secrets (tenant_id, committee_id, topic) values ($1, $2, 'Secret')`, [t, c]);
+    // A live committee with a session, a command and a roll call.
+    const s = (await db.query(`insert into committee_sessions (id, tenant_id, committee_id, number, protocol) values (gen_random_uuid(), $1, $2, 1, '{}') returning id`, [t, c])).rows[0].id;
+    await db.query(`insert into committee_live (tenant_id, committee_id, revision, state) values ($1, $2, 1, '{"v":1}')`, [t, c]);
+    await db.query(`insert into committee_commands (id, tenant_id, committee_id, revision, kind) values (gen_random_uuid(), $1, $2, 1, 'session.open')`, [t, c]);
+    await db.query(`insert into roll_calls (tenant_id, committee_id, session_id, entries) values ($1, $2, $3, '[]')`, [t, c, s]);
     // A second committee without a confidential topic, so a forged one has somewhere to go.
     await db.query(`insert into committees (tenant_id, conference_id, name) values ($1, $2, 'Spare')`, [t, conf]);
   }

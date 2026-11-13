@@ -106,14 +106,10 @@ function indexFor(locales: string[]): Map<string, string> {
   let index = indexes.get(id);
   if (index) return index;
   index = new Map();
-  const add = (name: string, code: string) => {
-    const n = normalise(name);
-    if (!n) return;
-    if (!index!.has(n)) index!.set(n, code);
-    const bare = n.replace(FILLER, '');
-    if (bare && !index!.has(bare)) index!.set(bare, code);
-  };
-  for (const [code, names] of Object.entries(ALIASES)) for (const name of names) add(name, code);
+  // Exact names first, then the same names without "Republic of" and the like, so a shortened
+  // alias can never take a name that belongs to another country ("Republic of China" → "China").
+  const pairs: [string, string][] = [];
+  for (const [code, names] of Object.entries(ALIASES)) for (const name of names) pairs.push([normalise(name), code]);
   for (const locale of id.split('|')) {
     let names: Intl.DisplayNames;
     try {
@@ -123,8 +119,13 @@ function indexFor(locales: string[]): Map<string, string> {
     }
     for (const code of countryCodes()) {
       const name = names.of(code);
-      if (name) add(name, code);
+      if (name) pairs.push([normalise(name), code]);
     }
+  }
+  for (const [n, code] of pairs) if (n && !index.has(n)) index.set(n, code);
+  for (const [n, code] of pairs) {
+    const bare = n.replace(FILLER, '');
+    if (bare && !index.has(bare)) index.set(bare, code);
   }
   indexes.set(id, index);
   return index;

@@ -24,6 +24,7 @@ const TENANTS = {
   kappa: { kind: 'tenant', id: tid(11), slug: 'kappa', name: 'مدرسة كابا', status: 'active' },
   lambda: { kind: 'tenant', id: tid(12), slug: 'lambda', name: 'Lambda School', status: 'active' },
   mumun: { kind: 'tenant', id: tid(13), slug: 'mumun', name: 'Committee School', status: 'active' },
+  console: { kind: 'tenant', id: tid(14), slug: 'console', name: 'Console School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -68,6 +69,9 @@ seed('owner@mu.test', 'Mia Mu', tid(13), 'owner');
 seed('chair@mu.test', 'Chris Chair', tid(13), 'chair');
 seed('chair2@mu.test', 'Dana Chair', tid(13), 'chair');
 seed('hc@mu.test', 'Hal Command', tid(13), 'high_command');
+seed('owner@console.test', 'Olga Console', tid(14), 'owner');
+seed('chair@console.test', 'Cam Console', tid(14), 'chair');
+seed('chair2@console.test', 'Cleo Console', tid(14), 'chair');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -257,6 +261,16 @@ const nameOf = (id) => {
 const pick = (c) => ({ ...c });
 const delegateRow = (d) => ({ id: d.id, label: d.label, name: d.name, group_key: d.group_key, flag: d.flag, extra: d.extra });
 
+// Console School: one committee, ready to run, chaired by Cam and Cleo, with five delegations.
+{
+  const conf = { id: randomUUID(), tenant_id: tid(14), name: 'Console MUN', status: 'active', secrets_unlocked_at: null, created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9000-000000000001', tenant_id: tid(14), conference_id: conf.id, name: 'Disarmament', abbreviation: 'DISEC', topic: '', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@console.test').id }, { committee_id: c.id, user_id: byEmail('chair2@console.test').id });
+  for (const label of ['Brazil', 'China', 'France', 'Kenya', 'Mexico']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+}
+
 Object.assign(rpcs, {
   current_conference: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? activeConference(p_tenant) : null }),
   conference_start: ({ p_tenant, p_name }, userId) => {
@@ -388,7 +402,81 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published']);
+// --- Live committees (Phase 6): commits only from the server role, once per command id. ---
+const live = new Map(); // committee id -> { revision, barrier, state }
+const commands = new Map(); // command id -> { committee_id, revision }
+const liveSessions = []; // { id, committee_id, number, protocol, opened_at, closed_at }
+const rollCalls = []; // { id, session_id, taken_at, entries }
+const canRun = (userId, c) => {
+  const role = c && roleOf(memberOf(userId, c.tenant_id)?.role_key);
+  return !!role && (role.all || (role.permissions.includes('committee.run') && (isChairOf(userId, c.id) || role.key !== 'chair')));
+};
+const openSession = (id) => liveSessions.filter((x) => x.committee_id === id && !x.closed_at).at(-1) ?? null;
+// Test hook: refuse the next N commits with a network failure, to exercise resending.
+let dropNext = 0;
+
+Object.assign(rpcs, {
+  committee_can_run: ({ p_committee }, userId) => ({ body: canRun(userId, committeeById(p_committee)) }),
+  live_view: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !(canRun(userId, c) || manages(userId, c.tenant_id))) return { body: null };
+    const l = live.get(c.id);
+    const s = openSession(c.id);
+    return { body: { revision: l?.revision ?? 0, state: l?.state ?? {}, session: s ? { id: s.id, number: s.number, opened_at: s.opened_at, protocol: s.protocol } : null } };
+  },
+  committee_sessions_list: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !(canRun(userId, c) || manages(userId, c.tenant_id))) return { body: [] };
+    return {
+      body: liveSessions
+        .filter((x) => x.committee_id === c.id)
+        .sort((a, b) => b.number - a.number)
+        .map((x) => ({ id: x.id, number: x.number, opened_at: x.opened_at, closed_at: x.closed_at, roll_calls: rollCalls.filter((r) => r.session_id === x.id) })),
+    };
+  },
+  live_load: ({ p_committee, p_command }) => {
+    const c = committeeById(p_committee);
+    if (!c) return { body: null };
+    const l = live.get(c.id) ?? { revision: 0, barrier: 0, state: {} };
+    const done = commands.get(p_command);
+    return {
+      body: {
+        tenant_id: c.tenant_id, revision: l.revision, barrier: l.barrier, state: l.state,
+        session_protocol: openSession(c.id)?.protocol ?? null,
+        sessions_held: liveSessions.filter((x) => x.committee_id === c.id).length,
+        delegates: delegates.filter((d) => d.committee_id === c.id).sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase())).map((d) => ({ id: d.id, label: d.label })),
+        applied: done && done.committee_id === c.id ? { revision: done.revision } : null,
+      },
+    };
+  },
+  live_commit: ({ p_committee, p_command, p_expected, p_commutes, p_state, p_effects }) => {
+    const done = commands.get(p_command);
+    if (done) return { body: { revision: done.revision, duplicate: true } };
+    const c = committeeById(p_committee);
+    if (!c) return { body: null };
+    const l = live.get(c.id) ?? { revision: 0, barrier: 0, state: {} };
+    if (l.revision !== p_expected) return { body: { conflict: true } };
+    const revision = l.revision + 1;
+    live.set(c.id, { revision, barrier: p_commutes ? l.barrier : revision, state: p_state });
+    commands.set(p_command, { committee_id: c.id, revision });
+    for (const e of p_effects) {
+      if (e.type === 'session.opened') liveSessions.push({ id: e.id, committee_id: c.id, number: e.number, protocol: e.protocol, opened_at: new Date().toISOString(), closed_at: null });
+      if (e.type === 'session.closed') {
+        const x = liveSessions.find((y) => y.id === e.id);
+        if (x) x.closed_at = new Date().toISOString();
+      }
+      if (e.type === 'rollcall.recorded') rollCalls.push({ id: randomUUID(), session_id: e.session, taken_at: new Date().toISOString(), entries: e.entries });
+    }
+    // The answer is lost after the change was stored, as on a dropped connection.
+    if (dropNext > 0) {
+      dropNext--;
+      return { hang: true };
+    }
+    return { body: { revision } };
+  },
+});
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published', 'live_load', 'live_commit']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -463,6 +551,10 @@ createServer((req, res) => {
     const key = req.headers.apikey;
 
     // Test hook: make a signed-in person's access token expire, to exercise session renewal.
+    if (req.method === 'POST' && req.url === '/__test/drop-commits') {
+      dropNext = Number(body.count ?? 1);
+      return send({ body: { ok: true } });
+    }
     if (req.method === 'POST' && req.url === '/__test/short-session') {
       const u = byEmail(body.email);
       return send({ body: issue(u.id, 5) });

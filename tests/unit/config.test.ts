@@ -15,6 +15,7 @@ describe('defaults', () => {
       terminology: { pack: 'un', conference: {}, committee: {}, committees: {}, chair: {}, chairs: {}, delegate: {}, delegates: {}, highCommand: {}, advisor: {}, advisors: {} },
       translations: { messages: {} },
       structure: { categories: [], types: [STANDARD_TYPE] },
+      protocol: { preset: 'un_style' },
       people: { passwordMinLength: 8 },
       theme: {
         preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
@@ -97,6 +98,7 @@ describe('strict validation (saving)', () => {
     ['translations', { messages: { fr: { 'auth.signIn': 'Se {connecter' } } }, 'translations.messages.fr.auth.signIn'],
     ['translations', { messages: { fr: { 'no.such.key': 'x' } } }, 'translations.messages.fr.no.such.key'],
     ['terminology', { pack: 'pirate' }, 'terminology.pack'],
+    ['protocol', { preset: 'pirate_rules' }, 'protocol.preset'],
     ['identity', { timeZone: 'Mars/Olympus' }, 'identity.timeZone'],
     ['identity', { tagline: { en: 'x'.repeat(161) } }, 'identity.tagline.en'],
     ['identity', { tagline: { 'not a locale': 'x' } }, 'identity.tagline.not a locale'],

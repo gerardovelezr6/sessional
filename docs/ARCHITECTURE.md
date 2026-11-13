@@ -330,3 +330,16 @@ committees), editable email texts (email phase), flags (Phase 5).
   logos (PNG, JPEG or WebP, 512 KB). A delegate can override the automatic flag.
 - **Order**: committees are ordered by dragging or arrows; the order is saved at once and kept only
   if the database confirms every committee moved. Delegates are listed alphabetically.
+
+## Protocol engine, sessions and roll call (Phase 6, part 1)
+
+- `src/protocol/`: the pack schema, whole-number quorum and majority rules, the four presets and
+  the pure engine `apply(state, command, context)`. The same engine runs in the chair's browser (to
+  show a change at once, marked "Saving…") and on the server (to decide). See ADR-0007.
+- Tables: `committee_live` (state, revision, barrier), `committee_commands` (one row per command
+  id), `committee_sessions` (with the rules pinned) and `roll_calls` (answers stored with the names
+  they had). People read them only for committees they run or manage; only the server role writes.
+- Console: `/committees/[id]/console`, for the committee's chairs and for people who manage
+  committees. It opens and closes sessions, takes the roll call (any attendance state the rules
+  define, "mark the rest absent", finish and record), shows quorum for debate and voting live, and
+  lists past sessions with their roll calls.

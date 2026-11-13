@@ -8,7 +8,7 @@ const PORT = Number(process.env.MOCK_SUPABASE_PORT ?? 3199);
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'test-service-role-key';
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'test-anon-key';
 
-const tid = (n) => `00000000-0000-4000-8000-00000000000${n}`;
+const tid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const TENANTS = {
   alpha: { kind: 'tenant', id: tid(1), slug: 'alpha', name: 'School Alpha', status: 'active' },
   beta: { kind: 'tenant', id: tid(2), slug: 'beta', name: 'School Beta', status: 'active' },
@@ -19,6 +19,8 @@ const TENANTS = {
   epsilon: { kind: 'tenant', id: tid(6), slug: 'epsilon', name: 'Settings School', status: 'active' },
   zeta: { kind: 'tenant', id: tid(7), slug: 'zeta', name: 'Design School', status: 'active' },
   eta: { kind: 'tenant', id: tid(8), slug: 'eta', name: 'Logo School', status: 'active' },
+  theta: { kind: 'tenant', id: tid(9), slug: 'theta', name: 'Advanced School', status: 'active' },
+  iota: { kind: 'tenant', id: tid(10), slug: 'iota', name: 'Import School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -55,6 +57,8 @@ seed('owner@epsilon.test', 'Erin Epsilon', tid(6), 'owner');
 seed('chair@epsilon.test', 'Cy Chair', tid(6), 'chair');
 seed('owner@zeta.test', 'Zoe Zeta', tid(7), 'owner');
 seed('owner@eta.test', 'Ella Eta', tid(8), 'owner');
+seed('owner@theta.test', 'Theo Theta', tid(9), 'owner');
+seed('owner@iota.test', 'Ivy Iota', tid(10), 'owner');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.

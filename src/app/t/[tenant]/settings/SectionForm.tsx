@@ -32,7 +32,7 @@ export interface FieldView {
     name: string;
     caption?: string;
     value: string;
-    kind: 'number' | 'text' | 'select' | 'asset';
+    kind: 'number' | 'text' | 'select' | 'asset' | 'textarea';
     min?: number;
     max?: number;
     maxLength?: number;
@@ -68,6 +68,8 @@ export function SectionForm({
   const [state, formAction] = useActionState(action, {});
   const [dirty, setDirty] = useState(false);
   const form = useRef<HTMLFormElement>(null);
+  // After a refused save the form shows what was submitted, not the saved values.
+  const valueOf = (name: string, saved: string) => state.values?.[name] ?? saved;
   useNavigateWhenDone(state);
 
   const initial = useRef<string>('');
@@ -108,7 +110,7 @@ export function SectionForm({
                   ) : null}
                   {input.kind === 'asset' ? (
                     <div className="flex flex-wrap items-center gap-3">
-                      <input type="hidden" name={input.name} value={input.value} />
+                      <input type="hidden" name={input.name} value={valueOf(input.name, input.value)} />
                       {input.currentUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={input.currentUrl} alt="" className="h-10 w-auto rounded-control border border-border" />
@@ -127,13 +129,26 @@ export function SectionForm({
                       />
                       {input.currentUrl ? (
                         <label className="flex items-center gap-1 text-sm">
-                          <input type="checkbox" name={`${input.name}.remove`} aria-label={`${field.label}: ${assetLabels?.remove ?? ''}`} />
+                          <input type="checkbox" name={`${input.name}.remove`} defaultChecked={state.values?.[`${input.name}.remove`] === 'on'} aria-label={`${field.label}: ${assetLabels?.remove ?? ''}`} />
                           {assetLabels?.remove}
                         </label>
                       ) : null}
                     </div>
+                  ) : input.kind === 'textarea' ? (
+                    <textarea
+                      className="input font-mono"
+                      id={input.name}
+                      name={input.name}
+                      defaultValue={valueOf(input.name, input.value)}
+                      rows={8}
+                      maxLength={input.maxLength}
+                      spellCheck={false}
+                      aria-label={field.label}
+                      aria-describedby={helpId}
+                      aria-invalid={!!error}
+                    />
                   ) : input.kind === 'select' ? (
-                    <select className="input" id={input.name} name={input.name} defaultValue={input.value} aria-label={input.caption ? undefined : field.label} aria-describedby={helpId} aria-invalid={!!error}>
+                    <select className="input" id={input.name} name={input.name} defaultValue={valueOf(input.name, input.value)} aria-label={input.caption ? undefined : field.label} aria-describedby={helpId} aria-invalid={!!error}>
                       {input.options!.map((o) => (
                         <option key={o.value} value={o.value}>
                           {o.label}
@@ -146,7 +161,7 @@ export function SectionForm({
                       id={input.name}
                       name={input.name}
                       type={input.kind}
-                      defaultValue={input.value}
+                      defaultValue={valueOf(input.name, input.value)}
                       min={input.min}
                       max={input.max}
                       maxLength={input.maxLength}
@@ -161,7 +176,7 @@ export function SectionForm({
                 {field.help}
               </p>
               {error ? (
-                <p role="alert" className="error-text">
+                <p role="alert" className="error-text whitespace-pre-line">
                   {error}
                 </p>
               ) : null}
@@ -196,7 +211,7 @@ export function ActionButton({ action, label, variant = 'secondary', children }:
       {children}
       <Submit label={label} variant={variant} />
       {state.error ? (
-        <p role="alert" className="error-text w-full">
+        <p role="alert" className="error-text w-full whitespace-pre-line">
           {state.error}
         </p>
       ) : null}

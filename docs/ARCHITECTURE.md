@@ -198,6 +198,36 @@ or spacing of their own (the lint rules enforce this).
 - **Live preview** beside the Design controls: a sample page redrawn on every change, before
   anything is saved, with a light/dark switch. It runs the same engine as the server.
 
-Not built yet: projection-screen and login layouts, uploaded fonts, sandboxed custom CSS, theme
-export/import, email/PDF styling. Replaced images are not deleted from storage yet (they are
-small; cleanup comes with storage metering).
+Replaced images are not deleted from storage yet (they are small; cleanup comes with storage
+metering).
+
+## Custom CSS, packs and email look (Phase 3, part 3)
+
+- **Custom CSS** (`src/theme/custom-css.ts`) is never passed through as written. It is parsed,
+  each rule is checked, and the result is rebuilt, minified and scoped under `:root:root`.
+  - Selectors may only use the documented hooks: `app-header`, `page-title`, `tabs`, `tab`,
+    `card`, `card-footer`, `btn`, `btn-primary`, `btn-secondary`, `input`, `label`, `label-text`,
+    a few elements inside them, and the states `:hover`, `:focus-visible`, `[aria-current]`,
+    `[aria-selected]`.
+  - Properties are an allow-list (colours, spacing, borders, corners, font size, weight, letter
+    spacing, text transform); values are checked and bounded. Nothing that hides or moves
+    content, loads a resource (`url()`, `@import`), escapes the style element, or uses
+    `!important` is accepted. `@media` only for widths and colour scheme.
+  - Colours must be `#hex` or a theme token, so contrast can be checked: a text colour must reach
+    4.5:1 on its own background or on both page surfaces, in every colour scheme the school uses.
+  - Saving is refused while there is any problem, with one message per line. Rendering keeps only
+    the valid rules. `?safe-mode` renders a page without custom CSS (the proxy sets an internal
+    header that visitors cannot send themselves), and "Remove custom CSS" clears it in a draft.
+- **Packs** (`src/config/pack.ts`): any settings section downloads as a JSON file and imports into
+  any school as a draft, after the same checks as typing it. A school's own logo and icon never
+  travel in a pack. Files from a newer version of the product, of another section, or with
+  unknown settings are refused.
+- **Email look** (`src/theme/email.ts`): emails are rendered from the theme with every value
+  resolved and inlined (email programs ignore CSS variables), all text escaped, links limited to
+  web addresses. The Design section shows a sample in a sandboxed frame. No emails are sent yet;
+  the email phase uses this renderer.
+- **Fix:** a refused save now keeps what was typed (React resets forms after a server action;
+  the action returns the submitted values).
+
+Not built yet: projection-screen and login layouts (with the projection phase), uploaded fonts,
+PDF styling (moved to the print phase, when there is something to print).

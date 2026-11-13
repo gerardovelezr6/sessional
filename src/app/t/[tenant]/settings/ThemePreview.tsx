@@ -48,12 +48,16 @@ export function ThemePreview({ formId, saved, logoUrl, schoolName, labels }: { f
         return next;
       });
     };
+    // A reset happens before the browser has put the values back, so repaint just after it.
+    const afterReset = () => setTimeout(paint, 0);
     paint();
     form.addEventListener('input', paint);
     form.addEventListener('change', paint);
+    form.addEventListener('reset', afterReset);
     return () => {
       form.removeEventListener('input', paint);
       form.removeEventListener('change', paint);
+      form.removeEventListener('reset', afterReset);
     };
   }, [formId, saved, logoUrl, scheme]);
 

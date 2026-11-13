@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { tenantTranslator } from '@/config/store';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
-import { parseTenantKey } from '@/tenancy/route';
+import { parseTenantKey, SAFE_MODE_HEADER } from '@/tenancy/route';
+import { sanitizeCustomCss } from '@/theme/custom-css';
 import { assetUrl } from '@/data/storage';
-import { themeCss } from '@/theme/engine';
+import { buildTheme, themeCss } from '@/theme/engine';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
 
@@ -69,10 +71,25 @@ export default async function TenantLayout({ params, children }: Props) {
   // The school's design, as CSS variables. React places this in <head> with the first HTML, so the
   // product's default colours never flash.
   const css = themeCss(own.config.theme);
+  // Custom CSS: only the sanitised result, and never in safe mode.
+  const safeMode = (await headers()).get(SAFE_MODE_HEADER) === '1';
+  const custom = !safeMode && own.config.theme.customCss ? sanitizeCustomCss(own.config.theme.customCss, buildTheme(own.config.theme)).css : '';
   const theme = (
-    <style href={`theme-${hashOf(css)}`} precedence="theme">
-      {css}
-    </style>
+    <>
+      <style href={`theme-${hashOf(css)}`} precedence="theme">
+        {css}
+      </style>
+      {custom ? (
+        <style href={`custom-${hashOf(custom)}`} precedence="theme">
+          {custom}
+        </style>
+      ) : null}
+      {safeMode ? (
+        <p role="status" className="bg-accent px-4 py-2 text-center text-sm font-semibold text-on-accent">
+          {own.t('safeMode.banner')}
+        </p>
+      ) : null}
+    </>
   );
   const logo = assetUrl(found.tenant.id, own.config.theme.logo);
   const header = (

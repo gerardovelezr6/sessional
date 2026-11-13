@@ -15,7 +15,7 @@ describe('defaults', () => {
       theme: {
         preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,
-        logo: null, favicon: null, colorMode: 'light',
+        logo: null, favicon: null, customCss: '', colorMode: 'light',
       },
     });
   });
@@ -64,6 +64,11 @@ describe('the registry describes every setting, and nothing else', () => {
         for (const bad of ['https://evil.example/x.png', '../other/logo-0123456789abcdef.png', `00000000-0000-4000-8000-000000000001/${r.control.asset}-0123456789abcdef.svg`]) {
           expect(field.safeParse(bad).success, bad).toBe(false);
         }
+      }
+      if (r.control.kind === 'code') {
+        expect(field.safeParse('').success).toBe(true);
+        expect(field.safeParse('x'.repeat(r.control.maxLength)).success).toBe(true);
+        expect(field.safeParse('x'.repeat(r.control.maxLength + 1)).success).toBe(false);
       }
       if (r.control.kind === 'number') {
         expect(field.safeParse(r.control.min).success).toBe(true);

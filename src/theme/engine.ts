@@ -139,6 +139,18 @@ export function buildTheme(choice: ThemeChoice): Theme {
   };
 }
 
+// Follows token references (var(--s-…)) to a final value, for places that cannot use CSS
+// variables, such as emails.
+export function resolveToken(tokens: Tokens, value: string): string {
+  let v = value.trim();
+  for (let i = 0; i < 6; i++) {
+    const m = /^var\((--s-[a-z-]+)\)$/.exec(v);
+    if (!m) break;
+    v = tokens[m[1] as keyof Tokens] ?? '';
+  }
+  return v;
+}
+
 // Adjustments in the colour schemes the school actually uses: a light-only design is not told
 // about corrections to dark colours nobody will see.
 export function visibleAdjustments(theme: Theme): string[] {
@@ -164,7 +176,7 @@ export const TENANT_SELECTOR = ':root:root';
 const cache = new Map<string, string>();
 // The stylesheet of a school's theme.
 export function themeCss(choice: ThemeChoice): string {
-  const key = JSON.stringify({ ...choice, logo: null, favicon: null });
+  const key = JSON.stringify({ ...choice, logo: null, favicon: null, customCss: '' });
   let css = cache.get(key);
   if (!css) {
     css = renderTheme(buildTheme(choice), TENANT_SELECTOR);

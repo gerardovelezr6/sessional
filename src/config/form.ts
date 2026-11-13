@@ -37,6 +37,9 @@ export function readForm(section: SectionName, form: FormData): Record<string, u
       case 'timeZone':
         data[setting.key] = String(form.get(fieldName(setting)) ?? '');
         break;
+      case 'code':
+        data[setting.key] = String(form.get(fieldName(setting)) ?? '').replace(/\r\n/g, '\n').trimEnd();
+        break;
       case 'asset': {
         // The stored path stays as it was unless "remove" is ticked; a newly chosen file is handled
         // by the server action (see assetFile), which then replaces this value.

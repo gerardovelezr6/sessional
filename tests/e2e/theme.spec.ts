@@ -71,6 +71,7 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   await design.getByLabel('Brand colour').fill('red');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await expect(design.getByText('Some values are not valid. Nothing was saved.')).toBeVisible();
+  await expect(design.getByLabel('Brand colour')).toHaveValue('red');
 
   // A rounded preset, with a brand colour far too pale for a button on a light page.
   await design.getByLabel('Design preset').selectOption('modern-rounded');

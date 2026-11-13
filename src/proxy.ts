@@ -3,7 +3,7 @@ import { refreshSession } from '@/auth/gotrue';
 import { ACCESS_MAX_AGE, cookieOptions, REFRESH_MAX_AGE } from '@/auth/cookies';
 import { ACCESS_COOKIE, needsRefresh, REFRESH_COOKIE } from '@/auth/tokens';
 import { allowTenantPaths, rootDomain } from '@/platform/env';
-import { BASE_PATH_HEADER, decideRoute } from '@/tenancy/route';
+import { BASE_PATH_HEADER, decideRoute, SAFE_MODE_HEADER } from '@/tenancy/route';
 
 // Sends each request to the right part of the product based on its host, and keeps the session
 // fresh on tenant pages. The tenant itself is looked up (and checked) by the tenant layout.
@@ -22,6 +22,8 @@ export async function proxy(request: NextRequest) {
   const isTenantPage = decision.action === 'rewrite' || decision.basePath !== undefined;
   const headers = new Headers(request.headers);
   headers.delete(BASE_PATH_HEADER); // never trust a value sent by the visitor
+  headers.delete(SAFE_MODE_HEADER);
+  if (request.nextUrl.searchParams.has('safe-mode')) headers.set(SAFE_MODE_HEADER, '1');
   if (!isTenantPage) return NextResponse.next({ request: { headers } });
   headers.set(BASE_PATH_HEADER, decision.action === 'next' ? (decision.basePath ?? '') : '');
 

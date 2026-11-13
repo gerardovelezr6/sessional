@@ -98,6 +98,8 @@ export interface ThemeChoice {
   // Stored file paths of the school's own images (see src/assets). Not part of the colours.
   logo: string | null;
   favicon: string | null;
+  // Advanced CSS (sanitised before use). Not part of the generated stylesheet.
+  customCss?: string;
   colorMode: ColorMode;
 }
 

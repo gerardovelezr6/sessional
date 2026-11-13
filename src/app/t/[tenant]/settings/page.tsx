@@ -9,6 +9,8 @@ import { SECTION_NAMES, type SectionName } from '@/config/schema';
 import { editorState, tenantTranslator } from '@/config/store';
 import type { MessageKey, Translate } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { buildTheme } from '@/theme/engine';
+import type { ThemeChoice } from '@/theme/presets';
 import { discardDraftAction, publishAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
 import { ActionButton, SectionForm, type FieldView } from './SectionForm';
 
@@ -32,8 +34,13 @@ function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Tran
     switch (setting.control.kind) {
       case 'number':
         return { ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'number' as const, min: setting.control.min, max: setting.control.max }] };
-      case 'select':
-        return { ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'select' as const, options: setting.control.options.map((o) => ({ value: o.value, label: t(o.labelKey) })) }] };
+      case 'select': {
+        const options = setting.control.options.map((o) => ({ value: o.value, label: t(o.labelKey) }));
+        if (setting.control.optional) options.unshift({ value: '', label: t('settings.fromPreset') });
+        return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'select' as const, options }] };
+      }
+      case 'color':
+        return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'text' as const, maxLength: 7 }] };
       case 'timeZone':
         return { ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'select' as const, options: TIME_ZONES.map((z) => ({ value: z, label: z.replaceAll('_', ' ') })) }] };
       case 'localizedText': {
@@ -107,6 +114,12 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                     <ActionButton action={discardDraftAction.bind(null, key, section) as Bound} label={t('settings.discard')} />
                   </div>
                 </div>
+              ) : null}
+
+              {section === 'theme' && buildTheme(editing as unknown as ThemeChoice).adjusted.length > 0 ? (
+                <p role="note" className="rounded-control border border-border-strong p-3 text-sm text-on-surface">
+                  {t('settings.theme.adjusted')}
+                </p>
               ) : null}
 
               <SectionForm action={saveDraftAction.bind(null, key, section)} fields={fieldsOf(section, editing, t)} labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }} />

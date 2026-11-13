@@ -6,12 +6,20 @@ import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
 import { parseTenantKey } from '@/tenancy/route';
+import { themeCss } from '@/theme/engine';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
 
 type Props = { params: Promise<{ tenant: string }>; children: React.ReactNode };
 
 export const dynamic = 'force-dynamic';
+
+// Short stable name for a stylesheet, so identical themes are emitted once.
+function hashOf(text: string): string {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
 
 const isHidden = (status: TenantStatus) => status === 'suspended' || status === 'deleted';
 
@@ -53,9 +61,25 @@ export default async function TenantLayout({ params, children }: Props) {
   // An editor previewing their drafts always sees that they are: the banner cannot be dismissed
   // while preview is on.
   const own = await tenantTranslator(found.tenant.id);
-  if (!own.preview) return children;
+  // The school's design, as CSS variables. React places this in <head> with the first HTML, so the
+  // product's default colours never flash.
+  const css = themeCss(own.config.theme);
+  const theme = (
+    <style href={`theme-${hashOf(css)}`} precedence="theme">
+      {css}
+    </style>
+  );
+  if (!own.preview) {
+    return (
+      <>
+        {theme}
+        {children}
+      </>
+    );
+  }
   return (
     <>
+      {theme}
       <div role="status" className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-4 bg-accent px-4 py-2 text-sm font-semibold text-on-accent">
         <span>{own.t('settings.preview.banner')}</span>
         <ActionButton action={setPreviewAction.bind(null, key, false) as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('settings.preview.off')} />

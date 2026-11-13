@@ -17,6 +17,7 @@ const TENANTS = {
   gamma: { kind: 'tenant', id: tid(4), slug: 'gamma', name: 'New School', status: 'trialing' },
   delta: { kind: 'tenant', id: tid(5), slug: 'delta', name: 'Colegio Delta', status: 'active' },
   epsilon: { kind: 'tenant', id: tid(6), slug: 'epsilon', name: 'Settings School', status: 'active' },
+  zeta: { kind: 'tenant', id: tid(7), slug: 'zeta', name: 'Design School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -51,6 +52,7 @@ seed('owner@gamma.test', 'Gina Gamma', tid(4), 'owner');
 seed('owner@delta.test', 'Diego Delta', tid(5), 'owner');
 seed('owner@epsilon.test', 'Erin Epsilon', tid(6), 'owner');
 seed('chair@epsilon.test', 'Cy Chair', tid(6), 'chair');
+seed('owner@zeta.test', 'Zoe Zeta', tid(7), 'owner');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -58,6 +60,7 @@ const CONFIG = {
   [tid(5)]: {
     locale: { version: 2, schema_version: 1, data: { defaultLocale: 'es' } },
     people: { version: 1, schema_version: 1, data: { passwordMinLength: 12 } },
+    theme: { version: 1, schema_version: 1, data: { preset: 'flat-institutional', brand: '#7A1F2B', colorMode: 'light' } },
     identity: { version: 3, schema_version: 1, data: { tagline: { es: 'La diplomacia primero', en: 'Diplomacy first' }, timeZone: 'Nowhere/Land' } },
   },
 };

@@ -24,7 +24,16 @@ export function readForm(section: SectionName, form: FormData): Record<string, u
         data[setting.key] = raw === '' ? Number.NaN : Number(raw);
         break;
       }
-      case 'select':
+      case 'select': {
+        const raw = String(form.get(fieldName(setting)) ?? '');
+        data[setting.key] = raw === '' && setting.control.optional ? null : raw;
+        break;
+      }
+      case 'color': {
+        const raw = String(form.get(fieldName(setting)) ?? '').trim();
+        data[setting.key] = raw === '' ? null : raw;
+        break;
+      }
       case 'timeZone':
         data[setting.key] = String(form.get(fieldName(setting)) ?? '');
         break;

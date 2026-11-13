@@ -4,6 +4,7 @@ import { registry, SECTION_LABELS } from '@/config/registry';
 import { resolveConfig, resolveSection, validateSection } from '@/config/resolve';
 import { CONFIG_SCHEMA_VERSION, defaultConfig, SECTION_NAMES, sections } from '@/config/schema';
 import { catalogs } from '@/messages';
+import { DEFAULT_THEME } from '@/theme/default-tokens';
 
 describe('defaults', () => {
   it('every section parses from nothing', () => {
@@ -11,7 +12,14 @@ describe('defaults', () => {
       identity: { tagline: {}, timeZone: 'UTC' },
       locale: { defaultLocale: 'en' },
       people: { passwordMinLength: 8 },
+      theme: {
+        preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
+        uppercaseLabels: null, shadows: null, contrast: null, colorMode: 'light',
+      },
     });
+  });
+  it('the default design is the product\'s own', () => {
+    expect(defaultConfig().theme).toEqual(DEFAULT_THEME);
   });
   it('the defaults pass strict validation', () => {
     const config = defaultConfig();
@@ -42,6 +50,12 @@ describe('the registry describes every setting, and nothing else', () => {
       if (r.control.kind === 'select') {
         for (const o of r.control.options) expect(field.safeParse(o.value).success, `${r.key}=${o.value}`).toBe(true);
         expect(field.safeParse('not-an-option').success).toBe(false);
+      }
+      if (r.control.kind === 'select') expect(field.safeParse(null).success, `${r.key} empty`).toBe(r.control.optional === true);
+      if (r.control.kind === 'color') {
+        expect(field.safeParse('#1E40AF').success).toBe(true);
+        expect(field.safeParse(null).success).toBe(true);
+        for (const bad of ['red', '#fff', '1E40AF', '#1E40AF80', 'url(x)']) expect(field.safeParse(bad).success, bad).toBe(false);
       }
       if (r.control.kind === 'number') {
         expect(field.safeParse(r.control.min).success).toBe(true);
@@ -106,5 +120,20 @@ describe('schema migrations', () => {
   it('leaves current data untouched', () => {
     const data = { passwordMinLength: 10 };
     expect(upgrade('people', data, CONFIG_SCHEMA_VERSION)).toBe(data);
+  });
+});
+
+describe('design settings', () => {
+  it('refuses anything that is not a plain colour or a listed option', () => {
+    for (const bad of [{ brand: 'javascript:alert(1)' }, { brand: '#12345' }, { font: 'comic-sans' }, { preset: 'mine' }, { radius: '3px' }, { colorMode: null }]) {
+      expect(validateSection('theme', bad).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
+  it('keeps the valid choices when one stored value is broken', () => {
+    const r = resolveSection('theme', { data: { preset: 'classic-formal', brand: 'nonsense', radius: 'large' }, schema_version: 1 });
+    expect(r.data.preset).toBe('classic-formal');
+    expect(r.data.radius).toBe('large');
+    expect(r.data.brand).toBeNull();
+    expect(r.repaired).toEqual(['theme.brand']);
   });
 });

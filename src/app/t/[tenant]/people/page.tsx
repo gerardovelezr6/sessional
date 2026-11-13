@@ -70,7 +70,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
             <thead>
               <tr className="border-b border-border">
                 {(['people.name', 'people.email', 'people.role', 'people.status'] as const).map((k) => (
-                  <th key={k} scope="col" className="py-2 pe-4 text-start text-xs font-bold tracking-widest text-on-surface-muted uppercase">
+                  <th key={k} scope="col" className="label-text py-2 pe-4 text-start">
                     {t(k)}
                   </th>
                 ))}

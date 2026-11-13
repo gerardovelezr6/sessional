@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { choose, openSection } from './support/settings';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -14,24 +15,29 @@ async function openSettings(page: Page, host: string) {
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-  await page.goto(at(host, '/settings'));
-  return page.getByRole('region', { name: 'Design' });
+  return openSection(page, host, 'theme');
 }
 async function publishDesign(page: Page) {
-  await page.getByRole('region', { name: 'Design' }).getByRole('button', { name: 'Publish' }).click();
+  await page.locator('section#theme').getByRole('button', { name: 'Publish now' }).click();
   await page.waitForURL(/done=published/);
+}
+// Custom CSS lives in the folded "Advanced" group; it opens by itself once there is some.
+async function customCss(design: import('@playwright/test').Locator) {
+  const box = design.getByLabel('Custom CSS (advanced)');
+  if (!(await box.isVisible())) await design.getByText('Advanced', { exact: true }).click();
+  return box;
 }
 
 test('unsafe or unreadable custom CSS is refused line by line, and nothing is saved', async ({ page }) => {
   const design = await openSettings(page, 'theta');
-  await design.getByLabel('Custom CSS (advanced)').fill(`.card { display: none }
+  await (await customCss(design)).fill(`.card { display: none }
 body { color: #000 }
 .btn-primary { background-image: url(https://evil.example/x.png) }`);
   await design.getByRole('button', { name: 'Save draft' }).click();
   // url() is refused outright, before anything else is read.
   await expect(design.getByText(/Line 3: “url\(” is not allowed\./)).toBeVisible();
 
-  await design.getByLabel('Custom CSS (advanced)').fill(`.card { display: none }
+  await (await customCss(design)).fill(`.card { display: none }
 body { color: #000 }
 .label { color: #EEEEEE }`);
   await design.getByRole('button', { name: 'Save draft' }).click();
@@ -41,13 +47,13 @@ body { color: #000 }
   await expect(errors).toContainText('Line 3: text would be hard to read');
   // What was typed is still there to fix.
   await expect(design.getByLabel('Custom CSS (advanced)')).toHaveValue(/display: none/);
-  await page.goto(at('theta', '/settings'));
-  await expect(page.getByText('Draft saved, not live yet')).toHaveCount(0);
+  await page.goto(at('theta', '/settings?section=theme'));
+  await expect(page.getByText('You have unpublished changes')).toHaveCount(0);
 });
 
 test('allowed custom CSS is rebuilt, scoped, and applied after publishing', async ({ page, browser }) => {
   const design = await openSettings(page, 'theta');
-  await design.getByLabel('Custom CSS (advanced)').fill(`/* square buttons, roomier cards */
+  await (await customCss(design)).fill(`/* square buttons, roomier cards */
 .btn-primary { border-radius: 0; letter-spacing: 0.1em }
 .card { padding: 3rem }`);
   await design.getByRole('button', { name: 'Save draft' }).click();
@@ -69,7 +75,7 @@ test('allowed custom CSS is rebuilt, scoped, and applied after publishing', asyn
 test('safe mode shows the page without custom CSS, and the CSS can be removed', async ({ page }) => {
   await openSettings(page, 'theta');
   expect(await style(page, '.btn-primary', 'border-radius')).toBe('0px');
-  await page.goto(at('theta', '/settings?safe-mode'));
+  await page.goto(at('theta', '/settings?section=theme&safe-mode'));
   await expect(page.getByText('Safe mode: custom CSS is switched off on this page.')).toBeVisible();
   expect(await style(page, '.btn-primary', 'border-radius')).toBe('8px');
 
@@ -82,20 +88,20 @@ test('safe mode shows the page without custom CSS, and the CSS can be removed', 
 
   await page.getByRole('button', { name: 'Remove custom CSS' }).click();
   await page.waitForURL(/done=draft/);
-  await expect(page.getByRole('region', { name: 'Design' }).getByLabel('Custom CSS (advanced)')).toHaveValue('');
+  await expect(await customCss(page.locator('section#theme'))).toHaveValue('');
   await publishDesign(page);
   expect(await style(page, '.btn-primary', 'border-radius')).toBe('8px');
 });
 
 test('a design is exported as a file and imported into another school as a draft', async ({ page, browser }, testInfo) => {
   const design = await openSettings(page, 'theta');
-  await design.getByLabel('Design preset').selectOption('playful-school');
-  await design.getByLabel('Brand colour').fill('#0F766E');
+  await choose(design, 'Design preset', 'Playful school');
+  await design.getByLabel('Brand colour, colour code').fill('#0F766E');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await page.waitForURL(/done=draft/);
 
-  const section = page.getByRole('region', { name: 'Design' });
-  await section.getByText('Export or import').click();
+  const section = page.locator('section#theme');
+  await section.getByText('History and files').click();
   const [download] = await Promise.all([page.waitForEvent('download'), section.getByRole('link', { name: 'Download as a file' }).click()]);
   expect(download.suggestedFilename()).toBe('theta-theme.json');
   const file = testInfo.outputPath('theta-theme.json');
@@ -107,21 +113,21 @@ test('a design is exported as a file and imported into another school as a draft
   // Another school imports it.
   const other = await (await browser.newContext()).newPage();
   const otherDesign = await openSettings(other, 'iota');
-  await otherDesign.getByText('Export or import').click();
+  await otherDesign.getByText('History and files').click();
   await otherDesign.getByLabel('Settings file (.json)').setInputFiles(file);
   await otherDesign.getByRole('button', { name: 'Import as draft' }).click();
   await other.waitForURL(/done=imported/);
-  await expect(other.getByRole('status').filter({ hasText: 'Imported as a draft. Check it, then publish it.' })).toBeVisible();
-  const imported = other.getByRole('region', { name: 'Design' });
-  await expect(imported.getByLabel('Design preset')).toHaveValue('playful-school');
-  await expect(imported.getByLabel('Brand colour')).toHaveValue('#0F766E');
-  await expect(imported.getByText('Draft saved, not live yet')).toBeVisible();
+  const imported = other.locator('section#theme');
+  await expect(imported.getByRole('status')).toHaveText('Imported as a draft. Check it, then publish it.');
+  await expect(imported.getByRole('radio', { name: /Playful school/ })).toBeChecked();
+  await expect(imported.getByLabel('Brand colour, colour code')).toHaveValue('#0F766E');
+  await expect(imported.getByText(/^You have unpublished changes/)).toBeVisible();
   // Not live for that school until published.
   expect(await style(other, 'header.app-header', 'background-color')).not.toBe('rgb(15, 118, 110)');
 
   // A settings file of the wrong kind is refused.
-  const people = other.getByRole('region', { name: 'People and sign-in' });
-  await people.getByText('Export or import').click();
+  const people = await openSection(other, 'iota', 'people');
+  await people.getByText('History and files').click();
   await people.getByLabel('Settings file (.json)').setInputFiles(file);
   await people.getByRole('button', { name: 'Import as draft' }).click();
   await expect(people.getByText('That file holds a different kind of settings.')).toBeVisible();

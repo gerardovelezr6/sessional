@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { makePng } from '../unit/support/png';
+import { choose } from './support/settings';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -15,21 +16,18 @@ async function openDesign(page: Page) {
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-  await page.goto(at('/settings'));
-  return page.getByRole('region', { name: 'Design' });
+  await page.goto(at('/settings?section=theme'));
+  return page.locator('section#theme');
 }
 
 async function saveAndPublish(page: Page) {
-  const design = page.getByRole('region', { name: 'Design' });
-  await design.getByRole('button', { name: 'Save draft' }).click();
-  await page.waitForURL(/done=draft/);
-  await page.getByRole('region', { name: 'Design' }).getByRole('button', { name: 'Publish' }).click();
+  await page.locator('section#theme').getByRole('button', { name: 'Save and publish' }).click();
   await page.waitForURL(/done=published/);
 }
 
 test('every school page has a header with the school name until a logo is uploaded', async ({ page }) => {
   await page.goto(at('/login'));
-  await expect(page.locator('header.app-header > span')).toHaveText('Logo School');
+  await expect(page.locator('header.app-header a > span')).toHaveText('Logo School');
 });
 
 test('the live preview follows the form before anything is saved', async ({ page }) => {
@@ -40,18 +38,29 @@ test('the live preview follows the form before anything is saved', async ({ page
   const button = preview.locator('.btn-primary');
   const before = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
 
-  await design.getByLabel('Brand colour').fill('#0F766E');
-  await expect.poll(() => button.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(15, 118, 110)');
-  await design.getByLabel('Corners').selectOption('none');
+  const background = () => button.evaluate((el) => getComputedStyle(el).backgroundColor);
+
+  // Three ways to choose a colour: a suggested swatch, the colour picker, or a typed code.
+  await design.getByLabel('Use #B91C1C').click();
+  await expect.poll(background).toBe('rgb(185, 28, 28)');
+  await design.getByLabel('Brand colour', { exact: true }).fill('#6d28d9');
+  await expect.poll(background).toBe('rgb(109, 40, 217)');
+  await design.getByLabel('Brand colour, colour code').fill('#0F766E');
+  await expect.poll(background).toBe('rgb(15, 118, 110)');
+  await choose(design, 'Corners', 'Square');
   await expect.poll(() => button.evaluate((el) => getComputedStyle(el).borderRadius)).toBe('0px');
-  await design.getByLabel('Page header').selectOption('brand');
+  await choose(design, 'Page header', 'In the brand colour');
   await expect.poll(() => preview.locator('.app-header').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(15, 118, 110)');
-  await design.getByLabel('Tabs').selectOption('pill');
+  await choose(design, 'Tabs', 'Filled');
   await expect.poll(() => preview.locator('[aria-selected="true"]').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(15, 118, 110)');
 
   // Half-typed colours are ignored instead of breaking the preview.
-  await design.getByLabel('Brand colour').fill('#0F7');
-  await expect.poll(() => button.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(before);
+  await design.getByLabel('Brand colour, colour code').fill('#0F7');
+  await expect.poll(background).toBe(before);
+  // "Use the design's colour" goes back to the preset's.
+  await design.getByLabel('Brand colour, colour code').fill('#0F766E');
+  await design.getByRole('button', { name: "Use the design's colour" }).first().click();
+  await expect.poll(background).toBe(before);
 
   // Dark sample.
   await preview.page().getByRole('button', { name: 'Dark', exact: true }).click();
@@ -60,8 +69,8 @@ test('the live preview follows the form before anything is saved', async ({ page
   expect((r! + g! + b!) / 3).toBeLessThan(60);
 
   // Nothing was saved: the page itself still has the old look, and leaving loses nothing live.
-  await page.goto(at('/settings'));
-  await expect(page.getByText('Draft saved, not live yet')).toHaveCount(0);
+  await page.goto(at('/settings?section=theme'));
+  await expect(page.getByText('You have unpublished changes')).toHaveCount(0);
   expect(await style(page, 'header.app-header', 'background-color')).not.toBe('rgb(15, 118, 110)');
 });
 
@@ -72,8 +81,8 @@ test('bad images are refused with a reason, and nothing is saved', async ({ page
   await design.getByRole('button', { name: 'Save draft' }).click();
   await expect(design.getByText('Use a PNG, JPEG or WebP image (a PNG for the browser icon).')).toBeVisible();
   await expect(design.getByText('The browser icon must be square.')).toBeVisible();
-  await page.goto(at('/settings'));
-  await expect(page.getByText('Draft saved, not live yet')).toHaveCount(0);
+  await page.goto(at('/settings?section=theme'));
+  await expect(page.getByText('You have unpublished changes')).toHaveCount(0);
 });
 
 test('a logo and a browser icon are uploaded, previewed, published and shown on every page', async ({ page, browser }) => {
@@ -82,12 +91,12 @@ test('a logo and a browser icon are uploaded, previewed, published and shown on 
   // The preview shows the chosen file at once.
   await expect(page.getByTestId('theme-preview').locator('.app-header img')).toHaveAttribute('src', /^blob:/);
   await design.getByLabel('Browser icon: Choose a file').setInputFiles(png(64, 64));
-  await design.getByLabel('Page header').selectOption('brand');
-  await design.getByLabel('Page titles').selectOption('bar');
+  await choose(design, 'Page header', 'In the brand colour');
+  await choose(design, 'Page titles', 'With a coloured bar');
   await saveAndPublish(page);
 
   // Stored under the school's own folder, named by content, and actually served.
-  const logo = page.getByRole('region', { name: 'Design' }).locator('img').first();
+  const logo = page.locator('section#theme').locator('img').first();
   await expect(logo).toHaveAttribute('src', /\/storage\/v1\/object\/public\/public-assets\/00000000-0000-4000-8000-000000000008\/logo-[0-9a-f]{16}\.png$/);
 
   const visitor = await (await browser.newContext()).newPage();
@@ -103,7 +112,7 @@ test('a logo and a browser icon are uploaded, previewed, published and shown on 
   await visitor.context().close();
 
   // Saving the form again without choosing a file keeps the images.
-  await page.getByRole('region', { name: 'Design' }).getByLabel('Spacing').selectOption('compact');
+  await choose(page.locator('section#theme'), 'Spacing', 'Compact');
   await saveAndPublish(page);
   await expect(page.locator('header.app-header img')).toHaveAttribute('src', /logo-[0-9a-f]{16}\.png$/);
 });
@@ -113,7 +122,7 @@ test('an image can be removed', async ({ page }) => {
   await design.getByLabel('Logo: Remove').check();
   await expect(page.getByTestId('theme-preview').locator('.app-header')).toHaveText('Logo School');
   await saveAndPublish(page);
-  await expect(page.locator('header.app-header > span')).toHaveText('Logo School');
+  await expect(page.locator('header.app-header a > span')).toHaveText('Logo School');
   await expect(page.locator('header.app-header img')).toHaveCount(0);
   // The icon was not touched.
   await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /favicon-/);
@@ -128,20 +137,16 @@ test('a forged image path pointing at another school is refused', async ({ page 
   await expect(design.getByText('Some values are not valid. Nothing was saved.')).toBeVisible();
 });
 
-test('the settings sections are tabs, styled by the design', async ({ page }) => {
-  await openDesign(page);
-  const nav = page.getByRole('navigation', { name: 'Sections' });
-  await expect(nav.getByRole('link')).toHaveText(['Identity', 'Language', 'Words', 'Translations', 'Design', 'People and sign-in']);
-  await expect(nav.getByRole('link', { name: 'Identity' })).toHaveAttribute('aria-current', 'location');
-  await expect(nav.locator('[aria-current]')).toHaveCount(1);
+test('the settings menu marks the section being edited, in the school\'s style', async ({ page }) => {
+  const design = await openDesign(page);
+  const current = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Design' });
+  await expect(current).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('navigation', { name: 'Sections' }).locator('[aria-current]')).toHaveCount(1);
+  expect(await current.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('inset');
 
-  // After saving a section, that section is the current tab.
-  const design = page.getByRole('region', { name: 'Design' });
-  await design.getByLabel('Tabs').selectOption('boxed');
+  // After saving, the same section is shown again.
+  await choose(design, 'Tabs', 'Outlined');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await page.waitForURL(/section=theme/);
-  const current = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Design' });
-  await expect(current).toHaveAttribute('aria-current', 'location');
-  // The current tab is visibly marked (live design: underline from the preset).
-  expect(await current.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('inset');
+  await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Design •' })).toHaveAttribute('aria-current', 'page');
 });

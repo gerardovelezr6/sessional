@@ -21,7 +21,7 @@ Spanish: Idioma
 
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
-| Languages | `locale.enabledLocales` | `["en","es"]` | language codes (BCP 47), e.g. `en, es, fr` | `tenant.manage` | The languages your conference uses, as language codes separated by commas, for example en, es, fr or ar. English and Spanish are built in; for others, write the texts in the translation editor. Missing texts show in English. |
+| Languages | `locale.enabledLocales` | `["en","es"]` | language codes (BCP 47), e.g. `en, es, fr` | `tenant.manage` | English and Spanish are built in. For any other language, write the texts in the translation editor; until then they show in English. |
 | Default language | `locale.defaultLocale` | `en` | one of the enabled languages | `tenant.manage` | The language of your conference's pages. |
 
 ## Words (`terminology`)
@@ -59,9 +59,9 @@ Spanish: Diseño
 | Design preset | `theme.preset` | `sessional` | `sessional` (Sessional), `flat-institutional` (Flat institutional), `classic-formal` (Classic formal), `modern-rounded` (Modern rounded), `high-contrast` (High contrast), `playful-school` (Playful school) | `theme.edit` | A complete look to start from. The settings below change parts of it. |
 | Logo | `theme.logo` | as the preset has it | uploaded PNG, JPEG or WebP, up to 2 MB | `theme.edit` | PNG, JPEG or WebP, up to 2 MB. Shown in the page header and on the sign-in page. |
 | Browser icon | `theme.favicon` | as the preset has it | uploaded square PNG, 32 to 1024 px | `theme.edit` | A square PNG, 32 to 1024 pixels, shown in the browser tab. It should still be clear at 16 pixels. |
-| Brand colour | `theme.brand` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | Your main colour, for example #1E40AF. Leave empty to use the preset's. Text colours are worked out for you so they always stay readable. |
-| Accent colour | `theme.accent` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | A second colour for highlights, for example #F59E0B. Leave empty to use the preset's. |
-| Page background | `theme.background` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | A light colour for the page, for example #FFFFFF. A colour too dark for text is lightened. Leave empty to use the preset's. |
+| Brand colour | `theme.brand` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | Your main colour, used for buttons and highlights. Pick one, or keep the design's. |
+| Accent colour | `theme.accent` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | A second colour for small highlights. Pick one, or keep the design's. |
+| Page background | `theme.background` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | The colour behind your pages. Very dark choices are lightened so text stays readable. |
 | Font | `theme.font` | as the preset has it | `montserrat` (Montserrat), `inter` (Inter), `source-serif` (Source Serif), `nunito` (Nunito), `atkinson` (Atkinson Hyperlegible), `system` (Device font); empty = as the preset has it | `theme.edit` | The typeface of all text. |
 | Corners | `theme.radius` | as the preset has it | `none` (Square), `small` (Slightly rounded), `medium` (Rounded), `large` (Very rounded); empty = as the preset has it | `theme.edit` | How rounded buttons, fields and cards are. |
 | Spacing | `theme.density` | as the preset has it | `compact` (Compact), `comfortable` (Comfortable), `spacious` (Spacious); empty = as the preset has it | `theme.edit` | How much room controls and cards take. |

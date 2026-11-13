@@ -14,7 +14,7 @@ export default async function NewPasswordPage({ params }: { params: Promise<{ te
     return <Notice title={t('setPassword.invalid.title')} body={t('setPassword.error.session')} locale={locale} />;
   }
   return (
-    <Shell title={t('setPassword.title')} locale={locale}>
+    <Shell centered title={t('setPassword.title')} locale={locale}>
       <div className="card">
         <ActionForm action={savePasswordAction.bind(null, key)} submitLabel={t('setPassword.save')}>
           <Field label={t('setPassword.new')} name="password" type="password" autoComplete="new-password" minLength={config.people.passwordMinLength} hint={t('setPassword.hint', { min: config.people.passwordMinLength })} />

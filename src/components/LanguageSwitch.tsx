@@ -16,7 +16,7 @@ export function LanguageSwitch({
 }) {
   const [state, formAction] = useActionState(action, {});
   return (
-    <form action={formAction} className="ms-auto flex items-center gap-2 text-sm font-normal">
+    <form action={formAction} className="flex items-center gap-2 text-sm font-normal">
       <label htmlFor="language" className="sr-only">
         {labels.language}
       </label>

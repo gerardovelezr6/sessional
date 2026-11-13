@@ -24,7 +24,7 @@ export default async function SetPasswordPage({
   const confirm: (state: FormState, data: FormData) => Promise<FormState> = confirmLinkAction.bind(null, key, tokenHash, type === 'recovery' ? 'recovery' : 'invite');
 
   return (
-    <Shell title={t('setPassword.confirm.title')} locale={locale}>
+    <Shell centered title={t('setPassword.confirm.title')} locale={locale}>
       <div className="card flex flex-col gap-4">
         <p>{t('setPassword.confirm.body')}</p>
         <ActionForm action={confirm} submitLabel={t('setPassword.confirm.button')} />

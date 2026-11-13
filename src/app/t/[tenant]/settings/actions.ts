@@ -25,7 +25,7 @@ export interface SettingsState {
 }
 
 const submitted = (form: FormData): Record<string, string> =>
-  Object.fromEntries(Array.from(form.entries()).filter((e): e is [string, string] => typeof e[1] === 'string' && !e[0].startsWith('$')));
+  Object.fromEntries(Array.from(form.entries()).filter((e): e is [string, string] => typeof e[1] === 'string' && !e[0].startsWith('$') && e[0] !== 'intent'));
 
 // The school's languages as being edited: text written per language is read for these.
 async function editingLocalesOf(tenantId: string, token: string): Promise<string[]> {
@@ -134,6 +134,17 @@ export async function saveDraftAction(tenantKey: string, section: string, _state
     );
   } catch (e) {
     return { ...failure(e, t), values: submitted(form) };
+  }
+  // "Save and publish": the draft just saved goes live at once.
+  if (form.get('intent') === 'publish') {
+    try {
+      const row = await rpc<{ version: number } | null>('config_publish', { p_tenant: tenant.id, p_conference: null, p_section: section, p_note: '' }, { token: ctx.token });
+      if (!row) return { error: t('settings.error.noDraft') };
+    } catch (e) {
+      return failure(e, t);
+    }
+    forgetTenantConfig(tenant.id);
+    return { redirectTo: await done(section, 'published') };
   }
   return { redirectTo: await done(section, 'draft') };
 }

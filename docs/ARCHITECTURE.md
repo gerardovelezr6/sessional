@@ -277,3 +277,27 @@ PDF styling (moved to the print phase, when there is something to print).
 
 Not built yet (moved to the phases that need them): per-committee language (Phase 5, with
 committees), editable email texts (email phase), flags (Phase 5).
+
+## Usability pass (after Phase 4)
+
+- **Navigation:** every school page has a header with Home, People and Settings (only what the
+  person may use, the current page marked with `aria-current`), the language switch, and the
+  person's name with Sign out. Home is a small dashboard. Sign-in and invitation pages stay
+  centred; other pages start at the top.
+- **Settings** show one section at a time, picked from a menu grouped as Conference (Identity,
+  Design), Language (Language, Words, Translations) and People. On narrow screens the menu is a
+  dropdown. Each section has a one-line description, a status line (live version, date and who
+  published it, or "using the default settings"), an "unpublished changes" panel with Publish now,
+  Preview and Discard, and one bar with **Save draft** and **Save and publish**. History and
+  export/import are folded under "History and files".
+- **Controls** (`src/app/t/[tenant]/settings/fields.tsx`, built from the registry by `build.ts`):
+  - small choices are rows of buttons, and presets, fonts and word sets are cards (presets show
+    their colours, fonts are written in themselves); all are native radios;
+  - colours: a colour picker, suggested swatches, an optional colour-code box and "Use the
+    design's colour";
+  - languages: a list by name with "Shown first" and Remove, and "Add a language";
+  - words: a table of words by language, with the set's word as a grey hint;
+  - time zones: grouped by region with their UTC offset;
+  - the Design section is split into Starting point, Logo and colours, Text and shapes, Page
+    layout, Readability and Advanced (folded; custom CSS).
+- Registry entries carry an optional `group` and `presentation` (`buttons`, `cards`, `dropdown`).

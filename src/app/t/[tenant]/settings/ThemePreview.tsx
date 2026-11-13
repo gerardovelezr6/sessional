@@ -48,16 +48,17 @@ export function ThemePreview({ formId, saved, logoUrl, schoolName, labels }: { f
         return next;
       });
     };
-    // A reset happens before the browser has put the values back, so repaint just after it.
-    const afterReset = () => setTimeout(paint, 0);
+    // Repaint just after each change: some controls (colour pickers) update their form value a
+    // moment after the event, and a reset puts values back after it fires.
+    const later = () => setTimeout(paint, 0);
     paint();
-    form.addEventListener('input', paint);
-    form.addEventListener('change', paint);
-    form.addEventListener('reset', afterReset);
+    form.addEventListener('input', later);
+    form.addEventListener('change', later);
+    form.addEventListener('reset', later);
     return () => {
-      form.removeEventListener('input', paint);
-      form.removeEventListener('change', paint);
-      form.removeEventListener('reset', afterReset);
+      form.removeEventListener('input', later);
+      form.removeEventListener('change', later);
+      form.removeEventListener('reset', later);
     };
   }, [formId, saved, logoUrl, scheme]);
 

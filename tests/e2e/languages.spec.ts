@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { choose, openSection, saveAndPublish } from './support/settings';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -13,15 +14,6 @@ async function signIn(page: Page, host: string, email: string, labels = { email:
   await page.getByRole('button', { name: labels.button }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
 }
-const save = async (page: Page, region: string, button = 'Save draft') => {
-  await page.getByRole('region', { name: region }).getByRole('button', { name: button }).click();
-  await page.waitForURL(/done=/);
-};
-const publish = async (page: Page, region: string) => {
-  await page.getByRole('region', { name: region }).getByRole('button', { name: 'Publish' }).click();
-  await page.waitForURL(/done=published/);
-};
-
 test('an Arabic school is written right to left, with its own texts and English for the rest', async ({ page }) => {
   await page.goto(at('kappa', '/login'));
   await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
@@ -33,7 +25,7 @@ test('an Arabic school is written right to left, with its own texts and English 
 
   // The layout mirrors: the school's name starts on the right.
   const width = page.viewportSize()!.width;
-  const name = await page.locator('header.app-header > span').boundingBox();
+  const name = await page.locator('header.app-header a > span').boundingBox();
   expect(name!.x).toBeGreaterThan(width / 2);
 
   // Switching to English turns the page left to right; the choice is remembered in this browser.
@@ -52,30 +44,35 @@ test('the product\'s own pages keep English left to right', async ({ page }) => 
 
 test('a school adds French, and an unknown language code is refused with a reason', async ({ page }) => {
   await signIn(page, 'lambda', 'owner@lambda.test');
-  await page.goto(at('lambda', '/settings'));
-  const language = page.getByRole('region', { name: 'Language' });
-  await language.getByLabel('Languages').fill('en, es, french');
+  let language = await openSection(page, 'lambda', 'locale');
+  // Languages are added by name, not typed as codes.
+  await language.getByLabel('Add a language').selectOption('fr');
+  await language.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(language.getByRole('listitem')).toHaveText([/^English/, /^Spanish \(español\)/, /^French \(français\)/]);
+  // A forged code that is not a language is still refused by the server, with a reason.
+  await language.locator('input[type=hidden][name=enabledLocales]').evaluate((el: HTMLInputElement) => {
+    el.value = 'en,es,french';
+  });
   await language.getByRole('button', { name: 'Save draft' }).click();
   await expect(language.locator('p[role="alert"]').first()).toHaveText(/Check the language codes/);
-  await expect(language.getByLabel('Languages')).toHaveValue('en, es, french');
 
-  await language.getByLabel('Languages').fill('EN, es, fr');
-  await save(page, 'Language');
-  // The default-language list follows the languages, named in the reader's language.
-  await expect(page.getByRole('region', { name: 'Language' }).getByLabel('Default language').locator('option')).toHaveText(['English (en)', 'Spanish (es)', 'French (fr)']);
-  await publish(page, 'Language');
+  language = await openSection(page, 'lambda', 'locale');
+  await language.getByLabel('Add a language').selectOption('fr');
+  await language.getByRole('button', { name: 'Add', exact: true }).click();
+  await saveAndPublish(language);
 
-  // The translations card reports what French still lacks; English and Spanish are complete.
-  const translations = page.getByRole('region', { name: 'Translations' });
+  // The translations section reports what French still lacks; English and Spanish are complete.
+  const translations = await openSection(page, 'lambda', 'translations');
   await expect(translations.getByText(/^French: \d+ texts missing, shown in English/)).toBeVisible();
   await expect(translations.getByText(/^Spanish: complete/)).toBeVisible();
   // Text written per language now offers French too.
-  await expect(page.getByRole('region', { name: 'Identity' }).getByLabel('French')).toBeVisible();
+  const identity = await openSection(page, 'lambda', 'identity');
+  await expect(identity.getByLabel('French (français)')).toBeVisible();
 });
 
 test('the translation editor: search, broken texts refused and kept, saved as a draft, published', async ({ page }) => {
   await signIn(page, 'lambda', 'owner@lambda.test');
-  await page.goto(at('lambda', '/settings'));
+  await openSection(page, 'lambda', 'translations');
   await page.getByRole('link', { name: 'Open the translation editor' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Translations');
   await expect(page.getByLabel('Language', { exact: true }).last()).toHaveValue('fr');
@@ -97,9 +94,10 @@ test('the translation editor: search, broken texts refused and kept, saved as a 
   await page.waitForURL(/done=draft/);
   await expect(page.getByRole('status')).toHaveText(/Draft saved. Publish the Translations section/);
 
-  await page.goto(at('lambda', '/settings'));
-  await publish(page, 'Translations');
-  await expect(page.getByRole('region', { name: 'Translations' }).getByText(/^French: .* · 2 texts changed/)).toBeVisible();
+  const translations = await openSection(page, 'lambda', 'translations');
+  await translations.getByRole('button', { name: 'Publish now' }).click();
+  await page.waitForURL(/done=published/);
+  await expect(page.locator('section#translations').getByText(/^French: .* · 2 texts changed/)).toBeVisible();
 });
 
 test('anyone can switch to French; signed-in people keep the choice on their profile', async ({ page, browser }) => {
@@ -128,14 +126,15 @@ test('anyone can switch to French; signed-in people keep the choice on their pro
 
 test('changing the words of a school changes every text that uses them', async ({ page, browser }) => {
   await signIn(page, 'lambda', 'owner@lambda.test');
-  await page.goto(at('lambda', '/settings'));
-  const words = page.getByRole('region', { name: 'Words' });
-  await words.getByLabel('Set of words').selectOption('school');
-  await words.getByRole('group', { name: 'Organising team' }).getByLabel('English').fill('Secretariat of Lambda');
-  await save(page, 'Words');
-  await publish(page, 'Words');
+  const words = await openSection(page, 'lambda', 'terminology');
+  await choose(words, 'Set of words', 'School');
+  // Empty boxes show the set's word as a hint.
+  await expect(words.getByLabel('Chair (one), English')).toHaveAttribute('placeholder', 'Moderator');
+  await words.getByLabel('Organising team, English').fill('Secretariat of Lambda');
+  await saveAndPublish(words);
 
   // The live preview sample uses the words.
+  await openSection(page, 'lambda', 'theme');
   await expect(page.getByTestId('theme-preview')).toContainText('Students present: 14 of 15');
 
   // Someone signed in without access is told whom to ask, in the school's words.

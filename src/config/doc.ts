@@ -30,6 +30,8 @@ function allowed(setting: Setting): string {
       return 'one of the enabled languages';
     case 'localeList':
       return 'language codes (BCP 47), e.g. `en, es, fr`';
+    case 'structure':
+      return 'edited on the committee types page';
     case 'translations':
       return 'edited in the translation editor; each text must keep the English placeholders';
   }

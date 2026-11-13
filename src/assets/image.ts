@@ -60,6 +60,8 @@ export function inspectImage(bytes: Uint8Array): ImageInfo | null {
 export const ASSET_RULES = {
   logo: { types: ['png', 'jpeg', 'webp'] as ImageType[], maxBytes: 2 * 1024 * 1024, minSide: 16, maxSide: 4096, square: false },
   favicon: { types: ['png'] as ImageType[], maxBytes: 512 * 1024, minSide: 32, maxSide: 1024, square: true },
+  // Logos of groups such as parties, shown in place of a flag.
+  group: { types: ['png', 'jpeg', 'webp'] as ImageType[], maxBytes: 512 * 1024, minSide: 16, maxSide: 1024, square: false },
 } as const;
 export type AssetKind = keyof typeof ASSET_RULES;
 
@@ -78,7 +80,7 @@ export function checkAsset(kind: AssetKind, bytes: Uint8Array): { ok: true; info
 
 // Where a school's file is stored: under its own tenant id, named by its content so a new upload
 // never collides with a cached old one.
-export const ASSET_PATH = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/(logo|favicon)-[0-9a-f]{16}\.(png|jpg|webp)$/;
+export const ASSET_PATH = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/(logo|favicon|group)-[0-9a-f]{16}\.(png|jpg|webp)$/;
 
 export function assetPath(tenantId: string, kind: AssetKind, digestHex: string, type: ImageType): string {
   return `${tenantId}/${kind}-${digestHex.slice(0, 16)}.${EXTENSION[type]}`;

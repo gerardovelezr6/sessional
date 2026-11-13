@@ -2,6 +2,7 @@
 import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { TranslationsState } from './actions';
+import { goTo } from '@/components/go';
 
 type Action = (state: TranslationsState, data: FormData) => Promise<TranslationsState>;
 
@@ -23,7 +24,7 @@ function Submit({ label, variant = 'primary' }: { label: string; variant?: 'prim
 
 function useDone(state: TranslationsState) {
   useEffect(() => {
-    if (state.redirectTo) window.location.assign(state.redirectTo);
+    if (state.redirectTo) goTo(state.redirectTo);
   }, [state]);
 }
 

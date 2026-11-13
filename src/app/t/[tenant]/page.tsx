@@ -4,6 +4,7 @@ import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { localize } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { loadOverview } from './committees/data';
 
 export default async function TenantHome({ params }: { params: Promise<{ tenant: string }> }) {
   const { tenant: key } = await params;
@@ -23,7 +24,12 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
     );
   }
 
+  // The committees this person chairs, first, so a chair is one click from their room.
+  const overview = await loadOverview(tenant.id, ctx.token).catch(() => null);
+  const mine = (overview?.committees ?? []).filter((c) => c.is_chair);
+
   const places = [
+    { href: `${base}/committees`, title: t('nav.committees'), help: t('home.committees.help') },
     ...(ctx.can('users.view') ? [{ href: `${base}/people`, title: t('nav.people'), help: t('home.people.help') }] : []),
     ...(ctx.can('tenant.manage') ? [{ href: `${base}/settings`, title: t('nav.settings'), help: t('home.settings.help') }] : []),
   ];
@@ -36,6 +42,22 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
           <p>{t('home.role', { role: localize(ctx.membership.roleName, locale, ctx.membership.roleKey) })}</p>
           <p className="text-sm">{t('tenant.ready')}</p>
         </div>
+        {mine.length ? (
+          <section className="card flex flex-col gap-2" aria-labelledby="mine-title">
+            <h2 id="mine-title" className="text-lg font-bold text-on-surface">
+              {t('home.yourCommittees')}
+            </h2>
+            <ul className="flex flex-col gap-1">
+              {mine.map((c) => (
+                <li key={c.id}>
+                  <Link href={`${base}/committees/${c.id}`} className="font-semibold underline underline-offset-2">
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         {places.length ? (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {places.map((p) => (

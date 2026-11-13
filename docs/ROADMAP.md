@@ -1,8 +1,8 @@
 # Roadmap
 
-Status: Phases 0 to 3 are merged except the Phase 2 leftovers (generated `CONFIG.md`, "your
-conferences" page), which are up for review. Phase 4 (languages) is complete and up for review.
-Per-committee language and flags move to Phase 5, editable email texts to the email phase.
+Status: Phases 0 to 4 and the usability pass are merged. Phase 5 (structure) is complete and up
+for review; the "half of the committees in session" unlock rule waits for sessions in Phase 6.
+Editable email texts move to the email phase.
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a
 "what to verify" checklist. Effort is in pull requests (a PR is roughly one focused working

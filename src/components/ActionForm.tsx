@@ -1,6 +1,7 @@
 'use client';
 import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { goTo } from './go';
 
 export interface FormState {
   error?: string;
@@ -33,7 +34,7 @@ export function ActionForm({
 }) {
   const [state, formAction] = useActionState(action, {});
   useEffect(() => {
-    if (state.redirectTo) window.location.assign(state.redirectTo);
+    if (state.redirectTo) goTo(state.redirectTo);
   }, [state]);
   return (
     <form action={formAction} className="flex flex-col gap-4">

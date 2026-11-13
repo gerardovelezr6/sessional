@@ -67,6 +67,10 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   audit_log: { insert: `insert into audit_log (tenant_id, action) values ($1, 'intruder')`, params: (t) => [t] },
   config_versions: { insert: `insert into config_versions (tenant_id, section, version, data, schema_version) values ($1, 'people', 99, '{}', 1)`, params: (t) => [t] },
   config_state: { insert: `insert into config_state (tenant_id, section, draft, draft_schema_version) values ($1, 'locale', '{}', 1)`, params: (t) => [t] },
+  committees: { insert: `insert into committees (tenant_id, conference_id, name) values ($1, (select id from conferences where tenant_id = $1 limit 1), 'Intruder')`, params: (t) => [t] },
+  committee_chairs: { insert: `insert into committee_chairs (tenant_id, committee_id, user_id) values ($1, (select id from committees where tenant_id = $1 limit 1), (select user_id from memberships where tenant_id = $1 limit 1))`, params: (t) => [t] },
+  delegates: { insert: `insert into delegates (tenant_id, committee_id, label) values ($1, (select id from committees where tenant_id = $1 limit 1), 'Intruder')`, params: (t) => [t] },
+  committee_secrets: { insert: `insert into committee_secrets (tenant_id, committee_id, topic) values ($1, (select id from committees where tenant_id = $1 order by created_at desc limit 1), 'Intruder')`, params: (t) => [t] },
 };
 
 beforeAll(async () => {
@@ -99,6 +103,15 @@ beforeAll(async () => {
   for (const t of [A, B]) {
     await db.query(`select app.config_append($1, null, 'people', '{"passwordMinLength": 12}', 1, 'seed', null)`, [t]);
     await db.query(`insert into config_state (tenant_id, section, draft, draft_schema_version) values ($1, 'identity', '{}', 1)`, [t]);
+  }
+  // A committee in each school, with a chair, a delegate and a confidential topic.
+  for (const [t, conf, chair] of [[A, confA, people.chairA], [B, confB, people.ownerB]] as const) {
+    const c = (await db.query(`insert into committees (tenant_id, conference_id, name) values ($1, $2, 'Security Council') returning id`, [t, conf])).rows[0].id;
+    await db.query(`insert into committee_chairs (tenant_id, committee_id, user_id) values ($1, $2, $3)`, [t, c, chair]);
+    await db.query(`insert into delegates (tenant_id, committee_id, label, name) values ($1, $2, 'Mexico', 'A student')`, [t, c]);
+    await db.query(`insert into committee_secrets (tenant_id, committee_id, topic) values ($1, $2, 'Secret')`, [t, c]);
+    // A second committee without a confidential topic, so a forged one has somewhere to go.
+    await db.query(`insert into committees (tenant_id, conference_id, name) values ($1, $2, 'Spare')`, [t, conf]);
   }
   await db.query(`select app.rename_tenant($1, $2)`, [B, `gamma-${run}`]);
 });

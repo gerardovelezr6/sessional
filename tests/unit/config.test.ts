@@ -4,6 +4,7 @@ import { registry, SECTION_LABELS } from '@/config/registry';
 import { resolveConfig, resolveSection, validateSection } from '@/config/resolve';
 import { CONFIG_SCHEMA_VERSION, defaultConfig, SECTION_NAMES, sections } from '@/config/schema';
 import { catalogs } from '@/messages';
+import { STANDARD_TYPE } from '@/structure/schema';
 import { DEFAULT_THEME } from '@/theme/default-tokens';
 
 describe('defaults', () => {
@@ -13,6 +14,7 @@ describe('defaults', () => {
       locale: { enabledLocales: ['en', 'es'], defaultLocale: 'en' },
       terminology: { pack: 'un', conference: {}, committee: {}, committees: {}, chair: {}, chairs: {}, delegate: {}, delegates: {}, highCommand: {}, advisor: {}, advisors: {} },
       translations: { messages: {} },
+      structure: { categories: [], types: [STANDARD_TYPE] },
       people: { passwordMinLength: 8 },
       theme: {
         preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { canonicalLocale } from '@/i18n/locales';
+import { structureSchema } from '@/structure/schema';
 import { TERM_KEYS, TERM_PACK_KEYS } from '@/i18n/terms';
 import { translationProblem } from '@/i18n/icu';
 import { catalogs } from '@/messages';
@@ -43,6 +44,8 @@ export const sections = {
     pack: z.enum(TERM_PACK_KEYS).default('un'),
     ...(Object.fromEntries(TERM_KEYS.map((k) => [k, localizedText(60).default({})])) as unknown as Record<(typeof TERM_KEYS)[number], z.ZodDefault<ReturnType<typeof localizedText>>>),
   }),
+  // Committee categories and committee types (edited on their own page).
+  structure: structureSchema,
   // The school's own texts, per language and message key, from the translation editor.
   translations: z.object({
     messages: z

@@ -3,6 +3,7 @@ import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { SettingsState } from './actions';
 import { SettingField, type FieldLabels, type FieldView } from './fields';
+import { goTo } from '@/components/go';
 
 export type { FieldView };
 
@@ -21,8 +22,7 @@ function useNavigateWhenDone(state: SettingsState) {
   useEffect(() => {
     if (!state.redirectTo) return;
     // Same page with a new query string: assign() alone would not reload when only the hash differs.
-    window.location.assign(state.redirectTo);
-    if (state.redirectTo.split('#')[0] === window.location.pathname + window.location.search) window.location.reload();
+    goTo(state.redirectTo);
   }, [state]);
 }
 

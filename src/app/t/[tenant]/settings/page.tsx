@@ -49,6 +49,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const anyDraft = SECTION_NAMES.some((s) => state[s]?.draft);
   // The school's languages as being edited (a draft may add one before it is published).
   const editingLocales = resolveSection('locale', state.locale?.draft ?? state.locale?.published).data.enabledLocales;
+  const structure = resolveSection('structure', state.structure?.draft ?? state.structure?.published).data;
   const overrides = resolveSection('translations', state.translations?.draft ?? state.translations?.published).data.messages;
 
   const s = state[section];
@@ -155,7 +156,16 @@ export default async function SettingsPage({ params, searchParams }: { params: P
             </p>
           ) : null}
 
-          {section === 'translations' ? (
+          {section === 'structure' ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm">{t('structure.summary', { categories: structure.categories.length, types: structure.types.length })}</p>
+              <p>
+                <Link className="btn btn-primary" href={`${base}/settings/structure`}>
+                  {t('structure.open')}
+                </Link>
+              </p>
+            </div>
+          ) : section === 'translations' ? (
             <div className="flex flex-col gap-3">
               <ul className="flex flex-col gap-1 text-sm">
                 {editingLocales.map((l) => (

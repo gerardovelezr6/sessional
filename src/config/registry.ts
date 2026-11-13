@@ -19,6 +19,8 @@ export type Control =
   | { kind: 'locale' }
   | { kind: 'localeList' }
   | { kind: 'translations' }
+  // Committee categories and types: edited on their own page.
+  | { kind: 'structure' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -51,7 +53,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'theme'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'theme', 'structure'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people'] },
 ];
@@ -61,6 +63,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   locale: 'settings.locale.description',
   terminology: 'settings.terminology.description',
   translations: 'settings.translations.description',
+  structure: 'settings.structure.description',
   theme: 'settings.theme.description',
   people: 'settings.people.description',
 };
@@ -70,6 +73,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   locale: 'settings.locale',
   terminology: 'settings.terminology',
   translations: 'settings.translations',
+  structure: 'settings.structure',
   theme: 'settings.theme',
   people: 'settings.people',
 };
@@ -113,6 +117,16 @@ export const registry: Setting[] = [
     labelKey: `settings.terminology.term.${key}` as MessageKey, helpKey: 'settings.terminology.term.help' as MessageKey,
     control: { kind: 'localizedText' as const, maxLength: 60 },
   })),
+  {
+    section: 'structure', key: 'categories', permission: 'tenant.manage',
+    labelKey: 'settings.structure.categories', helpKey: 'settings.structure.categories.help',
+    control: { kind: 'structure' },
+  },
+  {
+    section: 'structure', key: 'types', permission: 'tenant.manage',
+    labelKey: 'settings.structure.types', helpKey: 'settings.structure.types.help',
+    control: { kind: 'structure' },
+  },
   {
     section: 'translations', key: 'messages', permission: 'tenant.manage',
     labelKey: 'settings.translations.messages', helpKey: 'settings.translations.messages.help',

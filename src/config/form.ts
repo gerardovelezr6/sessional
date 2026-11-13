@@ -37,6 +37,13 @@ export function readForm(section: SectionName, form: FormData): Record<string, u
       case 'timeZone':
         data[setting.key] = String(form.get(fieldName(setting)) ?? '');
         break;
+      case 'asset': {
+        // The stored path stays as it was unless "remove" is ticked; a newly chosen file is handled
+        // by the server action (see assetFile), which then replaces this value.
+        const current = String(form.get(fieldName(setting)) ?? '');
+        data[setting.key] = form.get(`${fieldName(setting)}.remove`) === 'on' || current === '' ? null : current;
+        break;
+      }
       case 'localizedText': {
         const text: Record<string, string> = {};
         for (const locale of EDIT_LOCALES) {
@@ -49,4 +56,10 @@ export function readForm(section: SectionName, form: FormData): Record<string, u
     }
   }
   return data;
+}
+
+// The file chosen for an image setting, if any.
+export function assetFile(setting: Setting, form: FormData): File | null {
+  const file = form.get(`${fieldName(setting)}.file`);
+  return file instanceof File && file.size > 0 ? file : null;
 }

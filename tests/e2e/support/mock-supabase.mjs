@@ -18,6 +18,7 @@ const TENANTS = {
   delta: { kind: 'tenant', id: tid(5), slug: 'delta', name: 'Colegio Delta', status: 'active' },
   epsilon: { kind: 'tenant', id: tid(6), slug: 'epsilon', name: 'Settings School', status: 'active' },
   zeta: { kind: 'tenant', id: tid(7), slug: 'zeta', name: 'Design School', status: 'active' },
+  eta: { kind: 'tenant', id: tid(8), slug: 'eta', name: 'Logo School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -53,6 +54,7 @@ seed('owner@delta.test', 'Diego Delta', tid(5), 'owner');
 seed('owner@epsilon.test', 'Erin Epsilon', tid(6), 'owner');
 seed('chair@epsilon.test', 'Cy Chair', tid(6), 'chair');
 seed('owner@zeta.test', 'Zoe Zeta', tid(7), 'owner');
+seed('owner@eta.test', 'Ella Eta', tid(8), 'owner');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -186,6 +188,8 @@ const rpcs = {
 };
 // Settings being edited in the tests: tenant -> section -> { published_version, draft, versions }.
 const EDITS = {};
+// Uploaded files: path -> { type, bytes }.
+const FILES = new Map();
 const DENIED = { status: 403, body: { code: '42501', message: 'new row violates row-level security policy' } };
 function sectionOf(tenant, section) {
   return ((EDITS[tenant] ??= {})[section] ??= { published_version: null, draft: null, versions: [] });
@@ -244,9 +248,28 @@ createServer((req, res) => {
     res.end(status === 204 ? undefined : JSON.stringify(body));
   };
   if (req.method === 'GET' && req.url === '/health') return send({ body: { ok: true } });
-  let raw = '';
-  req.on('data', (c) => (raw += c));
+  const chunks = [];
+  req.on('data', (c) => chunks.push(c));
   req.on('end', () => {
+    const bytes = Buffer.concat(chunks);
+
+    // File store: uploads (service key only) and public reads.
+    const upload = /^\/storage\/v1\/object\/public-assets\/(.+)$/.exec(req.url ?? '');
+    if (req.method === 'POST' && upload) {
+      if (req.headers.apikey !== SERVICE || req.headers.authorization !== `Bearer ${SERVICE}`) return send({ status: 401, body: { message: 'bad key' } });
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(req.headers['content-type'])) return send({ status: 415, body: { message: 'mime type not allowed' } });
+      FILES.set(upload[1], { type: req.headers['content-type'], bytes });
+      return send({ body: { Key: `public-assets/${upload[1]}` } });
+    }
+    const read = /^\/storage\/v1\/object\/public\/public-assets\/(.+)$/.exec(req.url ?? '');
+    if (req.method === 'GET' && read) {
+      const file = FILES.get(read[1]);
+      if (!file) return send({ status: 404, body: { message: 'not found' } });
+      res.writeHead(200, { 'content-type': file.type });
+      return res.end(file.bytes);
+    }
+
+    const raw = bytes.toString('utf8');
     const body = raw ? JSON.parse(raw) : {};
     const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
     const key = req.headers.apikey;

@@ -6,6 +6,7 @@ import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
 import { parseTenantKey } from '@/tenancy/route';
+import { assetUrl } from '@/data/storage';
 import { themeCss } from '@/theme/engine';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
@@ -30,10 +31,14 @@ async function lookup(key: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const found = await lookup((await params).tenant);
+  // A suspended or deleted tenant reveals nothing, not even its name.
+  if (found.kind !== 'tenant' || isHidden(found.tenant.status)) return { robots: { index: false, follow: false } };
+  const { config } = await tenantTranslator(found.tenant.id);
+  const icon = assetUrl(found.tenant.id, config.theme.favicon);
   return {
-    // A suspended or deleted tenant reveals nothing, not even its name.
-    title: found.kind === 'tenant' && !isHidden(found.tenant.status) ? found.tenant.name : undefined,
+    title: found.tenant.name,
     robots: { index: false, follow: false },
+    ...(icon ? { icons: { icon, apple: icon } } : {}),
   };
 }
 
@@ -69,10 +74,22 @@ export default async function TenantLayout({ params, children }: Props) {
       {css}
     </style>
   );
+  const logo = assetUrl(found.tenant.id, own.config.theme.logo);
+  const header = (
+    <header className="app-header">
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logo} alt={found.tenant.name} />
+      ) : (
+        <span>{found.tenant.name}</span>
+      )}
+    </header>
+  );
   if (!own.preview) {
     return (
       <>
         {theme}
+        {header}
         {children}
       </>
     );
@@ -84,6 +101,7 @@ export default async function TenantLayout({ params, children }: Props) {
         <span>{own.t('settings.preview.banner')}</span>
         <ActionButton action={setPreviewAction.bind(null, key, false) as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('settings.preview.off')} />
       </div>
+      {header}
       {children}
     </>
   );

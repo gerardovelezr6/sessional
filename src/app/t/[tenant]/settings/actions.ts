@@ -1,12 +1,14 @@
 'use server';
 import { cookies } from 'next/headers';
 import { cookieOptions } from '@/auth/cookies';
-import { readForm } from '@/config/form';
+import { checkAsset, type AssetProblem } from '@/assets/image';
+import { assetFile, readForm, settingsOf } from '@/config/form';
 import { validateSection } from '@/config/resolve';
 import { CONFIG_SCHEMA_VERSION, SECTION_NAMES, type SectionName } from '@/config/schema';
 import { forgetTenantConfig, PREVIEW_COOKIE, tenantTranslator } from '@/config/store';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
-import type { Translate } from '@/messages';
+import { uploadAsset } from '@/data/storage';
+import type { MessageKey, Translate } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 
 export interface SettingsState {
@@ -36,18 +38,55 @@ function failure(e: unknown, t: Translate): SettingsState {
   throw e;
 }
 
-const done = async (section: string, outcome: string) => `${await basePath()}/settings?done=${outcome}#${section}`;
+const done = async (section: string, outcome: string) => `${await basePath()}/settings?done=${outcome}&section=${section}#${section}`;
+
+const ASSET_ERROR: Record<AssetProblem, MessageKey> = {
+  type: 'settings.theme.asset.error.type',
+  size: 'settings.theme.asset.error.size',
+  dimensions: 'settings.theme.asset.error.dimensions',
+  square: 'settings.theme.asset.error.square',
+};
 
 export async function saveDraftAction(tenantKey: string, section: string, _state: SettingsState, form: FormData): Promise<SettingsState> {
   const { tenant, t, ctx } = await editor(tenantKey);
   if (!ctx || !isSection(section)) return { error: t('settings.error.forbidden') };
 
-  const checked = validateSection(section, readForm(section, form));
-  if (!checked.ok) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of checked.issues) fieldErrors[issue.path.split('.')[1] ?? ''] = t('settings.error.invalid');
-    return { error: t('settings.error.fields'), fieldErrors };
+  const data = readForm(section, form);
+  const fieldErrors: Record<string, string> = {};
+
+  // Newly chosen images: checked from their bytes before anything is stored.
+  const uploads: { key: string; kind: 'logo' | 'favicon'; bytes: Uint8Array; info: Extract<ReturnType<typeof checkAsset>, { ok: true }>['info'] }[] = [];
+  for (const setting of settingsOf(section)) {
+    if (setting.control.kind !== 'asset') continue;
+    const file = assetFile(setting, form);
+    if (!file) continue;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const result = checkAsset(setting.control.asset, bytes);
+    if (result.ok) uploads.push({ key: setting.key, kind: setting.control.asset, bytes, info: result.info });
+    else fieldErrors[setting.key] = t(ASSET_ERROR[result.problem]);
   }
+
+  const checked = validateSection(section, data);
+  if (!checked.ok) for (const issue of checked.issues) fieldErrors[issue.path.split('.')[1] ?? ''] ??= t('settings.error.invalid');
+  // A stored image must belong to this school, whatever the form says.
+  for (const setting of settingsOf(section)) {
+    const value = data[setting.key];
+    if (setting.control.kind === 'asset' && typeof value === 'string' && !value.startsWith(`${tenant.id}/`)) fieldErrors[setting.key] = t('settings.error.invalid');
+  }
+  if (!checked.ok || Object.keys(fieldErrors).length) return { error: t('settings.error.fields'), fieldErrors };
+
+  // Store the images only once everything else is known to be valid.
+  const values: Record<string, unknown> = { ...checked.data };
+  try {
+    for (const u of uploads) values[u.key] = await uploadAsset(tenant.id, u.kind, u.bytes, u.info);
+  } catch (e) {
+    console.error(JSON.stringify({ event: 'asset_upload_failed', reason: e instanceof Error ? e.message.slice(0, 200) : 'unknown' }));
+    return { error: t('settings.theme.asset.error.upload') };
+  }
+  const final = validateSection(section, values);
+  if (!final.ok) return { error: t('settings.error.fields') };
+  checked.data = final.data;
+
   try {
     verifiedWrite(
       await rpc('config_save_draft', { p_tenant: tenant.id, p_conference: null, p_section: section, p_data: checked.data, p_schema_version: CONFIG_SCHEMA_VERSION }, { token: ctx.token }),

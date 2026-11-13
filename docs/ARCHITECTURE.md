@@ -181,6 +181,23 @@ or spacing of their own (the lint rules enforce this).
   person's device decides.
 - **Fonts** are self-hosted (no requests to third-party font servers).
 
-Not built yet: logo and favicon upload, a side-by-side live editor, heading/tab/header styles,
-projection-screen and login layouts, uploaded fonts, sandboxed custom CSS, theme export/import,
-and email/PDF styling.
+## Logo, icon, header, titles, tabs and live preview (Phase 3, part 2)
+
+- **School images** (`src/assets/image.ts`, `src/data/storage.ts`): a logo (PNG, JPEG or WebP,
+  up to 2 MB) and a browser icon (square PNG, 32 to 1024 px). The server recognises the image from
+  its bytes, not its name or claimed type; SVG is refused because it can carry script. Files are
+  stored in the public `public-assets` bucket under `<tenant id>/`, named by their content, and
+  written only by the server with the service role after the permission and the file are checked.
+  A stored path is only ever used for the school it belongs to.
+- **Page header** on every school page: the logo (or the school's name), light or in the brand
+  colour. **Page titles** plain or with a brand bar. **Tabs** underlined, filled or outlined; the
+  settings sections are now tabs.
+- These styles are tokens that point at colour tokens (for example the header text is
+  `var(--s-color-on-primary)` on `var(--s-color-primary)`), so they inherit the contrast
+  guarantees; a unit test checks every preset and override.
+- **Live preview** beside the Design controls: a sample page redrawn on every change, before
+  anything is saved, with a light/dark switch. It runs the same engine as the server.
+
+Not built yet: projection-screen and login layouts, uploaded fonts, sandboxed custom CSS, theme
+export/import, email/PDF styling. Replaced images are not deleted from storage yet (they are
+small; cleanup comes with storage metering).

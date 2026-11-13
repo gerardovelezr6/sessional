@@ -6,6 +6,9 @@ export type Radius = 'none' | 'small' | 'medium' | 'large';
 export type Density = 'compact' | 'comfortable' | 'spacious';
 export type ColorMode = 'light' | 'dark' | 'auto';
 export type ContrastLevel = 'standard' | 'high';
+export type HeaderStyle = 'light' | 'brand';
+export type PageTitle = 'plain' | 'bar';
+export type TabStyle = 'underline' | 'pill' | 'boxed';
 
 export interface Primitives {
   brand: string;
@@ -17,6 +20,9 @@ export interface Primitives {
   uppercaseLabels: boolean;
   shadows: boolean;
   contrast: ContrastLevel;
+  headerStyle: HeaderStyle;
+  pageTitle: PageTitle;
+  tabStyle: TabStyle;
   colorMode: ColorMode;
 }
 
@@ -34,28 +40,34 @@ export const PRESETS: Record<PresetKey, Preset> = {
   sessional: {
     brand: '#14213D', accent: '#F2A541', background: '#F4F1EA', font: 'montserrat', radius: 'medium', density: 'comfortable',
     uppercaseLabels: true, shadows: false, contrast: 'standard',
+    headerStyle: 'light', pageTitle: 'bar', tabStyle: 'underline',
     pinned: { '--s-color-on-surface': '#14213D', '--s-color-on-surface-muted': '#5B6577', '--s-color-border': '#DCE1E9', '--s-color-border-strong': '#5B6577' },
   },
   // Flat, square, institutional: spaced uppercase labels on white.
   'flat-institutional': {
     brand: '#1E40AF', accent: '#F59E0B', background: '#FFFFFF', font: 'montserrat', radius: 'none', density: 'comfortable',
     uppercaseLabels: true, shadows: false, contrast: 'standard',
+    headerStyle: 'brand', pageTitle: 'bar', tabStyle: 'underline',
   },
   'classic-formal': {
     brand: '#6B1F2A', accent: '#B08D57', background: '#FAF7F2', font: 'source-serif', radius: 'small', density: 'comfortable',
     uppercaseLabels: false, shadows: false, contrast: 'standard',
+    headerStyle: 'brand', pageTitle: 'plain', tabStyle: 'boxed',
   },
   'modern-rounded': {
     brand: '#4F46E5', accent: '#14B8A6', background: '#F8FAFC', font: 'inter', radius: 'large', density: 'comfortable',
     uppercaseLabels: false, shadows: true, contrast: 'standard',
+    headerStyle: 'light', pageTitle: 'plain', tabStyle: 'pill',
   },
   'high-contrast': {
     brand: '#000000', accent: '#FFD400', background: '#FFFFFF', font: 'atkinson', radius: 'small', density: 'comfortable',
     uppercaseLabels: false, shadows: false, contrast: 'high',
+    headerStyle: 'light', pageTitle: 'plain', tabStyle: 'boxed',
   },
   'playful-school': {
     brand: '#7C3AED', accent: '#FB923C', background: '#FFFBEB', font: 'nunito', radius: 'large', density: 'spacious',
     uppercaseLabels: false, shadows: true, contrast: 'standard',
+    headerStyle: 'brand', pageTitle: 'bar', tabStyle: 'pill',
   },
 };
 
@@ -80,6 +92,12 @@ export interface ThemeChoice {
   uppercaseLabels: 'on' | 'off' | null;
   shadows: 'on' | 'off' | null;
   contrast: ContrastLevel | null;
+  headerStyle: HeaderStyle | null;
+  pageTitle: PageTitle | null;
+  tabStyle: TabStyle | null;
+  // Stored file paths of the school's own images (see src/assets). Not part of the colours.
+  logo: string | null;
+  favicon: string | null;
   colorMode: ColorMode;
 }
 
@@ -99,6 +117,9 @@ export function primitivesOf(choice: ThemeChoice): { primitives: Primitives; pin
       uppercaseLabels: onOff(choice.uppercaseLabels, preset.uppercaseLabels),
       shadows: onOff(choice.shadows, preset.shadows),
       contrast: choice.contrast ?? preset.contrast,
+      headerStyle: choice.headerStyle ?? preset.headerStyle,
+      pageTitle: choice.pageTitle ?? preset.pageTitle,
+      tabStyle: choice.tabStyle ?? preset.tabStyle,
       colorMode: choice.colorMode,
     },
     pinned: coloursChanged ? undefined : preset.pinned,

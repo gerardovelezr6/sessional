@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Tokens are part of the first HTML response, so default colours never flash. */}
         <style id="s-tokens" dangerouslySetInnerHTML={{ __html: defaultThemeCss }} />
       </head>
-      <body>{children}</body>
+      <body className="flex min-h-screen flex-col">{children}</body>
     </html>
   );
 }

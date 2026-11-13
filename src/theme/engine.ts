@@ -37,6 +37,11 @@ export const CONTRAST_PAIRS: ReadonlyArray<readonly [text: keyof Tokens, backgro
 
 const RADIUS = { none: ['0', '0'], small: ['0.25rem', '0.375rem'], medium: ['0.5rem', '0.75rem'], large: ['0.875rem', '1.25rem'] } as const;
 const DENSITY = { compact: ['0.375rem', '0.75rem', '1rem'], comfortable: ['0.5rem', '1rem', '1.5rem'], spacious: ['0.75rem', '1.25rem', '2rem'] } as const;
+const TABS = {
+  underline: { '--s-tab-active-bg': 'transparent', '--s-tab-active-fg': 'var(--s-color-on-surface)', '--s-tab-active-line': 'var(--s-color-primary)', '--s-tab-active-border': 'transparent', '--s-tab-radius': '0' },
+  pill: { '--s-tab-active-bg': 'var(--s-color-primary)', '--s-tab-active-fg': 'var(--s-color-on-primary)', '--s-tab-active-line': 'transparent', '--s-tab-active-border': 'transparent', '--s-tab-radius': '999px' },
+  boxed: { '--s-tab-active-bg': 'var(--s-color-surface-raised)', '--s-tab-active-fg': 'var(--s-color-on-surface)', '--s-tab-active-line': 'transparent', '--s-tab-active-border': 'var(--s-color-border-strong)', '--s-tab-radius': 'var(--s-radius-control)' },
+} as const;
 const SHADOW = '0 1px 2px #0000001A, 0 6px 16px #00000014';
 
 function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): Tokens {
@@ -112,6 +117,13 @@ function shape(p: Primitives): Tokens {
     '--s-label-tracking': p.uppercaseLabels ? '0.1em' : '0',
     '--s-shadow-surface': p.shadows ? SHADOW : 'none',
     '--s-border-width': p.contrast === 'high' ? '2px' : '1px',
+    // Structure. Colours here are references to the colour tokens, so they follow light and dark
+    // and keep the contrast the colour tokens guarantee.
+    ...(p.headerStyle === 'brand'
+      ? { '--s-header-bg': 'var(--s-color-primary)', '--s-header-fg': 'var(--s-color-on-primary)', '--s-header-line': 'transparent' }
+      : { '--s-header-bg': 'var(--s-color-surface-raised)', '--s-header-fg': 'var(--s-color-on-surface)', '--s-header-line': 'var(--s-color-border)' }),
+    '--s-title-bar-display': p.pageTitle === 'bar' ? 'block' : 'none',
+    ...TABS[p.tabStyle],
   };
 }
 
@@ -125,6 +137,13 @@ export function buildTheme(choice: ThemeChoice): Theme {
     adjusted,
     colorMode: primitives.colorMode,
   };
+}
+
+// Adjustments in the colour schemes the school actually uses: a light-only design is not told
+// about corrections to dark colours nobody will see.
+export function visibleAdjustments(theme: Theme): string[] {
+  const used = theme.colorMode === 'auto' ? ['light:', 'dark:'] : [`${theme.colorMode}:`];
+  return theme.adjusted.filter((a) => used.some((prefix) => a.startsWith(prefix)));
 }
 
 const block = (tokens: Tokens) => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';');
@@ -145,7 +164,7 @@ export const TENANT_SELECTOR = ':root:root';
 const cache = new Map<string, string>();
 // The stylesheet of a school's theme.
 export function themeCss(choice: ThemeChoice): string {
-  const key = JSON.stringify(choice);
+  const key = JSON.stringify({ ...choice, logo: null, favicon: null });
   let css = cache.get(key);
   if (!css) {
     css = renderTheme(buildTheme(choice), TENANT_SELECTOR);

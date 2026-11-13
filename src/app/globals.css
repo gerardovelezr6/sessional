@@ -80,4 +80,46 @@
     box-shadow: var(--s-shadow-surface);
   }
   .error-text { @apply text-sm font-semibold text-danger; }
+
+  /* The bar at the top of every school page. */
+  .app-header {
+    @apply flex items-center gap-3 font-bold;
+    background: var(--s-header-bg);
+    color: var(--s-header-fg);
+    border-bottom: var(--s-border-width) solid var(--s-header-line);
+    padding: 0.75rem var(--s-space-surface);
+  }
+  .app-header img { @apply block h-8 w-auto; max-width: 12rem; }
+
+  /* Page titles, optionally with a brand bar and an accent mark underneath. */
+  .page-title { @apply relative font-bold text-on-surface; padding-bottom: 0.75rem; }
+  .page-title::after,
+  .page-title::before {
+    content: "";
+    display: var(--s-title-bar-display);
+    position: absolute;
+    bottom: 0;
+    height: 4px;
+  }
+  .page-title::after { inset-inline-start: 0; width: 3.5rem; background: var(--s-color-primary); }
+  .page-title::before { inset-inline-start: 3.75rem; width: 1rem; background: var(--s-color-accent); }
+
+  /* Tabs, and tab-like navigation. The selected one carries aria-current or aria-selected. */
+  .tabs {
+    @apply flex flex-wrap gap-1;
+    border-bottom: var(--s-border-width) solid var(--s-color-border);
+  }
+  .tab {
+    @apply text-sm font-semibold text-on-surface-muted;
+    padding: var(--s-space-control-y) var(--s-space-control-x);
+    border: var(--s-border-width) solid transparent;
+    border-radius: var(--s-tab-radius);
+  }
+  .tab[aria-current],
+  .tab[aria-selected="true"] {
+    background: var(--s-tab-active-bg);
+    color: var(--s-tab-active-fg);
+    border-color: var(--s-tab-active-border);
+    box-shadow: inset 0 -3px 0 var(--s-tab-active-line);
+  }
 }

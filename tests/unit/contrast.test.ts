@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ensureContrast, fromOklch, isHex, readableOn, toOklch } from '@/theme/color';
 import { contrastRatio } from '@/theme/contrast';
 import { DEFAULT_THEME, defaultThemeCss } from '@/theme/default-tokens';
-import { buildTheme, CONTRAST_PAIRS, renderTheme, themeCss, type Tokens } from '@/theme/engine';
+import { buildTheme, CONTRAST_PAIRS, renderTheme, themeCss, visibleAdjustments, type Tokens } from '@/theme/engine';
 import { PRESET_KEYS, PRESETS, type ThemeChoice } from '@/theme/presets';
 
 const choice = (over: Partial<ThemeChoice> = {}): ThemeChoice => ({ ...DEFAULT_THEME, ...over });
@@ -124,6 +124,11 @@ describe('any colours a school picks stay readable', () => {
     expect(buildTheme(choice(over)).adjusted).toContain(token);
   });
 
+  it('only reports adjustments in the colour schemes the school uses', () => {
+    expect(visibleAdjustments(buildTheme(DEFAULT_THEME))).toEqual([]);
+    expect(visibleAdjustments(buildTheme(choice({ colorMode: 'dark' })))).toContain('dark:--s-color-primary');
+    expect(visibleAdjustments(buildTheme(choice({ colorMode: 'auto', brand: '#FDE68A' })))).toContain('light:--s-color-primary');
+  });
   it('changes nothing when the choices already work', () => {
     expect(buildTheme(DEFAULT_THEME).adjusted.filter((a) => a.startsWith('light:'))).toEqual([]);
   });
@@ -145,6 +150,26 @@ describe('overrides on top of a preset', () => {
     expect(square['--s-font-sans']).toContain('Atkinson');
     expect(square['--s-space-surface']).toBe('1rem');
     expect(square['--s-color-primary']).toBe(base['--s-color-primary']);
+  });
+  it('header, title and tab styles come from the preset and can be overridden', () => {
+    const flat = buildTheme(choice({ preset: 'flat-institutional' })).light;
+    expect(flat).toMatchObject({ '--s-header-bg': 'var(--s-color-primary)', '--s-header-fg': 'var(--s-color-on-primary)', '--s-title-bar-display': 'block', '--s-tab-active-line': 'var(--s-color-primary)' });
+    const changed = buildTheme(choice({ preset: 'flat-institutional', headerStyle: 'light', pageTitle: 'plain', tabStyle: 'pill' })).light;
+    expect(changed).toMatchObject({ '--s-header-bg': 'var(--s-color-surface-raised)', '--s-header-fg': 'var(--s-color-on-surface)', '--s-title-bar-display': 'none', '--s-tab-active-bg': 'var(--s-color-primary)', '--s-tab-active-fg': 'var(--s-color-on-primary)' });
+  });
+  it('structural tokens only point at colour tokens whose pairs are contrast-checked', () => {
+    // Header text and selected-tab text always sit on the colour they were derived for.
+    const allowedPairs = new Set(['var(--s-color-on-primary)|var(--s-color-primary)', 'var(--s-color-on-surface)|var(--s-color-surface-raised)', 'var(--s-color-on-surface)|transparent']);
+    for (const preset of PRESET_KEYS) {
+      for (const over of [{}, { headerStyle: 'brand' as const }, { headerStyle: 'light' as const, tabStyle: 'pill' as const }, { tabStyle: 'boxed' as const }]) {
+        const t = buildTheme(choice({ preset, ...over })).light;
+        expect(allowedPairs.has(`${t['--s-header-fg']}|${t['--s-header-bg']}`), `${preset} header`).toBe(true);
+        expect(allowedPairs.has(`${t['--s-tab-active-fg']}|${t['--s-tab-active-bg']}`), `${preset} tab`).toBe(true);
+      }
+    }
+  });
+  it('the logo and icon do not change the stylesheet', () => {
+    expect(themeCss(choice({ logo: '00000000-0000-4000-8000-000000000001/logo-0123456789abcdef.png' }))).toBe(themeCss(choice()));
   });
   it('high contrast thickens outlines', () => {
     expect(buildTheme(choice({ contrast: 'high' })).light['--s-border-width']).toBe('2px');

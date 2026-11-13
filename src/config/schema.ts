@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { catalogs } from '@/messages';
+import { ASSET_PATH } from '@/assets/image';
 import { PRESET_KEYS } from '@/theme/presets';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
@@ -38,6 +39,12 @@ export const sections = {
     uppercaseLabels: z.enum(['on', 'off']).nullable().default(null),
     shadows: z.enum(['on', 'off']).nullable().default(null),
     contrast: z.enum(['standard', 'high']).nullable().default(null),
+    headerStyle: z.enum(['light', 'brand']).nullable().default(null),
+    pageTitle: z.enum(['plain', 'bar']).nullable().default(null),
+    tabStyle: z.enum(['underline', 'pill', 'boxed']).nullable().default(null),
+    // Files the school uploaded; the server checks they belong to the school before using them.
+    logo: z.string().regex(ASSET_PATH).nullable().default(null),
+    favicon: z.string().regex(ASSET_PATH).nullable().default(null),
     colorMode: z.enum(['light', 'dark', 'auto']).default('light'),
   }),
   people: z.object({

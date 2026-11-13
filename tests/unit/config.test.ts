@@ -14,7 +14,8 @@ describe('defaults', () => {
       people: { passwordMinLength: 8 },
       theme: {
         preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
-        uppercaseLabels: null, shadows: null, contrast: null, colorMode: 'light',
+        uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,
+        logo: null, favicon: null, colorMode: 'light',
       },
     });
   });
@@ -56,6 +57,13 @@ describe('the registry describes every setting, and nothing else', () => {
         expect(field.safeParse('#1E40AF').success).toBe(true);
         expect(field.safeParse(null).success).toBe(true);
         for (const bad of ['red', '#fff', '1E40AF', '#1E40AF80', 'url(x)']) expect(field.safeParse(bad).success, bad).toBe(false);
+      }
+      if (r.control.kind === 'asset') {
+        expect(field.safeParse(null).success).toBe(true);
+        expect(field.safeParse(`00000000-0000-4000-8000-000000000001/${r.control.asset}-0123456789abcdef.png`).success).toBe(true);
+        for (const bad of ['https://evil.example/x.png', '../other/logo-0123456789abcdef.png', `00000000-0000-4000-8000-000000000001/${r.control.asset}-0123456789abcdef.svg`]) {
+          expect(field.safeParse(bad).success, bad).toBe(false);
+        }
       }
       if (r.control.kind === 'number') {
         expect(field.safeParse(r.control.min).success).toBe(true);

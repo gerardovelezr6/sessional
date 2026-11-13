@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
-import { EDIT_LOCALES, fieldName, settingsOf } from '@/config/form';
+import { fieldName, settingsOf } from '@/config/form';
+import { languageName } from '@/i18n/locales';
+import { missingTexts } from '@/i18n/coverage';
 import { SECTION_LABELS } from '@/config/registry';
 import { resolveSection } from '@/config/resolve';
 import { SECTION_NAMES, type SectionName } from '@/config/schema';
@@ -29,41 +31,47 @@ const DONE: Record<string, MessageKey> = {
 };
 
 const TIME_ZONES = ['UTC', ...Intl.supportedValuesOf('timeZone')];
-const LANGUAGE_KEY: Record<string, MessageKey> = { en: 'language.en', es: 'language.es' };
 
 // Builds the form fields of a section from the registry and the values being edited.
-function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Translate, tenantId: string): FieldView[] {
-  return settingsOf(section).map((setting) => {
+// `locales` are the school's languages as being edited; `uiLocale` is the reader's language, for names.
+function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Translate, tenantId: string, locales: string[], uiLocale: string): FieldView[] {
+  return settingsOf(section).flatMap((setting): FieldView[] => {
     const value = values[setting.key];
     const base = { settingKey: setting.key, label: t(setting.labelKey), help: t(setting.helpKey) };
     switch (setting.control.kind) {
+      case 'translations':
+        return [];
+      case 'locale':
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'select' as const, options: locales.map((l) => ({ value: l, label: `${languageName(l, uiLocale)} (${l})` })) }] }];
+      case 'localeList':
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: (value as string[]).join(', '), kind: 'text' as const, maxLength: 200 }] }];
       case 'number':
-        return { ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'number' as const, min: setting.control.min, max: setting.control.max }] };
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'number' as const, min: setting.control.min, max: setting.control.max }] }];
       case 'select': {
         const options = setting.control.options.map((o) => ({ value: o.value, label: t(o.labelKey) }));
         if (setting.control.optional) options.unshift({ value: '', label: t('settings.fromPreset') });
-        return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'select' as const, options }] };
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'select' as const, options }] }];
       }
       case 'asset': {
         const path = typeof value === 'string' ? value : '';
-        return {
+        return [{
           ...base,
           inputs: [{ name: fieldName(setting), value: path, kind: 'asset' as const, currentUrl: assetUrl(tenantId, path), accept: setting.control.asset === 'favicon' ? 'image/png' : 'image/png,image/jpeg,image/webp' }],
-        };
+        }];
       }
       case 'code':
-        return { ...base, inputs: [{ name: fieldName(setting), value: String(value ?? ''), kind: 'textarea' as const, maxLength: setting.control.maxLength }] };
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: String(value ?? ''), kind: 'textarea' as const, maxLength: setting.control.maxLength }] }];
       case 'color':
-        return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'text' as const, maxLength: 7 }] };
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'text' as const, maxLength: 7 }] }];
       case 'timeZone':
-        return { ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'select' as const, options: TIME_ZONES.map((z) => ({ value: z, label: z.replaceAll('_', ' ') })) }] };
+        return [{ ...base, inputs: [{ name: fieldName(setting), value: String(value), kind: 'select' as const, options: TIME_ZONES.map((z) => ({ value: z, label: z.replaceAll('_', ' ') })) }] }];
       case 'localizedText': {
         const text = (value ?? {}) as Record<string, string>;
         const maxLength = setting.control.maxLength;
-        return {
+        return [{
           ...base,
-          inputs: EDIT_LOCALES.map((locale) => ({ name: fieldName(setting, locale), caption: LANGUAGE_KEY[locale] ? t(LANGUAGE_KEY[locale]) : locale, value: text[locale] ?? '', kind: 'text' as const, maxLength })),
-        };
+          inputs: locales.map((locale) => ({ name: fieldName(setting, locale), caption: languageName(locale, uiLocale), value: text[locale] ?? '', kind: 'text' as const, maxLength })),
+        }];
       }
     }
   });
@@ -72,7 +80,7 @@ function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Tran
 export default async function SettingsPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string; section?: string }> }) {
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
-  const { t, locale, preview } = await tenantTranslator(tenant.id);
+  const { t, locale, preview, config } = await tenantTranslator(tenant.id);
   const base = await basePath();
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
@@ -82,8 +90,12 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const query = await searchParams;
   const done = DONE[query.done ?? ''];
   const current = (SECTION_NAMES as string[]).includes(query.section ?? '') ? query.section : SECTION_NAMES[0];
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
+  // Dates in the reader's language and the school's time zone.
+  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
   const anyDraft = SECTION_NAMES.some((s) => state[s]?.draft);
+  // The school's languages as being edited (a draft may add one before it is published).
+  const editingLocales = resolveSection('locale', state.locale?.draft ?? state.locale?.published).data.enabledLocales;
+  const overrides = resolveSection('translations', state.translations?.draft ?? state.translations?.published).data.messages;
 
   return (
     <Shell title={t('settings.title')} size="full" locale={locale}>
@@ -110,6 +122,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
 
         {SECTION_NAMES.map((section) => {
           const s = state[section];
+          const formFields = fieldsOf(section, resolveSection(section, s?.draft ?? s?.published).data as Record<string, unknown>, t, tenant.id, editingLocales, locale);
           // What is being edited: the draft if there is one, otherwise what is live.
           const editing = resolveSection(section, s?.draft ?? s?.published).data as Record<string, unknown>;
           return (
@@ -151,7 +164,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                   <SectionForm
                     formId="form-theme"
                     action={saveDraftAction.bind(null, key, section)}
-                    fields={fieldsOf(section, editing, t, tenant.id)}
+                    fields={formFields}
                     labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }}
                     assetLabels={{ remove: t('settings.theme.asset.remove'), none: t('settings.theme.asset.none'), choose: t('settings.theme.asset.choose') }}
                   />
@@ -194,8 +207,26 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                     </div>
                   </div>
                 </div>
+              ) : section === 'translations' ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm">{t('settings.translations.messages.help')}</p>
+                  <ul className="flex flex-col gap-1 text-sm">
+                    {editingLocales.map((l) => (
+                      <li key={l}>
+                        {t('settings.translations.missing', { language: languageName(l, locale), count: missingTexts(l, overrides).length })}
+                        {' · '}
+                        {t('settings.translations.overridden', { count: Object.keys(overrides[l] ?? {}).length })}
+                      </li>
+                    ))}
+                  </ul>
+                  <p>
+                    <Link className="btn btn-secondary" href={`${base}/settings/translations`}>
+                      {t('settings.translations.open')}
+                    </Link>
+                  </p>
+                </div>
               ) : (
-                <SectionForm action={saveDraftAction.bind(null, key, section)} fields={fieldsOf(section, editing, t, tenant.id)} labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }} />
+                <SectionForm action={saveDraftAction.bind(null, key, section)} fields={formFields} labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }} />
               )}
 
               <details className="mt-4">

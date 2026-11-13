@@ -244,3 +244,36 @@ PDF styling (moved to the print phase, when there is something to print).
 - Sessions stay per address, so opening a school asks the person to sign in there. A single
   sign-in across addresses needs a one-time hand-over code; it comes with Google and Microsoft
   sign-in.
+
+## Languages (Phase 4)
+
+- **Messages** (`src/messages`) are ICU MessageFormat (plurals, choices) with stable keys,
+  formatted by `intl-messageformat`. English and Spanish are built in and must have the same keys
+  and the same arguments (unit test). Arguments are filled by the page; terms are always available.
+- **Any language:** a school lists its languages (`locale.enabledLocales`, BCP 47 tags) and picks
+  a default. For each text the product uses, in order: the school's own text for the language, for
+  its base language (`fr` for `fr-CA`), the built-in text for the language or its base language,
+  then English. A page never shows a key or a blank, and a broken text falls back to English.
+- **Translation editor** (`/settings/translations`): every text with its English source and the
+  built-in translation; search and "only missing"; saved as a draft of the `translations` section,
+  checked so each text parses and only uses arguments the English text offers. Download and upload
+  as CSV (formula-like cells are protected for spreadsheets). The settings page reports, per
+  enabled language only, how many texts are missing.
+- **Terminology** (`src/i18n/terms.ts`): packs (UN style, Secretariat, School, Reglamento) in
+  English and Spanish, with the school's own word per term per language. Every message receives
+  them as `{termChair}`, `{termDelegates}` …; the starter roles are named with them.
+- **Which language a page uses:** the person's choice (saved on their profile when signed in, in a
+  cookie on that address otherwise) if the school offers it, else the school's default. The
+  header has a language switch, each language named in itself. Browser language is not used, so a
+  school's default is predictable.
+- **Right to left:** the root layout sets `lang` and `dir` on `<html>` for school pages (the proxy
+  passes the school's key in an internal header). Direction comes from Unicode script data. All
+  components use logical CSS (lint rule), so layouts mirror.
+- **Dates** use the reader's language and the school's time zone.
+- **Countries** (`src/i18n/countries.ts`): names in any language from the runtime's Unicode data;
+  what a person types ("Estados Unidos de América", "Allemagne", "ألمانيا", "Holy See") resolves
+  to a code in any of the school's languages, with aliases for formal names. Flags and delegate
+  rosters use it from Phase 5.
+
+Not built yet (moved to the phases that need them): per-committee language (Phase 5, with
+committees), editable email texts (email phase), flags (Phase 5).

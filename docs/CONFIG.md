@@ -21,7 +21,34 @@ Spanish: Idioma
 
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
-| Default language | `locale.defaultLocale` | `en` | `en` (English), `es` (Spanish) | `tenant.manage` | The language of your conference's pages. |
+| Languages | `locale.enabledLocales` | `["en","es"]` | language codes (BCP 47), e.g. `en, es, fr` | `tenant.manage` | The languages your conference uses, as language codes separated by commas, for example en, es, fr or ar. English and Spanish are built in; for others, write the texts in the translation editor. Missing texts show in English. |
+| Default language | `locale.defaultLocale` | `en` | one of the enabled languages | `tenant.manage` | The language of your conference's pages. |
+
+## Words (`terminology`)
+
+Spanish: Palabras
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Set of words | `terminology.pack` | `un` | `un` (UN style (Chair, Delegate, High Command)), `secretariat` (Secretariat (President, Representative, Secretariat)), `school` (School (Moderator, Student, Organisers)), `reglamento` (Reglamento (Presidencia, Delegación, Secretaría General)) | `tenant.manage` | The words used for roles and structure across the product. Change any single word below. |
+| Conference | `terminology.conference` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Committee (one) | `terminology.committee` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Committees (several) | `terminology.committees` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Chair (one) | `terminology.chair` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Chairs (several) | `terminology.chairs` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Delegate (one) | `terminology.delegate` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Delegates (several) | `terminology.delegates` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Organising team | `terminology.highCommand` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Advisor (one) | `terminology.advisor` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+| Advisors (several) | `terminology.advisors` | (none) | text per language, up to 60 characters each | `tenant.manage` | Leave empty to use the word from the set above. Write it for each of your languages. |
+
+## Translations (`translations`)
+
+Spanish: Traducciones
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Texts | `translations.messages` | (none) | edited in the translation editor; each text must keep the English placeholders | `tenant.manage` | Change any text of the product, in any of your languages, in the translation editor. |
 
 ## Design (`theme`)
 

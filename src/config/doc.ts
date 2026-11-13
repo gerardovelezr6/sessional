@@ -26,6 +26,12 @@ function allowed(setting: Setting): string {
       return c.asset === 'favicon' ? 'uploaded square PNG, 32 to 1024 px' : 'uploaded PNG, JPEG or WebP, up to 2 MB';
     case 'code':
       return `CSS, up to ${c.maxLength} characters, checked by the custom CSS rules`;
+    case 'locale':
+      return 'one of the enabled languages';
+    case 'localeList':
+      return 'language codes (BCP 47), e.g. `en, es, fr`';
+    case 'translations':
+      return 'edited in the translation editor; each text must keep the English placeholders';
   }
 }
 

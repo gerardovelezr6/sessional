@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
-import { tenantTranslator } from '@/config/store';
+import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { enabledLocales, tenantTranslator } from '@/config/store';
+import { languageName } from '@/i18n/locales';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
@@ -10,6 +12,7 @@ import { parseTenantKey, SAFE_MODE_HEADER } from '@/tenancy/route';
 import { sanitizeCustomCss } from '@/theme/custom-css';
 import { assetUrl } from '@/data/storage';
 import { buildTheme, themeCss } from '@/theme/engine';
+import { setLanguageAction } from './actions';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
 
@@ -92,6 +95,7 @@ export default async function TenantLayout({ params, children }: Props) {
     </>
   );
   const logo = assetUrl(found.tenant.id, own.config.theme.logo);
+  const languages = enabledLocales(own.config);
   const header = (
     <header className="app-header">
       {logo ? (
@@ -100,6 +104,15 @@ export default async function TenantLayout({ params, children }: Props) {
       ) : (
         <span>{found.tenant.name}</span>
       )}
+      {languages.length > 1 ? (
+        <LanguageSwitch
+          action={setLanguageAction.bind(null, key)}
+          current={own.locale}
+          // Each language is named in itself, so people can find their own.
+          options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
+          labels={{ language: own.t('language.label'), change: own.t('language.change') }}
+        />
+      ) : null}
     </header>
   );
   if (!own.preview) {

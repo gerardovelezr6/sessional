@@ -27,6 +27,12 @@ export interface SettingsState {
 const submitted = (form: FormData): Record<string, string> =>
   Object.fromEntries(Array.from(form.entries()).filter((e): e is [string, string] => typeof e[1] === 'string' && !e[0].startsWith('$')));
 
+// The school's languages as being edited: text written per language is read for these.
+async function editingLocalesOf(tenantId: string, token: string): Promise<string[]> {
+  const state = await rpc<Record<string, { draft: Stored | null; published: Stored | null } | undefined>>('config_editor_state', { p_tenant: tenantId, p_conference: null }, { token });
+  return resolveSection('locale', state.locale?.draft ?? state.locale?.published).data.enabledLocales;
+}
+
 const isSection = (s: string): s is SectionName => (SECTION_NAMES as string[]).includes(s);
 
 // Shared guard: the tenant, the editor, and a translator. The database checks the permission
@@ -72,7 +78,7 @@ export async function saveDraftAction(tenantKey: string, section: string, _state
   const { tenant, t, ctx } = await editor(tenantKey);
   if (!ctx || !isSection(section)) return { error: t('settings.error.forbidden') };
 
-  const data = readForm(section, form);
+  const data = readForm(section, form, await editingLocalesOf(tenant.id, ctx.token));
   const fieldErrors: Record<string, string> = {};
 
   // Newly chosen images: checked from their bytes before anything is stored.
@@ -88,7 +94,9 @@ export async function saveDraftAction(tenantKey: string, section: string, _state
   }
 
   const checked = validateSection(section, data);
-  if (!checked.ok) for (const issue of checked.issues) fieldErrors[issue.path.split('.')[1] ?? ''] ??= t('settings.error.invalid');
+  if (!checked.ok) {
+    for (const issue of checked.issues) fieldErrors[issue.path.split('.')[1] ?? ''] ??= t(section === 'locale' ? 'settings.error.languages' : 'settings.error.invalid');
+  }
   // A stored image must belong to this school, whatever the form says.
   for (const setting of settingsOf(section)) {
     const value = data[setting.key];

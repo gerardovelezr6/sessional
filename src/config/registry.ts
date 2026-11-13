@@ -1,4 +1,5 @@
 import type { MessageKey } from '@/messages';
+import { TERM_KEYS } from '@/i18n/terms';
 import type { SectionName } from './schema';
 
 // One entry per setting: how it is edited and described. The settings screens, CONFIG.md and the
@@ -14,6 +15,10 @@ export type Control =
   | { kind: 'asset'; asset: 'logo' | 'favicon' }
   // Multi-line text such as CSS.
   | { kind: 'code'; maxLength: number }
+  // One of the school's enabled languages; a list of language tags; the translation editor.
+  | { kind: 'locale' }
+  | { kind: 'localeList' }
+  | { kind: 'translations' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -30,6 +35,8 @@ export interface Setting {
 export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   identity: 'settings.identity',
   locale: 'settings.locale',
+  terminology: 'settings.terminology',
+  translations: 'settings.translations',
   theme: 'settings.theme',
   people: 'settings.people',
 };
@@ -46,15 +53,37 @@ export const registry: Setting[] = [
     control: { kind: 'timeZone' },
   },
   {
+    section: 'locale', key: 'enabledLocales', permission: 'tenant.manage',
+    labelKey: 'settings.locale.enabledLocales', helpKey: 'settings.locale.enabledLocales.help',
+    control: { kind: 'localeList' },
+  },
+  {
     section: 'locale', key: 'defaultLocale', permission: 'tenant.manage',
     labelKey: 'settings.locale.defaultLocale', helpKey: 'settings.locale.defaultLocale.help',
+    control: { kind: 'locale' },
+  },
+  {
+    section: 'terminology', key: 'pack', permission: 'tenant.manage',
+    labelKey: 'settings.terminology.pack', helpKey: 'settings.terminology.pack.help',
     control: {
       kind: 'select',
       options: [
-        { value: 'en', labelKey: 'language.en' },
-        { value: 'es', labelKey: 'language.es' },
+        { value: 'un', labelKey: 'settings.terminology.pack.un' },
+        { value: 'secretariat', labelKey: 'settings.terminology.pack.secretariat' },
+        { value: 'school', labelKey: 'settings.terminology.pack.school' },
+        { value: 'reglamento', labelKey: 'settings.terminology.pack.reglamento' },
       ],
     },
+  },
+  ...TERM_KEYS.map((key) => ({
+    section: 'terminology' as const, key, permission: 'tenant.manage',
+    labelKey: `settings.terminology.term.${key}` as MessageKey, helpKey: 'settings.terminology.term.help' as MessageKey,
+    control: { kind: 'localizedText' as const, maxLength: 60 },
+  })),
+  {
+    section: 'translations', key: 'messages', permission: 'tenant.manage',
+    labelKey: 'settings.translations.messages', helpKey: 'settings.translations.messages.help',
+    control: { kind: 'translations' },
   },
   {
     section: 'theme', key: 'preset', permission: 'theme.edit',

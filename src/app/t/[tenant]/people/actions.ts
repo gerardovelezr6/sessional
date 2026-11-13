@@ -2,8 +2,8 @@
 import { generateLink } from '@/auth/gotrue';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
 import type { FormState } from '@/components/ActionForm';
-import { tenantTranslator } from '@/config/store';
-import { STARTER_ROLES } from '@/presets/roles';
+import { enabledLocales, tenantTranslator } from '@/config/store';
+import { starterRoles } from '@/presets/roles';
 import { basePath, requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
 import { loadPeople } from './data';
 
@@ -107,11 +107,13 @@ export async function newLinkAction(tenantKey: string, userId: string): Promise<
 // Gives a school that only has the Owner role the usual starting set.
 export async function addStarterRolesAction(tenantKey: string): Promise<FormState> {
   const tenant = await requireTenant(tenantKey);
-  const { t } = await tenantTranslator(tenant.id);
+  const { t, config } = await tenantTranslator(tenant.id);
   const ctx = await tenantContext(tenant.id);
   if (!ctx?.can('roles.manage')) return { error: t('people.invite.error.forbidden') };
+  const { pack, ...overrides } = config.terminology;
+  const roles = starterRoles({ pack, overrides }, enabledLocales(config));
   try {
-    const result = verifiedWrite(await rpc<{ added: number } | null>('apply_role_preset', { p_tenant: tenant.id, p_roles: STARTER_ROLES }, { token: ctx.token }), 'apply_role_preset');
+    const result = verifiedWrite(await rpc<{ added: number } | null>('apply_role_preset', { p_tenant: tenant.id, p_roles: roles }, { token: ctx.token }), 'apply_role_preset');
     if (result.added === 0) return { error: t('people.roles.error.failed') };
   } catch (e) {
     if (e instanceof RpcError && e.forbidden) return { error: t('people.invite.error.forbidden') };

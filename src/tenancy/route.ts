@@ -13,6 +13,8 @@ export const CUSTOM_HOST_MARK = '~';
 export const BASE_PATH_HEADER = 'x-sessional-base';
 // Set by the proxy when the address has ?safe-mode: the page renders without custom CSS.
 export const SAFE_MODE_HEADER = 'x-sessional-safe-mode';
+// Set by the proxy on school pages: the school's key, so the root layout can set lang and dir.
+export const TENANT_KEY_HEADER = 'x-sessional-tenant';
 
 export type RouteDecision =
   // basePath is set when the request is a tenant page reached by path (previews).

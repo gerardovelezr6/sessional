@@ -21,6 +21,8 @@ const TENANTS = {
   eta: { kind: 'tenant', id: tid(8), slug: 'eta', name: 'Logo School', status: 'active' },
   theta: { kind: 'tenant', id: tid(9), slug: 'theta', name: 'Advanced School', status: 'active' },
   iota: { kind: 'tenant', id: tid(10), slug: 'iota', name: 'Import School', status: 'active' },
+  kappa: { kind: 'tenant', id: tid(11), slug: 'kappa', name: 'مدرسة كابا', status: 'active' },
+  lambda: { kind: 'tenant', id: tid(12), slug: 'lambda', name: 'Lambda School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -59,10 +61,17 @@ seed('owner@zeta.test', 'Zoe Zeta', tid(7), 'owner');
 seed('owner@eta.test', 'Ella Eta', tid(8), 'owner');
 seed('owner@theta.test', 'Theo Theta', tid(9), 'owner');
 seed('owner@iota.test', 'Ivy Iota', tid(10), 'owner');
+seed('owner@kappa.test', 'Karim Kappa', tid(11), 'owner');
+seed('owner@lambda.test', 'Lena Lambda', tid(12), 'owner');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
 const CONFIG = {
+  // An Arabic school, written right to left, with a few of its own texts.
+  [tid(11)]: {
+    locale: { version: 1, schema_version: 1, data: { enabledLocales: ['ar', 'en'], defaultLocale: 'ar' } },
+    translations: { version: 1, schema_version: 1, data: { messages: { ar: { 'auth.signIn.title': 'تسجيل الدخول إلى {name}', 'auth.signIn': 'دخول' } } } },
+  },
   [tid(5)]: {
     locale: { version: 2, schema_version: 1, data: { defaultLocale: 'es' } },
     people: { version: 1, schema_version: 1, data: { passwordMinLength: 12 } },
@@ -103,7 +112,7 @@ const rpcs = {
     const r = roleOf(m?.role_key);
     return {
       body: {
-        user: { id: u.id, email: u.email, full_name: u.full_name },
+        user: { id: u.id, email: u.email, full_name: u.full_name, locale: u.locale ?? null },
         membership: r ? { role_key: r.key, role_name: r.name, rank: r.rank, all_permissions: r.all, permissions: r.permissions } : null,
       },
     };
@@ -180,6 +189,11 @@ const rpcs = {
     const s = sectionOf(p_tenant, p_section);
     const old = s.versions.find((v) => v.version === p_version);
     return { body: old ? append(s, old.stored, p_note, p_version, userId) : null };
+  },
+  set_my_locale: ({ p_locale }, userId) => {
+    if (p_locale !== null && !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(p_locale)) return { status: 400, body: { code: '22023', message: 'invalid language tag' } };
+    users.get(userId).locale = p_locale;
+    return { body: { id: userId, locale: p_locale } };
   },
   my_conferences: (_args, userId) => {
     const visible = Object.values(TENANTS).filter((t) => t.kind === 'tenant' && !['suspended', 'deleted'].includes(t.status));

@@ -231,5 +231,10 @@
   "settings.email.help": "Las invitaciones y otros correos usan tu diseño guardado. Este ejemplo se actualiza al guardar.",
   "settings.email.sample.heading": "Te invitaron a {name}",
   "settings.email.sample.body": "Presiona el botón para elegir tu contraseña y unirte al equipo.",
-  "settings.email.sample.button": "Aceptar invitación"
+  "settings.email.sample.button": "Aceptar invitación",
+  "app.signIn.title": "Inicia sesión para ver tus conferencias",
+  "app.title": "Tus conferencias",
+  "app.empty": "Aún no perteneces a ninguna conferencia. Pide a los organizadores de tu conferencia que te inviten.",
+  "app.open": "Abrir",
+  "app.signInEach": "Cada conferencia tiene su propio inicio de sesión, así que quizá debas iniciar sesión de nuevo en su dirección."
 }

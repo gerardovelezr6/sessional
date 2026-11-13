@@ -1,7 +1,7 @@
 # Roadmap
 
-Status: Phases 0 and 1 are merged. Phase 2 parts 1 and 2 are merged; part 3 (packs and the
-generated `CONFIG.md`) and the "your conferences" switcher are still to do. Phase 3 (theming):
+Status: Phases 0 and 1 are merged. Phase 2 parts 1 and 2 are merged; its leftovers (generated
+`CONFIG.md` and the "your conferences" page) are up for review (packs were done in Phase 3). Phase 3 (theming):
 part 1 (engine, six presets, Design settings) is merged; part 2 (logo and icon upload, live
 preview, header, title and tab styles) is merged; part 3 (sandboxed custom CSS, packs for every
 settings section, email look) is up for review. PDF styling moves to Phase 11 (print), and

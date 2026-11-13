@@ -71,6 +71,10 @@ const CONFIG = {
   },
 };
 addUser('stranger@else.test', 'correct-password', 'Sam Stranger');
+// Belongs to two schools, plus a suspended one that must not be listed.
+seed('multi@else.test', 'Mo Multi', tid(1), 'chair');
+memberships.push({ tenant_id: tid(2), user_id: byEmail('multi@else.test').id, role_key: 'high_command', status: 'active' });
+memberships.push({ tenant_id: tid(3), user_id: byEmail('multi@else.test').id, role_key: 'chair', status: 'active' });
 
 function issue(userId, lifetimeSeconds = 3600) {
   const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -176,6 +180,17 @@ const rpcs = {
     const s = sectionOf(p_tenant, p_section);
     const old = s.versions.find((v) => v.version === p_version);
     return { body: old ? append(s, old.stored, p_note, p_version, userId) : null };
+  },
+  my_conferences: (_args, userId) => {
+    const visible = Object.values(TENANTS).filter((t) => t.kind === 'tenant' && !['suspended', 'deleted'].includes(t.status));
+    return {
+      body: memberships
+        .filter((m) => m.user_id === userId && m.status === 'active')
+        .map((m) => ({ m, t: visible.find((t) => t.id === m.tenant_id) }))
+        .filter((x) => x.t)
+        .map(({ m, t }) => ({ slug: t.slug, name: t.name, role_key: m.role_key, role_name: roleOf(m.role_key).name }))
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
+    };
   },
   find_account: ({ p_email }) => {
     const u = byEmail(String(p_email).trim().toLowerCase());

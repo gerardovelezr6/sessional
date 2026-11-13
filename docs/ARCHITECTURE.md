@@ -231,3 +231,16 @@ metering).
 
 Not built yet: projection-screen and login layouts (with the projection phase), uploaded fonts,
 PDF styling (moved to the print phase, when there is something to print).
+
+## Settings reference and "your conferences" (Phase 2, leftovers)
+
+- `docs/CONFIG.md` lists every setting, its default, allowed values and who may change it. It is
+  generated from the registry and schema by `npm run config:doc`; a unit test fails when it is
+  out of date, so it cannot drift.
+- `app.<root>` is the account area, served from the internal path `/p/app` (refused on other
+  hosts in production, allowed on previews for testing). After signing in, a person sees every
+  school they belong to (`my_conferences()`, run with their own rights) with their role there and
+  a link to the school's address. Suspended schools and pending invitations are left out.
+- Sessions stay per address, so opening a school asks the person to sign in there. A single
+  sign-in across addresses needs a one-time hand-over code; it comes with Google and Microsoft
+  sign-in.

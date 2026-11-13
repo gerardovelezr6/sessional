@@ -81,7 +81,16 @@ describe('decideRoute', () => {
     expect(decideRoute('sessional-git-x.vercel.app', '/t/~mun.school.edu', preview)).toEqual({ action: 'not-found' });
     expect(decideRoute('sessional-git-x.vercel.app', '/t/%7Emun.school.edu', preview)).toEqual({ action: 'not-found' });
   });
-  it('answers not-found for platform areas (until built) and invalid hosts', () => {
+  it('serves the account area on app., and hides its internal path elsewhere', () => {
+    expect(decideRoute('app.sessional.app', '/', prod)).toEqual({ action: 'rewrite', path: '/p/app' });
+    expect(decideRoute('app.sessional.app', '/login', prod)).toEqual({ action: 'rewrite', path: '/p/app/login' });
+    expect(decideRoute('sessional.app', '/p/app', prod)).toEqual({ action: 'not-found' });
+    expect(decideRoute('sessional.app', '/p/anything', prod)).toEqual({ action: 'not-found' });
+    expect(decideRoute('sessional-git-x.vercel.app', '/p/app/login', preview)).toEqual({ action: 'next', basePath: '/p/app' });
+    // A school's address cannot reach it.
+    expect(decideRoute('alpha.sessional.app', '/p/app', prod)).toEqual({ action: 'rewrite', path: '/t/alpha/p/app' });
+  });
+  it('answers not-found for the admin area (until built) and invalid hosts', () => {
     expect(decideRoute('admin.sessional.app', '/', prod)).toEqual({ action: 'not-found' });
     expect(decideRoute('a.b.sessional.app', '/', prod)).toEqual({ action: 'not-found' });
     expect(decideRoute(null, '/', prod)).toEqual({ action: 'not-found' });

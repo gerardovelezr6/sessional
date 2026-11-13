@@ -231,5 +231,10 @@
   "settings.email.help": "Invitations and other emails use your saved design. This sample updates when you save.",
   "settings.email.sample.heading": "You are invited to {name}",
   "settings.email.sample.body": "Press the button to choose your password and join the team.",
-  "settings.email.sample.button": "Accept invitation"
+  "settings.email.sample.button": "Accept invitation",
+  "app.signIn.title": "Sign in to see your conferences",
+  "app.title": "Your conferences",
+  "app.empty": "You do not belong to any conference yet. Ask the organisers of your conference to invite you.",
+  "app.open": "Open",
+  "app.signInEach": "Each conference keeps its own sign-in, so you may be asked to sign in again on its address."
 }

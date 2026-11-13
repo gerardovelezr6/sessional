@@ -28,19 +28,51 @@ export interface FieldView {
   settingKey: string;
   label: string;
   help: string;
-  inputs: { name: string; caption?: string; value: string; kind: 'number' | 'text' | 'select'; min?: number; max?: number; maxLength?: number; options?: { value: string; label: string }[] }[];
+  inputs: {
+    name: string;
+    caption?: string;
+    value: string;
+    kind: 'number' | 'text' | 'select' | 'asset';
+    min?: number;
+    max?: number;
+    maxLength?: number;
+    options?: { value: string; label: string }[];
+    // Image settings: where the current image is shown from, and what the file picker accepts.
+    currentUrl?: string | null;
+    accept?: string;
+  }[];
+}
+
+export interface AssetLabels {
+  remove: string;
+  none: string;
+  choose: string;
 }
 
 // The editable form of one section. Tracks unsaved changes, warns before leaving with them, and
 // keeps the save control in view.
-export function SectionForm({ action, fields, labels }: { action: Action; fields: FieldView[]; labels: { unsaved: string; save: string } }) {
+export function SectionForm({
+  action,
+  fields,
+  labels,
+  formId,
+  assetLabels,
+}: {
+  action: Action;
+  fields: FieldView[];
+  labels: { unsaved: string; save: string };
+  // Lets other components (the live preview) read this form as it changes.
+  formId?: string;
+  assetLabels?: AssetLabels;
+}) {
   const [state, formAction] = useActionState(action, {});
   const [dirty, setDirty] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   useNavigateWhenDone(state);
 
   const initial = useRef<string>('');
-  const snapshot = () => JSON.stringify(Array.from(new FormData(form.current!).entries()));
+  const snapshot = () =>
+    JSON.stringify(Array.from(new FormData(form.current!).entries()).map(([k, v]) => [k, v instanceof File ? `${v.name}:${v.size}` : v]));
   useEffect(() => {
     initial.current = snapshot();
   }, []);
@@ -52,7 +84,14 @@ export function SectionForm({ action, fields, labels }: { action: Action; fields
   }, [dirty, state.redirectTo]);
 
   return (
-    <form ref={form} action={formAction} onInput={() => setDirty(snapshot() !== initial.current)} className="flex flex-col gap-5">
+    <form
+      ref={form}
+      id={formId}
+      action={formAction}
+      onInput={() => setDirty(snapshot() !== initial.current)}
+      onChange={() => setDirty(snapshot() !== initial.current)}
+      className="flex flex-col gap-5"
+    >
       {fields.map((field) => {
         const error = state.fieldErrors?.[field.settingKey];
         const helpId = `${field.inputs[0]!.name}-help`;
@@ -67,7 +106,33 @@ export function SectionForm({ action, fields, labels }: { action: Action; fields
                       {input.caption}
                     </label>
                   ) : null}
-                  {input.kind === 'select' ? (
+                  {input.kind === 'asset' ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <input type="hidden" name={input.name} value={input.value} />
+                      {input.currentUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={input.currentUrl} alt="" className="h-10 w-auto rounded-control border border-border" />
+                      ) : (
+                        <span className="text-xs text-on-surface-muted">{assetLabels?.none}</span>
+                      )}
+                      <input
+                        className="text-sm"
+                        type="file"
+                        id={input.name}
+                        name={`${input.name}.file`}
+                        accept={input.accept}
+                        aria-label={`${field.label}: ${assetLabels?.choose ?? ''}`}
+                        aria-describedby={helpId}
+                        aria-invalid={!!error}
+                      />
+                      {input.currentUrl ? (
+                        <label className="flex items-center gap-1 text-sm">
+                          <input type="checkbox" name={`${input.name}.remove`} aria-label={`${field.label}: ${assetLabels?.remove ?? ''}`} />
+                          {assetLabels?.remove}
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : input.kind === 'select' ? (
                     <select className="input" id={input.name} name={input.name} defaultValue={input.value} aria-label={input.caption ? undefined : field.label} aria-describedby={helpId} aria-invalid={!!error}>
                       {input.options!.map((o) => (
                         <option key={o.value} value={o.value}>

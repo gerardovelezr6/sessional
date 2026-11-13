@@ -10,6 +10,8 @@ export type Control =
   // optional: the setting may be left empty, meaning "as the preset has it".
   | { kind: 'select'; options: { value: string; labelKey: MessageKey }[]; optional?: boolean }
   | { kind: 'color' }
+  // An uploaded image; the form sends a file, the setting stores where it was saved.
+  | { kind: 'asset'; asset: 'logo' | 'favicon' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -58,6 +60,16 @@ export const registry: Setting[] = [
     control: { kind: 'select', options: [{ value: 'sessional', labelKey: 'settings.theme.preset.sessional' }, { value: 'flat-institutional', labelKey: 'settings.theme.preset.flat-institutional' }, { value: 'classic-formal', labelKey: 'settings.theme.preset.classic-formal' }, { value: 'modern-rounded', labelKey: 'settings.theme.preset.modern-rounded' }, { value: 'high-contrast', labelKey: 'settings.theme.preset.high-contrast' }, { value: 'playful-school', labelKey: 'settings.theme.preset.playful-school' }] },
   },
   {
+    section: 'theme', key: 'logo', permission: 'theme.edit',
+    labelKey: 'settings.theme.logo', helpKey: 'settings.theme.logo.help',
+    control: { kind: 'asset', asset: 'logo' },
+  },
+  {
+    section: 'theme', key: 'favicon', permission: 'theme.edit',
+    labelKey: 'settings.theme.favicon', helpKey: 'settings.theme.favicon.help',
+    control: { kind: 'asset', asset: 'favicon' },
+  },
+  {
     section: 'theme', key: 'brand', permission: 'theme.edit',
     labelKey: 'settings.theme.brand', helpKey: 'settings.theme.brand.help',
     control: { kind: 'color' },
@@ -101,6 +113,21 @@ export const registry: Setting[] = [
     section: 'theme', key: 'contrast', permission: 'theme.edit',
     labelKey: 'settings.theme.contrast', helpKey: 'settings.theme.contrast.help',
     control: { kind: 'select', optional: true, options: [{ value: 'standard', labelKey: 'settings.theme.contrast.standard' }, { value: 'high', labelKey: 'settings.theme.contrast.high' }] },
+  },
+  {
+    section: 'theme', key: 'headerStyle', permission: 'theme.edit',
+    labelKey: 'settings.theme.headerStyle', helpKey: 'settings.theme.headerStyle.help',
+    control: { kind: 'select', optional: true, options: [{ value: 'light', labelKey: 'settings.theme.headerStyle.light' }, { value: 'brand', labelKey: 'settings.theme.headerStyle.brand' }] },
+  },
+  {
+    section: 'theme', key: 'pageTitle', permission: 'theme.edit',
+    labelKey: 'settings.theme.pageTitle', helpKey: 'settings.theme.pageTitle.help',
+    control: { kind: 'select', optional: true, options: [{ value: 'plain', labelKey: 'settings.theme.pageTitle.plain' }, { value: 'bar', labelKey: 'settings.theme.pageTitle.bar' }] },
+  },
+  {
+    section: 'theme', key: 'tabStyle', permission: 'theme.edit',
+    labelKey: 'settings.theme.tabStyle', helpKey: 'settings.theme.tabStyle.help',
+    control: { kind: 'select', optional: true, options: [{ value: 'underline', labelKey: 'settings.theme.tabStyle.underline' }, { value: 'pill', labelKey: 'settings.theme.tabStyle.pill' }, { value: 'boxed', labelKey: 'settings.theme.tabStyle.boxed' }] },
   },
   {
     section: 'theme', key: 'colorMode', permission: 'theme.edit',

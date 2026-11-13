@@ -8,11 +8,13 @@ import { resolveSection } from '@/config/resolve';
 import { SECTION_NAMES, type SectionName } from '@/config/schema';
 import { editorState, tenantTranslator } from '@/config/store';
 import type { MessageKey, Translate } from '@/messages';
+import { assetUrl } from '@/data/storage';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
-import { buildTheme } from '@/theme/engine';
+import { buildTheme, visibleAdjustments } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
 import { discardDraftAction, publishAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
 import { ActionButton, SectionForm, type FieldView } from './SectionForm';
+import { ThemePreview } from './ThemePreview';
 
 type Bound = (state: SettingsState, data: FormData) => Promise<SettingsState>;
 
@@ -27,7 +29,7 @@ const TIME_ZONES = ['UTC', ...Intl.supportedValuesOf('timeZone')];
 const LANGUAGE_KEY: Record<string, MessageKey> = { en: 'language.en', es: 'language.es' };
 
 // Builds the form fields of a section from the registry and the values being edited.
-function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Translate): FieldView[] {
+function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Translate, tenantId: string): FieldView[] {
   return settingsOf(section).map((setting) => {
     const value = values[setting.key];
     const base = { settingKey: setting.key, label: t(setting.labelKey), help: t(setting.helpKey) };
@@ -38,6 +40,13 @@ function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Tran
         const options = setting.control.options.map((o) => ({ value: o.value, label: t(o.labelKey) }));
         if (setting.control.optional) options.unshift({ value: '', label: t('settings.fromPreset') });
         return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'select' as const, options }] };
+      }
+      case 'asset': {
+        const path = typeof value === 'string' ? value : '';
+        return {
+          ...base,
+          inputs: [{ name: fieldName(setting), value: path, kind: 'asset' as const, currentUrl: assetUrl(tenantId, path), accept: setting.control.asset === 'favicon' ? 'image/png' : 'image/png,image/jpeg,image/webp' }],
+        };
       }
       case 'color':
         return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'text' as const, maxLength: 7 }] };
@@ -55,7 +64,7 @@ function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Tran
   });
 }
 
-export default async function SettingsPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string }> }) {
+export default async function SettingsPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string; section?: string }> }) {
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
   const { t, locale, preview } = await tenantTranslator(tenant.id);
@@ -65,13 +74,23 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   if (!ctx.can('tenant.manage')) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
 
   const state = await editorState(tenant.id, ctx.token);
-  const done = DONE[(await searchParams).done ?? ''];
+  const query = await searchParams;
+  const done = DONE[query.done ?? ''];
+  const current = (SECTION_NAMES as string[]).includes(query.section ?? '') ? query.section : SECTION_NAMES[0];
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const anyDraft = SECTION_NAMES.some((s) => state[s]?.draft);
 
   return (
-    <Shell title={t('settings.title')} wide locale={locale}>
+    <Shell title={t('settings.title')} size="full" locale={locale}>
       <div className="flex flex-col gap-6">
+        <nav aria-label={t('settings.sections')} className="tabs">
+          {SECTION_NAMES.map((section) => (
+            <a key={section} href={`#${section}`} className="tab" aria-current={section === current ? 'location' : undefined}>
+              {t(SECTION_LABELS[section])}
+            </a>
+          ))}
+        </nav>
+
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
             {t(done)}
@@ -116,13 +135,39 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                 </div>
               ) : null}
 
-              {section === 'theme' && buildTheme(editing as unknown as ThemeChoice).adjusted.length > 0 ? (
+              {section === 'theme' && visibleAdjustments(buildTheme(editing as unknown as ThemeChoice)).length > 0 ? (
                 <p role="note" className="rounded-control border border-border-strong p-3 text-sm text-on-surface">
                   {t('settings.theme.adjusted')}
                 </p>
               ) : null}
 
-              <SectionForm action={saveDraftAction.bind(null, key, section)} fields={fieldsOf(section, editing, t)} labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }} />
+              {section === 'theme' ? (
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                  <SectionForm
+                    formId="form-theme"
+                    action={saveDraftAction.bind(null, key, section)}
+                    fields={fieldsOf(section, editing, t, tenant.id)}
+                    labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }}
+                    assetLabels={{ remove: t('settings.theme.asset.remove'), none: t('settings.theme.asset.none'), choose: t('settings.theme.asset.choose') }}
+                  />
+                  <div className="lg:sticky lg:top-4">
+                    <ThemePreview
+                      formId="form-theme"
+                      saved={editing as unknown as ThemeChoice}
+                      logoUrl={assetUrl(tenant.id, editing.logo as string | null)}
+                      schoolName={tenant.name}
+                      labels={{
+                        title: t('settings.preview.title'), help: t('settings.preview.help'), light: t('settings.preview.light'), dark: t('settings.preview.dark'),
+                        pageTitle: t('settings.preview.sample.title'), tab1: t('settings.preview.sample.tab1'), tab2: t('settings.preview.sample.tab2'), tab3: t('settings.preview.sample.tab3'),
+                        card: t('settings.preview.sample.card'), label: t('settings.preview.sample.label'), value: t('settings.preview.sample.value'),
+                        text: t('settings.preview.sample.text'), primary: t('settings.preview.sample.primary'), secondary: t('settings.preview.sample.secondary'),
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <SectionForm action={saveDraftAction.bind(null, key, section)} fields={fieldsOf(section, editing, t, tenant.id)} labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }} />
+              )}
 
               <details className="mt-4">
                 <summary className="label cursor-pointer">{t('settings.history')}</summary>

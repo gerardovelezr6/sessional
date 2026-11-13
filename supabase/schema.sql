@@ -843,3 +843,15 @@ grant execute on function public.config_save_draft(uuid, uuid, text, jsonb, int)
 grant execute on function public.config_published(uuid, uuid) to service_role;
 revoke all on function app.config_append(uuid, uuid, text, jsonb, int, text, int), app.audit_config_publish() from public, anon;
 grant execute on function app.config_append(uuid, uuid, text, jsonb, int, text, int) to authenticated, service_role;
+
+-- ── 20261113010000_public_assets.sql ──
+-- Public files of a tenant (logos, icons). Additive and re-runnable.
+--
+-- Every file lives under "<tenant id>/…" and is written only by the server with the service role,
+-- after it has checked the person's permission and the file itself. There are deliberately no
+-- storage policies for signed-in users: nobody can upload directly from a browser. The bucket is
+-- public for reading because these files appear on public pages (the sign-in page, the favicon).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('public-assets', 'public-assets', true, 2097152, array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do update
+  set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;

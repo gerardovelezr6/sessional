@@ -74,6 +74,7 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   committee_live: { insert: `insert into committee_live (tenant_id, committee_id) values ($1, (select id from committees where tenant_id = $1 order by created_at desc limit 1))`, params: (t) => [t] },
   committee_sessions: { insert: `insert into committee_sessions (id, tenant_id, committee_id, number, protocol) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 99, '{}')`, params: (t) => [t] },
   committee_commands: { insert: `insert into committee_commands (id, tenant_id, committee_id, revision, kind) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 99, 'session.close')`, params: (t) => [t] },
+  speeches: { insert: `insert into speeches (tenant_id, committee_id, session_id, list, started_at, seconds) values ($1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), 'general', now(), 60)`, params: (t) => [t] },
   roll_calls: { insert: `insert into roll_calls (tenant_id, committee_id, session_id, entries) values ($1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), '[]')`, params: (t) => [t] },
 };
 
@@ -119,6 +120,7 @@ beforeAll(async () => {
     await db.query(`insert into committee_live (tenant_id, committee_id, revision, state) values ($1, $2, 1, '{"v":1}')`, [t, c]);
     await db.query(`insert into committee_commands (id, tenant_id, committee_id, revision, kind) values (gen_random_uuid(), $1, $2, 1, 'session.open')`, [t, c]);
     await db.query(`insert into roll_calls (tenant_id, committee_id, session_id, entries) values ($1, $2, $3, '[]')`, [t, c, s]);
+    await db.query(`insert into speeches (tenant_id, committee_id, session_id, label, list, started_at, seconds) values ($1, $2, $3, 'Mexico', 'general', now(), 60)`, [t, c, s]);
     // A second committee without a confidential topic, so a forged one has somewhere to go.
     await db.query(`insert into committees (tenant_id, conference_id, name) values ($1, $2, 'Spare')`, [t, conf]);
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { apply, COMMUTING, EMPTY_STATE, readState, type Command, type Context, type LiveState } from '@/protocol/engine';
+import { clock, remainingMs } from '@/protocol/timer';
 import { PROTOCOL_PRESETS } from '@/protocol/presets';
 import { countsOf, needed, passes, quorumOf, votesNeeded } from '@/protocol/rules';
 import { packSchema, type Rule } from '@/protocol/schema';
@@ -101,7 +102,7 @@ describe('engine: sessions and roll call', () => {
     const r = apply(EMPTY_STATE, { type: 'session.open', session: id(900) }, ctx({ sessionsHeld: 2 }));
     expect(r).toEqual({
       ok: true,
-      state: { v: 1, held: 3, session: { id: id(900), number: 3, openedAt: '2027-03-01T09:00:00.000Z' }, attendance: {}, rollCall: { startedAt: '2027-03-01T09:00:00.000Z', finishedAt: null } },
+      state: { v: 1, held: 3, session: { id: id(900), number: 3, openedAt: '2027-03-01T09:00:00.000Z' }, attendance: {}, rollCall: { startedAt: '2027-03-01T09:00:00.000Z', finishedAt: null }, speakers: { queue: [], seconds: 90, current: null }, caucus: null },
       effects: [{ type: 'session.opened', id: id(900), number: 3 }],
     });
   });
@@ -164,5 +165,177 @@ describe('engine properties', () => {
     const before = JSON.stringify(opened);
     run(marks, ctx(), opened);
     expect(JSON.stringify(opened)).toBe(before);
+  });
+});
+
+// ── Speakers, timers and caucuses ──
+
+const T0 = Date.parse('2027-03-01T09:00:00.000Z');
+const at = (seconds: number) => new Date(T0 + seconds * 1000).toISOString();
+const ctxAt = (seconds: number, over: Partial<Context> = {}) => ctx({ now: at(seconds), ...over });
+function step(s: LiveState, cmd: Command, seconds = 0, over: Partial<Context> = {}) {
+  const r = apply(s, cmd, ctxAt(seconds, over));
+  if (!r.ok) throw new Error(`${cmd.type}: ${r.error}`);
+  return r;
+}
+// A session with everyone present.
+const sitting = (over: Partial<Context> = {}) =>
+  run([{ type: 'session.open', session: id(900) }, { type: 'attendance.fillUnmarked', state: 'present' }], ctx(over));
+
+describe('timers keep time as instants', () => {
+  it('counts down from the shared clock, pauses and resumes', () => {
+    let s = step(sitting(), { type: 'speakers.add', delegate: D[0]! }).state;
+    s = step(s, { type: 'speakers.next' }).state;
+    expect(s.speakers.current?.timer).toEqual({ seconds: 90, runningSince: null, usedMs: 0 });
+    s = step(s, { type: 'timer.start' }, 10).state;
+    expect(remainingMs(s.speakers.current!.timer, T0 + 40_000)).toBe(60_000);
+    s = step(s, { type: 'timer.pause' }, 40).state;
+    expect(s.speakers.current!.timer).toEqual({ seconds: 90, runningSince: null, usedMs: 30_000 });
+    // Paused: time does not move.
+    expect(remainingMs(s.speakers.current!.timer, T0 + 500_000)).toBe(60_000);
+    s = step(s, { type: 'timer.start' }, 100).state;
+    expect(remainingMs(s.speakers.current!.timer, T0 + 170_000)).toBe(-10_000);
+    s = step(s, { type: 'timer.reset' }, 170).state;
+    expect(s.speakers.current!.timer).toEqual({ seconds: 90, runningSince: null, usedMs: 0 });
+  });
+  it.each([
+    [65_000, '1:05'],
+    [9_001, '0:10'],
+    [9_000, '0:09'],
+    [500, '0:01'],
+    [0, '0:00'],
+    [-999, '0:00'],
+    [-3_000, '-0:03'],
+    [-61_000, '-1:01'],
+  ])('%i ms shows as %s', (ms, text) => {
+    expect(clock(ms)).toBe(text);
+  });
+});
+
+describe('speakers lists', () => {
+  it('adds present delegates once, in order; moves and removes them', () => {
+    let s = sitting();
+    for (const d of [D[0]!, D[1]!, D[2]!]) s = step(s, { type: 'speakers.add', delegate: d }).state;
+    expect(apply(s, { type: 'speakers.add', delegate: D[1]! }, ctx())).toEqual({ ok: false, error: 'already_listed' });
+    s = step(s, { type: 'speakers.move', delegate: D[2]!, to: 0 }).state;
+    expect(s.speakers.queue).toEqual([D[2], D[0], D[1]]);
+    s = step(s, { type: 'speakers.remove', delegate: D[0]! }).state;
+    expect(s.speakers.queue).toEqual([D[2], D[1]]);
+    expect(apply(s, { type: 'speakers.remove', delegate: D[0]! }, ctx())).toEqual({ ok: false, error: 'not_listed' });
+  });
+  it('refuses absent delegates when the rules say only present ones speak', () => {
+    const s = run([{ type: 'session.open', session: id(900) }, { type: 'attendance.set', delegate: D[0]!, state: 'absent' }]);
+    expect(apply(s, { type: 'speakers.add', delegate: D[0]! }, ctx())).toEqual({ ok: false, error: 'not_present' });
+    expect(apply(s, { type: 'speakers.add', delegate: D[1]! }, ctx())).toEqual({ ok: false, error: 'not_present' });
+    const relaxed = { ...UN, speaking: { ...UN.speaking, mustBePresent: false } };
+    expect(apply(s, { type: 'speakers.add', delegate: D[0]! }, ctx({ protocol: relaxed })).ok).toBe(true);
+  });
+  it('lets a delegate be listed again where the rules allow it', () => {
+    const thimun = PROTOCOL_PRESETS.thimun_style!;
+    let s = sitting({ protocol: thimun });
+    s = step(s, { type: 'speakers.add', delegate: D[0]! }, 0, { protocol: thimun }).state;
+    s = step(s, { type: 'speakers.add', delegate: D[0]! }, 0, { protocol: thimun }).state;
+    expect(s.speakers.queue).toEqual([D[0], D[0]]);
+  });
+  it('calls the next speaker, records the speech that ended, and stops at the end of the list', () => {
+    let s = step(sitting(), { type: 'speakers.add', delegate: D[0]! }).state;
+    s = step(s, { type: 'speakers.add', delegate: D[1]! }).state;
+    s = step(s, { type: 'speakers.next' }).state;
+    s = step(s, { type: 'timer.start' }, 5).state;
+    const r = step(s, { type: 'speakers.next' }, 50);
+    expect(r.effects).toEqual([{ type: 'speech.recorded', session: id(900), delegate: D[0], list: 'general', caucus: null, startedAt: at(5), seconds: 45 }]);
+    expect(r.state.speakers.current?.delegate).toBe(D[1]);
+    // A speaker who never started is not recorded.
+    const last = step(r.state, { type: 'speakers.next' }, 60);
+    expect(last.effects).toEqual([]);
+    expect(last.state.speakers.current).toBeNull();
+    expect(apply(last.state, { type: 'speakers.next' }, ctx())).toEqual({ ok: false, error: 'list_empty' });
+    expect(apply(last.state, { type: 'speakers.end' }, ctx())).toEqual({ ok: false, error: 'no_speaker' });
+  });
+  it('starts the timer at once where the rules say so', () => {
+    const harvard = PROTOCOL_PRESETS.harvard_style!;
+    let s = sitting({ protocol: harvard });
+    expect(s.speakers.seconds).toBe(60);
+    s = step(s, { type: 'speakers.add', delegate: D[0]! }, 0, { protocol: harvard }).state;
+    s = step(s, { type: 'speakers.next' }, 3, { protocol: harvard }).state;
+    expect(s.speakers.current?.timer.runningSince).toBe(at(3));
+  });
+  it('a new speaking time applies to a speaker who has not started yet', () => {
+    let s = step(sitting(), { type: 'speakers.add', delegate: D[0]! }).state;
+    s = step(s, { type: 'speakers.next' }).state;
+    s = step(s, { type: 'speakers.setTime', seconds: 45 }).state;
+    expect(s.speakers).toMatchObject({ seconds: 45, current: { timer: { seconds: 45 } } });
+  });
+  it('the list stays from one session to the next; the speech in progress is recorded at close', () => {
+    let s = step(sitting(), { type: 'speakers.add', delegate: D[0]! }).state;
+    s = step(s, { type: 'speakers.add', delegate: D[1]! }).state;
+    s = step(s, { type: 'speakers.next' }).state;
+    s = step(s, { type: 'timer.start' }).state;
+    const closed = step(s, { type: 'session.close' }, 30);
+    expect(closed.effects.map((e) => e.type)).toEqual(['speech.recorded', 'session.closed']);
+    const reopened = step(closed.state, { type: 'session.open', session: id(901) }, 100).state;
+    expect(reopened.speakers.queue).toEqual([D[1]]);
+  });
+});
+
+describe('caucuses', () => {
+  it('a moderated caucus runs its own list and time, and the general list waits', () => {
+    let s = step(sitting(), { type: 'speakers.add', delegate: D[0]! }).state;
+    s = step(s, { type: 'speakers.next' }).state;
+    s = step(s, { type: 'timer.start' }).state;
+    s = step(s, { type: 'caucus.start', caucus: 'moderated', minutes: 10, topic: 'Funding' }, 20).state;
+    expect(s.caucus).toMatchObject({ key: 'moderated', kind: 'moderated', topic: 'Funding', timer: { seconds: 600, runningSince: at(20) }, list: { seconds: 60, queue: [] } });
+    // The general speaker's time stopped when the caucus began.
+    expect(s.speakers.current?.timer).toEqual({ seconds: 90, runningSince: null, usedMs: 20_000 });
+    s = step(s, { type: 'speakers.add', delegate: D[3]! }, 30).state;
+    expect(s.caucus!.list!.queue).toEqual([D[3]]);
+    expect(s.speakers.queue).toEqual([]);
+    s = step(s, { type: 'speakers.next' }, 31).state;
+    s = step(s, { type: 'timer.start' }, 31).state;
+    const ended = step(s, { type: 'caucus.end' }, 61);
+    expect(ended.effects).toEqual([{ type: 'speech.recorded', session: id(900), delegate: D[3], list: 'caucus', caucus: 'moderated', startedAt: at(31), seconds: 30 }]);
+    expect(ended.state.caucus).toBeNull();
+    expect(ended.state.speakers.current?.delegate).toBe(D[0]);
+  });
+  it('an unmoderated caucus has no speakers list', () => {
+    const s = step(sitting(), { type: 'caucus.start', caucus: 'unmoderated', minutes: 5, topic: '' }).state;
+    expect(s.caucus?.list).toBeNull();
+    expect(apply(s, { type: 'speakers.add', delegate: D[0]! }, ctx())).toEqual({ ok: false, error: 'no_list' });
+    expect(apply(s, { type: 'caucus.start', caucus: 'moderated', minutes: 5, topic: '' }, ctx())).toEqual({ ok: false, error: 'caucus_running' });
+  });
+  it('follows the rules: known kinds, the longest length, the number of extensions', () => {
+    const s = sitting();
+    expect(apply(s, { type: 'caucus.start', caucus: 'lobbying', minutes: 5, topic: '' }, ctx())).toEqual({ ok: false, error: 'unknown_caucus' });
+    expect(apply(s, { type: 'caucus.start', caucus: 'moderated', minutes: 21, topic: '' }, ctx())).toEqual({ ok: false, error: 'too_long' });
+    let c = step(s, { type: 'caucus.start', caucus: 'moderated', minutes: 10, topic: '' }).state;
+    c = step(c, { type: 'caucus.extend', minutes: 5 }).state;
+    expect(c.caucus?.timer.seconds).toBe(900);
+    expect(apply(c, { type: 'caucus.extend', minutes: 5 }, ctx())).toEqual({ ok: false, error: 'no_extensions' });
+    expect(apply(EMPTY_STATE, { type: 'caucus.end' }, ctx())).toEqual({ ok: false, error: 'no_caucus' });
+  });
+  it('pauses and resumes', () => {
+    let s = step(sitting(), { type: 'caucus.start', caucus: 'unmoderated', minutes: 5, topic: '' }).state;
+    s = step(s, { type: 'caucus.pause' }, 60).state;
+    expect(remainingMs(s.caucus!.timer, T0 + 999_000)).toBe(240_000);
+    s = step(s, { type: 'caucus.resume' }, 100).state;
+    expect(remainingMs(s.caucus!.timer, T0 + 160_000)).toBe(180_000);
+  });
+  it('closing the session ends the caucus', () => {
+    const s = step(sitting(), { type: 'caucus.start', caucus: 'unmoderated', minutes: 5, topic: '' }).state;
+    expect(step(s, { type: 'session.close' }).state.caucus).toBeNull();
+  });
+  it('every preset with caucuses validates them', () => {
+    expect(PROTOCOL_PRESETS.thimun_style!.caucuses.map((c) => c.kind)).toEqual(['unmoderated']);
+    expect(packSchema.safeParse({ ...UN, caucuses: [{ ...UN.caucuses[0]!, defaultMinutes: 30, maxMinutes: 20 }] }).success).toBe(false);
+  });
+});
+
+describe('adding speakers commutes', () => {
+  it('two chairs adding different speakers: both land, whatever the order', () => {
+    const s = sitting();
+    const a: Command = { type: 'speakers.add', delegate: D[0]! };
+    const b: Command = { type: 'speakers.add', delegate: D[1]! };
+    expect(COMMUTING.has('speakers.add')).toBe(true);
+    expect(new Set(run([a, b], ctx(), s).speakers.queue)).toEqual(new Set(run([b, a], ctx(), s).speakers.queue));
   });
 });

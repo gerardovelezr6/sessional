@@ -51,6 +51,7 @@ function withRecords(effects: Effect[], pack: Pack, delegates: Loaded['delegates
       const name = new Map(pack.attendance.map((a) => [a.key, a.name]));
       return { ...e, entries: e.entries.map((x) => ({ ...x, label: label.get(x.delegate_id) ?? '', state_name: name.get(x.state) ?? {} })) };
     }
+    if (e.type === 'speech.recorded') return { ...e, label: delegates.find((d) => d.id === e.delegate)?.label ?? '' };
     return e;
   });
 }

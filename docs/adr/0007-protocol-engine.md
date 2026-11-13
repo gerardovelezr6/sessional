@@ -1,6 +1,6 @@
 # ADR-0007 — Protocol engine
 
-Status: accepted; built step by step in Phase 6 (part 1: engine, sessions, roll call) · Date: 2026-11-10
+Status: accepted; built step by step in Phase 6 (parts 1–2: engine, sessions, roll call, speakers, timers, caucuses) · Date: 2026-11-10
 
 ## Decision
 
@@ -83,3 +83,19 @@ commands gives the same state), and Playwright runs that drop the network mid-vo
 - The console keeps unsent commands in memory in this part and resends them with the same id until
   the server answers; the IndexedDB outbox that survives a reload comes with the offline part.
   Other chairs' changes arrive by polling every five seconds; realtime replaces it in Phase 7.
+
+## As built (Phase 6, part 2)
+
+- Packs gain `speaking` (default time, quick picks, warning mark, whether only present delegates
+  may be listed, whether a delegate may be listed twice, whether the timer starts on its own) and
+  `caucuses` (moderated or unmoderated, usual and longest length, speaking time, extensions).
+- Timers are instants, not ticks (`src/protocol/timer.ts`): "running since" plus time already used.
+  The server stamps every command with its own time; each console learns the offset between its
+  clock and the server's from every answer, so all screens count the same time and a timer keeps
+  going through a lost connection.
+- One general speakers list per committee, kept across sessions; a moderated caucus has its own
+  list and pauses the general speaker meanwhile. Adding a speaker commutes with other additions.
+- Every speech that used time is recorded (`speeches`: who, which list, when, how long, the label
+  as it was) for grading and analytics later.
+- Sounds at the end of a timer come with projection in Phase 7; the console shows the warning and
+  "time is up" visually and announces it to screen readers.

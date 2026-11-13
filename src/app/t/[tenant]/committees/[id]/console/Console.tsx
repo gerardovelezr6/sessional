@@ -7,6 +7,7 @@ import type { RunResult } from '@/protocol/run';
 import { countsOf, quorumOf } from '@/protocol/rules';
 import type { Pack } from '@/protocol/schema';
 import type { FlagChoice } from '@/structure/flags';
+import { Floor, useServerNow } from './floor';
 
 export interface ConsoleDelegate {
   id: string;
@@ -29,8 +30,10 @@ interface Props {
   delegates: ConsoleDelegate[];
   locale: string;
   timeZone: string;
-  run: (envelope: { id: string; base: number; command: Command }) => Promise<RunResult>;
-  poll: () => Promise<{ revision: number; state: LiveState } | null>;
+  run: (envelope: { id: string; base: number; command: Command }) => Promise<RunResult & { now: string }>;
+  poll: () => Promise<{ revision: number; state: LiveState; now: string } | null>;
+  // The server's time when the page was made.
+  serverNow: string;
   L: Record<string, string>;
 }
 
@@ -47,6 +50,13 @@ export function Console(p: Props) {
   const [offline, setOffline] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const retries = useRef(0);
+  // How far the server's clock is from this device's: timers count on the server's clock.
+  const [offset, setOffset] = useState(() => Date.parse(p.serverNow) - Date.now());
+  const learnClock = useCallback((serverIso: string, sentAt: number) => {
+    const receivedAt = Date.now();
+    setOffset(Date.parse(serverIso) - (sentAt + receivedAt) / 2);
+  }, []);
+  const now = useServerNow(offset);
   const ids = useMemo(() => p.delegates.map((d) => d.id), [p.delegates]);
 
   // The rules in force: the open session's, else what a new session would use.
@@ -58,11 +68,11 @@ export function Console(p: Props) {
   const shown = useMemo(() => {
     let s = confirmed.state;
     for (const q of queue) {
-      const r = apply(s, q.command, { protocol: pack, delegates: ids, sessionsHeld, now: new Date().toISOString() });
+      const r = apply(s, q.command, { protocol: pack, delegates: ids, sessionsHeld, now: new Date(now).toISOString() });
       if (r.ok) s = r.state;
     }
     return s;
-  }, [confirmed, queue, pack, ids, sessionsHeld]);
+  }, [confirmed, queue, pack, ids, sessionsHeld, now]);
   const pendingFor = useMemo(() => new Set(queue.flatMap((q) => (q.command.type === 'attendance.set' ? [q.command.delegate] : []))), [queue]);
 
   const errorText = useCallback((code: string) => L[`error_${code}`] ?? L.error_failed ?? '', [L]);
@@ -87,9 +97,11 @@ export function Console(p: Props) {
     const head = queueRef.current[0];
     if (!head) return;
     busy.current = true;
-    let result: RunResult;
+    let result: RunResult & { now: string };
+    const sentAt = Date.now();
     try {
       result = await p.run({ id: head.id, base: revision.current, command: head.command });
+      learnClock(result.now, sentAt);
     } catch {
       // No answer: keep the command and send it again with the same id, so it is applied once.
       busy.current = false;
@@ -110,7 +122,7 @@ export function Console(p: Props) {
     }
     setQ(queueRef.current.filter((x) => x.id !== head.id));
     again.current();
-  }, [p, accept, errorText]);
+  }, [p, accept, errorText, learnClock]);
   useEffect(() => {
     again.current = () => void pump();
   }, [pump]);
@@ -123,14 +135,16 @@ export function Console(p: Props) {
     const timer = setInterval(async () => {
       if (document.visibilityState !== 'visible') return;
       try {
+        const sentAt = Date.now();
         const view = await poll();
-        if (view && view.revision > revision.current && queueRef.current.length === 0) accept(view);
+        if (view) learnClock(view.now, sentAt);
+        if (view && view.revision > revision.current && queueRef.current.length === 0) accept({ revision: view.revision, state: view.state });
       } catch {
         // Polling quietly retries on the next tick.
       }
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [idle, p.poll, accept]);
+  }, [idle, p.poll, accept, learnClock]);
 
   const send = (command: Command) => {
     setError(null);
@@ -186,6 +200,8 @@ export function Console(p: Props) {
           </>
         )}
       </section>
+
+      {session ? <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} /> : null}
 
       <section className="card flex flex-col gap-2" aria-labelledby="quorum-title">
         <h2 id="quorum-title" className="text-lg font-bold text-on-surface">

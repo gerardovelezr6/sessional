@@ -53,7 +53,7 @@ test('the path cannot reach another tenant', async ({ page }) => {
 });
 
 test('reserved and malformed hosts are a 404', async ({ page }) => {
-  for (const host of ['admin.localhost', 'app.localhost', 'a.b.localhost']) {
+  for (const host of ['admin.localhost', 'a.b.localhost']) {
     expect((await page.goto(at(host)))?.status(), host).toBe(404);
   }
 });

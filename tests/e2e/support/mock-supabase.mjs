@@ -21,6 +21,8 @@ const TENANTS = {
   eta: { kind: 'tenant', id: tid(8), slug: 'eta', name: 'Logo School', status: 'active' },
   theta: { kind: 'tenant', id: tid(9), slug: 'theta', name: 'Advanced School', status: 'active' },
   iota: { kind: 'tenant', id: tid(10), slug: 'iota', name: 'Import School', status: 'active' },
+  kappa: { kind: 'tenant', id: tid(11), slug: 'kappa', name: 'مدرسة كابا', status: 'active' },
+  lambda: { kind: 'tenant', id: tid(12), slug: 'lambda', name: 'Lambda School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -59,10 +61,17 @@ seed('owner@zeta.test', 'Zoe Zeta', tid(7), 'owner');
 seed('owner@eta.test', 'Ella Eta', tid(8), 'owner');
 seed('owner@theta.test', 'Theo Theta', tid(9), 'owner');
 seed('owner@iota.test', 'Ivy Iota', tid(10), 'owner');
+seed('owner@kappa.test', 'Karim Kappa', tid(11), 'owner');
+seed('owner@lambda.test', 'Lena Lambda', tid(12), 'owner');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
 const CONFIG = {
+  // An Arabic school, written right to left, with a few of its own texts.
+  [tid(11)]: {
+    locale: { version: 1, schema_version: 1, data: { enabledLocales: ['ar', 'en'], defaultLocale: 'ar' } },
+    translations: { version: 1, schema_version: 1, data: { messages: { ar: { 'auth.signIn.title': 'تسجيل الدخول إلى {name}', 'auth.signIn': 'دخول' } } } },
+  },
   [tid(5)]: {
     locale: { version: 2, schema_version: 1, data: { defaultLocale: 'es' } },
     people: { version: 1, schema_version: 1, data: { passwordMinLength: 12 } },
@@ -71,6 +80,10 @@ const CONFIG = {
   },
 };
 addUser('stranger@else.test', 'correct-password', 'Sam Stranger');
+// Belongs to two schools, plus a suspended one that must not be listed.
+seed('multi@else.test', 'Mo Multi', tid(1), 'chair');
+memberships.push({ tenant_id: tid(2), user_id: byEmail('multi@else.test').id, role_key: 'high_command', status: 'active' });
+memberships.push({ tenant_id: tid(3), user_id: byEmail('multi@else.test').id, role_key: 'chair', status: 'active' });
 
 function issue(userId, lifetimeSeconds = 3600) {
   const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -99,7 +112,7 @@ const rpcs = {
     const r = roleOf(m?.role_key);
     return {
       body: {
-        user: { id: u.id, email: u.email, full_name: u.full_name },
+        user: { id: u.id, email: u.email, full_name: u.full_name, locale: u.locale ?? null },
         membership: r ? { role_key: r.key, role_name: r.name, rank: r.rank, all_permissions: r.all, permissions: r.permissions } : null,
       },
     };
@@ -176,6 +189,22 @@ const rpcs = {
     const s = sectionOf(p_tenant, p_section);
     const old = s.versions.find((v) => v.version === p_version);
     return { body: old ? append(s, old.stored, p_note, p_version, userId) : null };
+  },
+  set_my_locale: ({ p_locale }, userId) => {
+    if (p_locale !== null && !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(p_locale)) return { status: 400, body: { code: '22023', message: 'invalid language tag' } };
+    users.get(userId).locale = p_locale;
+    return { body: { id: userId, locale: p_locale } };
+  },
+  my_conferences: (_args, userId) => {
+    const visible = Object.values(TENANTS).filter((t) => t.kind === 'tenant' && !['suspended', 'deleted'].includes(t.status));
+    return {
+      body: memberships
+        .filter((m) => m.user_id === userId && m.status === 'active')
+        .map((m) => ({ m, t: visible.find((t) => t.id === m.tenant_id) }))
+        .filter((x) => x.t)
+        .map(({ m, t }) => ({ slug: t.slug, name: t.name, role_key: m.role_key, role_name: roleOf(m.role_key).name }))
+        .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
+    };
   },
   find_account: ({ p_email }) => {
     const u = byEmail(String(p_email).trim().toLowerCase());

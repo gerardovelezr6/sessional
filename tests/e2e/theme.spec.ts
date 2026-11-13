@@ -46,7 +46,7 @@ test("a school's published design arrives with the first HTML, for signed-out vi
   // Flat institutional: square corners, uppercase labels, no shadow.
   expect(await style(page, 'button[type=submit]', 'border-radius')).toBe('0px');
   expect(await style(page, '.card', 'border-radius')).toBe('0px');
-  expect(await style(page, 'label', 'text-transform')).toBe('uppercase');
+  expect(await style(page, '.card .label', 'text-transform')).toBe('uppercase');
   expect(await style(page, '.card', 'box-shadow')).toBe('none');
 });
 

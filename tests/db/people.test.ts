@@ -65,7 +65,7 @@ afterAll(async () => {
 describe('tenant_context', () => {
   it('describes an owner', async () => {
     const ctx = await call('owner', 'tenant_context($1)', [A]);
-    expect(ctx.user).toEqual({ id: people.owner, email: `owner-${run}@example.test`, full_name: 'owner' });
+    expect(ctx.user).toEqual({ id: people.owner, email: `owner-${run}@example.test`, full_name: 'owner', locale: null });
     expect(ctx.membership).toMatchObject({ role_key: 'owner', rank: 0, all_permissions: true, permissions: [] });
   });
   it('lists the permissions of a tenant-defined role, with its names', async () => {
@@ -201,5 +201,32 @@ describe('apply_role_preset', () => {
   });
   it('rejects a malformed preset', async () => {
     expect(await failure('owner', 'apply_role_preset($1, $2::jsonb)', [A, '{"key":"x"}'])).toMatch(/invalid preset/);
+  });
+});
+
+describe('a person\'s language', () => {
+  it('is set by the person, verified, and returned by tenant_context', async () => {
+    const out = await as('chair', async (q) => {
+      const set = (await q(`select set_my_locale('fr-CA') as r`)).rows[0].r;
+      const ctx = (await q(`select tenant_context($1) as r`, [A])).rows[0].r;
+      return { set, ctx };
+    });
+    expect(out.set).toEqual({ id: people.chair, locale: 'fr-CA' });
+    expect(out.ctx.user.locale).toBe('fr-CA');
+  });
+  it('can be cleared', async () => {
+    expect(await call('chair', `set_my_locale(null)`)).toEqual({ id: people.chair, locale: null });
+  });
+  it('refuses something that is not a language tag', async () => {
+    expect(await failure('chair', `set_my_locale('fr; drop table x')`)).toMatch(/invalid language tag/);
+    expect(await failure('chair', `set_my_locale($1)`, ['x'.repeat(40)])).toMatch(/invalid language tag/);
+  });
+  it('only ever changes the caller\'s own profile', async () => {
+    await as('hc', (q) => q(`select set_my_locale('ar')`));
+    const { rows } = await db.query(`select id, locale from profiles where id = any($1) and locale = 'ar'`, [[people.chair, people.owner]]);
+    expect(rows).toEqual([]);
+  });
+  it('is closed to signed-out visitors', async () => {
+    expect(await failure('anon', `set_my_locale('es')`)).toMatch(/permission denied/);
   });
 });

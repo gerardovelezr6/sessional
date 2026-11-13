@@ -18,13 +18,13 @@ export interface Membership {
 
 export interface TenantContext {
   token: string;
-  user: { id: string; email: string; fullName: string };
+  user: { id: string; email: string; fullName: string; locale: string | null };
   membership: Membership | null;
   can: (permission: string) => boolean;
 }
 
 interface ContextRow {
-  user: { id: string; email: string; full_name: string } | null;
+  user: { id: string; email: string; full_name: string; locale?: string | null } | null;
   membership: { role_key: string; role_name: Record<string, string>; rank: number; all_permissions: boolean; permissions: string[] } | null;
 }
 
@@ -51,7 +51,7 @@ export const tenantContext = cache(async (tenantId: string): Promise<TenantConte
   const m = row.membership;
   return {
     token,
-    user: { id: row.user.id, email: row.user.email, fullName: row.user.full_name },
+    user: { id: row.user.id, email: row.user.email, fullName: row.user.full_name, locale: row.user.locale ?? null },
     membership: m ? { roleKey: m.role_key, roleName: m.role_name, rank: m.rank } : null,
     can: (permission) => !!m && (m.all_permissions || m.permissions.includes(permission)),
   };

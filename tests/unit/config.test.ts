@@ -10,7 +10,9 @@ describe('defaults', () => {
   it('every section parses from nothing', () => {
     expect(defaultConfig()).toEqual({
       identity: { tagline: {}, timeZone: 'UTC' },
-      locale: { defaultLocale: 'en' },
+      locale: { enabledLocales: ['en', 'es'], defaultLocale: 'en' },
+      terminology: { pack: 'un', conference: {}, committee: {}, committees: {}, chair: {}, chairs: {}, delegate: {}, delegates: {}, highCommand: {}, advisor: {}, advisors: {} },
+      translations: { messages: {} },
       people: { passwordMinLength: 8 },
       theme: {
         preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
@@ -86,6 +88,13 @@ describe('strict validation (saving)', () => {
     ['people', { passwordMinLength: 12.5 }, 'people.passwordMinLength'],
     ['people', { passwordMinLength: '12' }, 'people.passwordMinLength'],
     ['locale', { defaultLocale: 'fr' }, 'locale.defaultLocale'],
+    ['locale', { enabledLocales: ['en', 'english'], defaultLocale: 'en' }, 'locale.enabledLocales.1'],
+    ['locale', { enabledLocales: ['en', 'en'], defaultLocale: 'en' }, 'locale.enabledLocales'],
+    ['locale', { enabledLocales: [], defaultLocale: 'en' }, 'locale.enabledLocales'],
+    ['locale', { enabledLocales: ['fr-ca'], defaultLocale: 'fr-ca' }, 'locale.enabledLocales.0'],
+    ['translations', { messages: { fr: { 'auth.signIn': 'Se {connecter' } } }, 'translations.messages.fr.auth.signIn'],
+    ['translations', { messages: { fr: { 'no.such.key': 'x' } } }, 'translations.messages.fr.no.such.key'],
+    ['terminology', { pack: 'pirate' }, 'terminology.pack'],
     ['identity', { timeZone: 'Mars/Olympus' }, 'identity.timeZone'],
     ['identity', { tagline: { en: 'x'.repeat(161) } }, 'identity.tagline.en'],
     ['identity', { tagline: { 'not a locale': 'x' } }, 'identity.tagline.not a locale'],
@@ -96,6 +105,11 @@ describe('strict validation (saving)', () => {
   });
   it('refuses unknown settings instead of silently storing them', () => {
     expect(validateSection('people', { passwordMinLength: 10, surprise: true }).ok).toBe(false);
+  });
+  it('accepts any language the school wants, with its own texts', () => {
+    expect(validateSection('locale', { enabledLocales: ['ar', 'en', 'fr-CA'], defaultLocale: 'ar' }).ok).toBe(true);
+    expect(validateSection('translations', { messages: { ar: { 'auth.signIn': 'تسجيل الدخول' }, fr: { 'home.role': 'Votre rôle : {role}' } } }).ok).toBe(true);
+    expect(validateSection('terminology', { pack: 'secretariat', chair: { fr: 'Président' } }).ok).toBe(true);
   });
   it('accepts good values', () => {
     expect(validateSection('identity', { tagline: { en: 'Diplomacy first', es: 'La diplomacia primero' }, timeZone: 'America/Mexico_City' }).ok).toBe(true);

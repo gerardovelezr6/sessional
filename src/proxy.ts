@@ -3,7 +3,7 @@ import { refreshSession } from '@/auth/gotrue';
 import { ACCESS_MAX_AGE, cookieOptions, REFRESH_MAX_AGE } from '@/auth/cookies';
 import { ACCESS_COOKIE, needsRefresh, REFRESH_COOKIE } from '@/auth/tokens';
 import { allowTenantPaths, rootDomain } from '@/platform/env';
-import { BASE_PATH_HEADER, decideRoute, SAFE_MODE_HEADER } from '@/tenancy/route';
+import { BASE_PATH_HEADER, decideRoute, SAFE_MODE_HEADER, TENANT_KEY_HEADER } from '@/tenancy/route';
 
 // Sends each request to the right part of the product based on its host, and keeps the session
 // fresh on tenant pages. The tenant itself is looked up (and checked) by the tenant layout.
@@ -23,9 +23,13 @@ export async function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.delete(BASE_PATH_HEADER); // never trust a value sent by the visitor
   headers.delete(SAFE_MODE_HEADER);
+  headers.delete(TENANT_KEY_HEADER);
   if (request.nextUrl.searchParams.has('safe-mode')) headers.set(SAFE_MODE_HEADER, '1');
   if (!isTenantPage) return NextResponse.next({ request: { headers } });
   headers.set(BASE_PATH_HEADER, decision.action === 'next' ? (decision.basePath ?? '') : '');
+  const tenantPath = decision.action === 'rewrite' ? decision.path : request.nextUrl.pathname;
+  const tenantKey = /^\/t\/([^/]+)/.exec(tenantPath)?.[1];
+  if (tenantKey) headers.set(TENANT_KEY_HEADER, tenantKey);
 
   // Renew the session shortly before it expires, and hand the new tokens to this same request.
   const access = request.cookies.get(ACCESS_COOKIE)?.value;

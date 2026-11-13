@@ -29,7 +29,7 @@ async function saveAndPublish(page: Page) {
 
 test('every school page has a header with the school name until a logo is uploaded', async ({ page }) => {
   await page.goto(at('/login'));
-  await expect(page.locator('header.app-header')).toHaveText('Logo School');
+  await expect(page.locator('header.app-header > span')).toHaveText('Logo School');
 });
 
 test('the live preview follows the form before anything is saved', async ({ page }) => {
@@ -113,7 +113,7 @@ test('an image can be removed', async ({ page }) => {
   await design.getByLabel('Logo: Remove').check();
   await expect(page.getByTestId('theme-preview').locator('.app-header')).toHaveText('Logo School');
   await saveAndPublish(page);
-  await expect(page.locator('header.app-header')).toHaveText('Logo School');
+  await expect(page.locator('header.app-header > span')).toHaveText('Logo School');
   await expect(page.locator('header.app-header img')).toHaveCount(0);
   // The icon was not touched.
   await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /favicon-/);
@@ -131,7 +131,7 @@ test('a forged image path pointing at another school is refused', async ({ page 
 test('the settings sections are tabs, styled by the design', async ({ page }) => {
   await openDesign(page);
   const nav = page.getByRole('navigation', { name: 'Sections' });
-  await expect(nav.getByRole('link')).toHaveText(['Identity', 'Language', 'Design', 'People and sign-in']);
+  await expect(nav.getByRole('link')).toHaveText(['Identity', 'Language', 'Words', 'Translations', 'Design', 'People and sign-in']);
   await expect(nav.getByRole('link', { name: 'Identity' })).toHaveAttribute('aria-current', 'location');
   await expect(nav.locator('[aria-current]')).toHaveCount(1);
 

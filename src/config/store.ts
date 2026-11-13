@@ -3,7 +3,10 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { accessToken } from '@/auth/session';
 import { rpc } from '@/data/rpc';
+import { directionOf } from '@/i18n/locales';
+import { resolveTerms, termArguments } from '@/i18n/terms';
 import { translator, type Translate } from '@/messages';
+import { tenantContext } from '@/tenancy/context';
 import { resolveConfig, type Stored } from './resolve';
 import { defaultConfig, type TenantConfig } from './schema';
 
@@ -72,9 +75,38 @@ export const previewConfig = cache(async (tenantId: string): Promise<TenantConfi
   }
 });
 
-// The translator for a tenant's pages, in the tenant's default language.
-export async function tenantTranslator(tenantId: string): Promise<{ t: Translate; locale: TenantConfig['locale']['defaultLocale']; config: TenantConfig; preview: boolean }> {
+export const LANGUAGE_COOKIE = 's_lang';
+
+// The school's languages, always including its default.
+export function enabledLocales(config: TenantConfig): string[] {
+  const list = config.locale.enabledLocales;
+  return list.includes(config.locale.defaultLocale) ? list : [config.locale.defaultLocale, ...list];
+}
+
+// The language of a page: the person's own choice (saved on their profile when signed in, or in
+// this browser), if the school offers it; otherwise the school's default.
+async function chooseLocale(tenantId: string, config: TenantConfig): Promise<string> {
+  const offered = enabledLocales(config);
+  const ctx = await tenantContext(tenantId).catch(() => null);
+  const chosen = ctx?.user.locale ?? (await cookies()).get(LANGUAGE_COOKIE)?.value;
+  return chosen && offered.includes(chosen) ? chosen : config.locale.defaultLocale;
+}
+
+export interface TenantLanguage {
+  t: Translate;
+  locale: string;
+  dir: 'ltr' | 'rtl';
+  config: TenantConfig;
+  preview: boolean;
+}
+
+// Everything a school page needs to speak the school's language with the school's words.
+export const tenantTranslator = cache(async (tenantId: string): Promise<TenantLanguage> => {
   const draft = await previewConfig(tenantId);
   const config = draft ?? (await tenantConfig(tenantId));
-  return { t: translator(config.locale.defaultLocale), locale: config.locale.defaultLocale, config, preview: draft !== null };
-}
+  const locale = await chooseLocale(tenantId, config);
+  const { pack, ...overrides } = config.terminology;
+  const terms = termArguments(resolveTerms({ pack, overrides }, locale));
+  const t = translator(locale, { overrides: config.translations.messages, terms });
+  return { t, locale, dir: directionOf(locale), config, preview: draft !== null };
+});

@@ -33,19 +33,51 @@
   }
 }
 
-/* Shared control styles. Tokens only. */
+/* Shared control styles. Tokens only: colours, radii, spacing, label style, shadow and border
+   width all come from the theme. */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-semibold transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-control text-sm font-semibold transition-colors;
     @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60;
+    padding: var(--s-space-control-y) var(--s-space-control-x);
   }
   .btn-primary { @apply bg-primary text-on-primary; }
-  .btn-secondary { @apply border border-border-strong bg-surface-raised text-on-surface; }
-  .input {
-    @apply w-full rounded-control border border-border-strong bg-surface-raised px-3 py-2 text-sm text-on-surface;
-    @apply focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent;
+  .btn-secondary {
+    @apply border-border-strong bg-surface-raised text-on-surface;
+    border-style: solid;
+    border-width: var(--s-border-width);
   }
-  .label { @apply mb-1 block text-xs font-bold tracking-widest text-on-surface-muted uppercase; }
-  .card { @apply rounded-surface border border-border bg-surface-raised p-6; }
+  .input {
+    @apply w-full rounded-control border-border-strong bg-surface-raised text-sm text-on-surface;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent;
+    border-style: solid;
+    border-width: var(--s-border-width);
+    padding: var(--s-space-control-y) calc(var(--s-space-control-x) * 0.75);
+  }
+  .label-text {
+    @apply text-xs font-bold text-on-surface-muted;
+    text-transform: var(--s-label-transform);
+    letter-spacing: var(--s-label-tracking);
+  }
+  .label {
+    @apply mb-1 block text-xs font-bold text-on-surface-muted;
+    text-transform: var(--s-label-transform);
+    letter-spacing: var(--s-label-tracking);
+  }
+  /* The bottom strip of a card that holds its save control; stays in view while scrolling. */
+  .card-footer {
+    @apply sticky bottom-0 flex items-center justify-end gap-4 border-border bg-surface-raised;
+    border-top-style: solid;
+    border-top-width: var(--s-border-width);
+    margin: 0 calc(var(--s-space-surface) * -1);
+    padding: 0.75rem var(--s-space-surface);
+  }
+  .card {
+    @apply rounded-surface border-border bg-surface-raised;
+    border-style: solid;
+    border-width: var(--s-border-width);
+    padding: var(--s-space-surface);
+    box-shadow: var(--s-shadow-surface);
+  }
   .error-text { @apply text-sm font-semibold text-danger; }
 }

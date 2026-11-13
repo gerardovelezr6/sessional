@@ -110,7 +110,7 @@ export function SectionForm({ action, fields, labels }: { action: Action; fields
         </p>
       ) : null}
       {/* Always reachable: sticks to the bottom of the window while the form is on screen. */}
-      <div className="sticky bottom-0 -mx-6 -mb-6 flex items-center justify-end gap-4 rounded-b-surface border-t border-border bg-surface-raised px-6 py-3">
+      <div className="card-footer">
         {dirty ? (
           <p role="status" className="text-sm font-semibold text-on-surface">
             {labels.unsaved}

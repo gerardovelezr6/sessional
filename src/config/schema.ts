@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { catalogs } from '@/messages';
+import { PRESET_KEYS } from '@/theme/presets';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
 // with its validation and its default; nothing tenant-specific lives in code as a constant.
@@ -14,6 +15,8 @@ const TIME_ZONES = new Set(['UTC', ...Intl.supportedValuesOf('timeZone')]);
 // Text written by the tenant, per language: {"en": "…", "es": "…"}.
 const localizedText = (max: number) => z.record(z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/), z.string().max(max));
 
+const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'not a six-digit hex colour');
+
 export const sections = {
   identity: z.object({
     tagline: localizedText(160).default({}),
@@ -21,6 +24,21 @@ export const sections = {
   }),
   locale: z.object({
     defaultLocale: z.enum(LOCALES).default('en'),
+  }),
+  // Design. null means "as the chosen preset has it"; the engine derives every text colour, so no
+  // choice here can make text unreadable.
+  theme: z.object({
+    preset: z.enum(PRESET_KEYS).default('sessional'),
+    brand: hexColour.nullable().default(null),
+    accent: hexColour.nullable().default(null),
+    background: hexColour.nullable().default(null),
+    font: z.enum(['montserrat', 'inter', 'source-serif', 'nunito', 'atkinson', 'system']).nullable().default(null),
+    radius: z.enum(['none', 'small', 'medium', 'large']).nullable().default(null),
+    density: z.enum(['compact', 'comfortable', 'spacious']).nullable().default(null),
+    uppercaseLabels: z.enum(['on', 'off']).nullable().default(null),
+    shadows: z.enum(['on', 'off']).nullable().default(null),
+    contrast: z.enum(['standard', 'high']).nullable().default(null),
+    colorMode: z.enum(['light', 'dark', 'auto']).default('light'),
   }),
   people: z.object({
     passwordMinLength: z.number().int().min(8).max(128).default(8),

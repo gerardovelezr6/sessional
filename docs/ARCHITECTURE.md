@@ -158,3 +158,29 @@ on the others.
 
 Not built yet: preview of the sign-in page (preview needs a signed-in editor), a side-by-side
 diff between versions, and packs (part 3).
+
+## Themes (Phase 3, part 1)
+
+A school's design is the `theme` section of its settings. The engine (`src/theme/engine.ts`)
+turns it into CSS variables that every component reads; components never hold a colour, radius
+or spacing of their own (the lint rules enforce this).
+
+- **Presets** (`src/theme/presets.ts`): Sessional (the product's own look and the default),
+  Flat institutional, Classic formal, Modern rounded, High contrast, Playful school. A school
+  picks one and may override brand colour, accent, page background, font, corners, spacing,
+  uppercase labels, shadows, contrast level and light/dark/automatic.
+- **Text cannot become unreadable:** text colours are derived, never taken as given. Colours are
+  adjusted in OKLCH (perceived lightness) until each text/background pair reaches its ratio:
+  7:1 for body text, 4.5:1 for secondary text and text on buttons, 3:1 for buttons and field
+  outlines against the page (12:1 and 7:1 in high contrast). The settings page says when a colour
+  had to be adjusted. Tested on every preset and on 500 random colour combinations, light and dark.
+- **No flash of the default look:** the school's stylesheet is rendered by the server into the
+  first HTML. It uses the selector `:root:root`, which outranks the product default wherever the
+  browser places the two.
+- **Automatic mode** sends light colours plus a `prefers-color-scheme: dark` block, so each
+  person's device decides.
+- **Fonts** are self-hosted (no requests to third-party font servers).
+
+Not built yet: logo and favicon upload, a side-by-side live editor, heading/tab/header styles,
+projection-screen and login layouts, uploaded fonts, sandboxed custom CSS, theme export/import,
+and email/PDF styling.

@@ -3,8 +3,9 @@
 Status: Phases 0 and 1 are merged. Phase 2 parts 1 and 2 are merged; part 3 (packs and the
 generated `CONFIG.md`) and the "your conferences" switcher are still to do. Phase 3 (theming):
 part 1 (engine, six presets, Design settings) is merged; part 2 (logo and icon upload, live
-preview, header, title and tab styles) is up for review; part 3 is sandboxed custom CSS, theme
-export and import, and email and PDF styling.
+preview, header, title and tab styles) is merged; part 3 (sandboxed custom CSS, packs for every
+settings section, email look) is up for review. PDF styling moves to Phase 11 (print), and
+uploaded fonts and projection layouts to Phase 7.
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a
 "what to verify" checklist. Effort is in pull requests (a PR is roughly one focused working

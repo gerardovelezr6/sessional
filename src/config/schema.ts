@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { catalogs } from '@/messages';
 import { ASSET_PATH } from '@/assets/image';
+import { CUSTOM_CSS_MAX_LENGTH } from '@/theme/custom-css';
 import { PRESET_KEYS } from '@/theme/presets';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
@@ -45,6 +46,9 @@ export const sections = {
     // Files the school uploaded; the server checks they belong to the school before using them.
     logo: z.string().regex(ASSET_PATH).nullable().default(null),
     favicon: z.string().regex(ASSET_PATH).nullable().default(null),
+    // Advanced: CSS the school writes. Stored as written; only the sanitised result is ever
+    // rendered (src/theme/custom-css.ts), and saving is refused while it has problems.
+    customCss: z.string().max(CUSTOM_CSS_MAX_LENGTH).default(''),
     colorMode: z.enum(['light', 'dark', 'auto']).default('light'),
   }),
   people: z.object({

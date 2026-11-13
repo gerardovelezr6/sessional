@@ -60,6 +60,8 @@ test('unsaved changes are marked, and an invalid value saves nothing', async ({ 
   await people.getByRole('button', { name: 'Save draft' }).click();
   await expect(people.locator('p[role="alert"]').first()).toHaveText('Check this value.');
   await expect(people.getByText('Some values are not valid. Nothing was saved.')).toBeVisible();
+  // The refused value stays in the field to be corrected.
+  await expect(people.getByLabel('Minimum password length')).toHaveValue('5');
 
   await page.reload();
   await expect(section(page, 'People and sign-in').getByLabel('Minimum password length')).toHaveValue('8');

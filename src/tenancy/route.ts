@@ -9,6 +9,8 @@ export const TENANT_PREFIX = '/t';
 export const CUSTOM_HOST_MARK = '~';
 // Set by the proxy (never accepted from the visitor): the path prefix of the tenant, if any.
 export const BASE_PATH_HEADER = 'x-sessional-base';
+// Set by the proxy when the address has ?safe-mode: the page renders without custom CSS.
+export const SAFE_MODE_HEADER = 'x-sessional-safe-mode';
 
 export type RouteDecision =
   // basePath is set when the request is a tenant page reached by path (previews).

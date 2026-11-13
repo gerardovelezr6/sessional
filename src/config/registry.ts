@@ -12,6 +12,8 @@ export type Control =
   | { kind: 'color' }
   // An uploaded image; the form sends a file, the setting stores where it was saved.
   | { kind: 'asset'; asset: 'logo' | 'favicon' }
+  // Multi-line text such as CSS.
+  | { kind: 'code'; maxLength: number }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -133,6 +135,11 @@ export const registry: Setting[] = [
     section: 'theme', key: 'colorMode', permission: 'theme.edit',
     labelKey: 'settings.theme.colorMode', helpKey: 'settings.theme.colorMode.help',
     control: { kind: 'select', options: [{ value: 'light', labelKey: 'settings.theme.colorMode.light' }, { value: 'dark', labelKey: 'settings.theme.colorMode.dark' }, { value: 'auto', labelKey: 'settings.theme.colorMode.auto' }] },
+  },
+  {
+    section: 'theme', key: 'customCss', permission: 'theme.edit',
+    labelKey: 'settings.theme.customCss', helpKey: 'settings.theme.customCss.help',
+    control: { kind: 'code', maxLength: 10000 },
   },
   {
     section: 'people', key: 'passwordMinLength', permission: 'tenant.manage',

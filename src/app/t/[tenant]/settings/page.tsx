@@ -10,9 +10,11 @@ import { editorState, tenantTranslator } from '@/config/store';
 import type { MessageKey, Translate } from '@/messages';
 import { assetUrl } from '@/data/storage';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { renderEmail } from '@/theme/email';
 import { buildTheme, visibleAdjustments } from '@/theme/engine';
+import { PRODUCT_NAME } from '@/platform/product';
 import type { ThemeChoice } from '@/theme/presets';
-import { discardDraftAction, publishAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
+import { discardDraftAction, publishAction, importPackAction, removeCustomCssAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
 import { ActionButton, SectionForm, type FieldView } from './SectionForm';
 import { ThemePreview } from './ThemePreview';
 
@@ -23,6 +25,7 @@ const DONE: Record<string, MessageKey> = {
   published: 'settings.saved.published',
   discarded: 'settings.saved.discarded',
   restored: 'settings.saved.restored',
+  imported: 'settings.saved.imported',
 };
 
 const TIME_ZONES = ['UTC', ...Intl.supportedValuesOf('timeZone')];
@@ -48,6 +51,8 @@ function fieldsOf(section: SectionName, values: Record<string, unknown>, t: Tran
           inputs: [{ name: fieldName(setting), value: path, kind: 'asset' as const, currentUrl: assetUrl(tenantId, path), accept: setting.control.asset === 'favicon' ? 'image/png' : 'image/png,image/jpeg,image/webp' }],
         };
       }
+      case 'code':
+        return { ...base, inputs: [{ name: fieldName(setting), value: String(value ?? ''), kind: 'textarea' as const, maxLength: setting.control.maxLength }] };
       case 'color':
         return { ...base, inputs: [{ name: fieldName(setting), value: value === null ? '' : String(value), kind: 'text' as const, maxLength: 7 }] };
       case 'timeZone':
@@ -150,7 +155,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                     labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }}
                     assetLabels={{ remove: t('settings.theme.asset.remove'), none: t('settings.theme.asset.none'), choose: t('settings.theme.asset.choose') }}
                   />
-                  <div className="lg:sticky lg:top-4">
+                  <div className="flex flex-col gap-4 lg:sticky lg:top-4">
                     <ThemePreview
                       formId="form-theme"
                       saved={editing as unknown as ThemeChoice}
@@ -163,11 +168,55 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                         text: t('settings.preview.sample.text'), primary: t('settings.preview.sample.primary'), secondary: t('settings.preview.sample.secondary'),
                       }}
                     />
+                    <div className="flex flex-col gap-2">
+                      <h3 className="label-text">{t('settings.email.title')}</h3>
+                      <p className="text-xs text-on-surface-muted">{t('settings.email.help')}</p>
+                      <iframe
+                        title={t('settings.email.title')}
+                        // No scripts, no access to this page: the sample is shown as a picture of an email.
+                        sandbox=""
+                        className="h-80 w-full rounded-surface border border-border bg-surface-raised"
+                        srcDoc={renderEmail(buildTheme(editing as unknown as ThemeChoice), {
+                          schoolName: tenant.name,
+                          logoUrl: assetUrl(tenant.id, editing.logo as string | null),
+                          heading: t('settings.email.sample.heading', { name: tenant.name }),
+                          paragraphs: [t('settings.email.sample.body')],
+                          button: { label: t('settings.email.sample.button'), url: '#' },
+                          footer: `${t('common.poweredBy')} ${PRODUCT_NAME}`,
+                        })}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      {editing.customCss ? <ActionButton action={removeCustomCssAction.bind(null, key) as Bound} label={t('settings.theme.customCss.remove')} /> : null}
+                      <a className="underline" href={`${base}/settings?safe-mode#theme`}>
+                        {t('settings.theme.customCss.safeMode')}
+                      </a>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <SectionForm action={saveDraftAction.bind(null, key, section)} fields={fieldsOf(section, editing, t, tenant.id)} labels={{ unsaved: t('settings.unsaved'), save: t('settings.saveDraft') }} />
               )}
+
+              <details className="mt-4">
+                <summary className="label cursor-pointer">{t('settings.pack.title')}</summary>
+                <div className="mt-2 flex flex-col gap-3">
+                  <p className="text-sm">{t('settings.pack.help')}</p>
+                  <p>
+                    <a className="btn btn-secondary" href={`${base}/settings/export/${section}`} download>
+                      {t('settings.pack.export')}
+                    </a>
+                  </p>
+                  <ActionButton action={importPackAction.bind(null, key, section)} label={t('settings.pack.import')}>
+                    <div>
+                      <label className="label" htmlFor={`${section}-pack`}>
+                        {t('settings.pack.file')}
+                      </label>
+                      <input className="text-sm" id={`${section}-pack`} name="pack" type="file" accept="application/json,.json" required />
+                    </div>
+                  </ActionButton>
+                </div>
+              </details>
 
               <details className="mt-4">
                 <summary className="label cursor-pointer">{t('settings.history')}</summary>

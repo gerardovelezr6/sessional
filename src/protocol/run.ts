@@ -77,7 +77,8 @@ function withRecords(effects: Effect[], pack: Pack, delegates: Loaded['delegates
     if (e.type === 'vote.recorded') {
       const label = new Map(delegates.map((d) => [d.id, d.label]));
       const title = e.subject.kind === 'motion' ? nameIn(pack.motions.find((m) => m.key === (e.subject as { key: string }).key)?.name) : e.subject.title;
-      const ballots = e.ballots ? Object.entries(e.ballots).map(([id, choice]) => ({ delegate_id: id, label: label.get(id) ?? '', choice })) : null;
+      const explained = new Set(e.explained ?? []);
+      const ballots = e.ballots ? Object.entries(e.ballots).map(([id, choice]) => ({ delegate_id: id, label: label.get(id) ?? '', choice, ...(explained.has(id) ? { explained: true } : {}) })) : null;
       return { ...e, title, ballots };
     }
     return e;

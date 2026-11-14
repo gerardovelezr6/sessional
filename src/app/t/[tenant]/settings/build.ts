@@ -45,6 +45,7 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
       case 'translations':
       case 'structure':
       case 'protocol':
+      case 'grading':
       case 'locale':
         break; // shown with the list of languages, or on its own page
       case 'localeList':

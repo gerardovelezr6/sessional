@@ -563,3 +563,18 @@ describe('a full simulated session runs under each preset', () => {
     expect(r.ok && apply(r.state, { type: 'session.close' }, c).ok).toBe(true);
   });
 });
+
+describe('explanations of vote', () => {
+  it('are marked for yes and no votes in a roll call, and recorded with the ballots', () => {
+    const PV: string[] = [];
+    let s = go(floorOf({}, PV), [{ type: 'vote.open', id: id(700), subject: { kind: 'other', title: 'R' }, method: 'roll_call' }]);
+    s = go(s, [{ type: 'vote.cast', delegate: F[0]!, choice: 'yes' }, { type: 'vote.cast', delegate: F[1]!, choice: 'abstain' }, { type: 'vote.explain', delegate: F[0]!, given: true }]);
+    expect(apply(s, { type: 'vote.explain', delegate: F[1]!, given: true }, fifteen())).toEqual({ ok: false, error: 'not_eligible' });
+    // Changing the vote to abstain drops the explanation from the record.
+    const changed = go(s, [{ type: 'vote.cast', delegate: F[0]!, choice: 'abstain' }]);
+    const r1 = apply(changed, { type: 'vote.close' }, fifteen());
+    expect(r1.ok && (r1.effects[0] as { explained: string[] }).explained).toEqual([]);
+    const r2 = apply(s, { type: 'vote.close' }, fifteen());
+    expect(r2.ok && (r2.effects[0] as { explained: string[] }).explained).toEqual([F[0]]);
+  });
+});

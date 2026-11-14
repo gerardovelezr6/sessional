@@ -12,8 +12,8 @@ export interface RolePreset {
   permissions: string[];
 }
 
-const MANAGEMENT = ['users.view', 'users.manage', 'roles.manage', 'conference.manage', 'tenant.manage', 'audit.view', 'committee.manage', 'committee.run', 'delegates.manage', 'crisis.view'];
-const CHAIR = ['committee.run', 'delegates.manage'];
+const MANAGEMENT = ['users.view', 'users.manage', 'roles.manage', 'conference.manage', 'tenant.manage', 'audit.view', 'committee.manage', 'committee.run', 'delegates.manage', 'crisis.view', 'grades.view', 'grades.manage'];
+const CHAIR = ['committee.run', 'delegates.manage', 'grades.manage'];
 
 const STARTER: { key: string; term: TermKey; rank: number; scope: RolePreset['scope']; permissions: string[] }[] = [
   { key: 'advisor', term: 'advisor', rank: 10, scope: 'tenant', permissions: MANAGEMENT },

@@ -9,6 +9,7 @@ import { CUSTOM_CSS_MAX_LENGTH } from '@/theme/custom-css';
 import { PRESET_KEYS } from '@/theme/presets';
 import { DEFAULT_PROTOCOL, PROTOCOL_PRESET_KEYS } from '@/protocol/presets';
 import { packSchema } from '@/protocol/schema';
+import { gradingSchema } from '@/grading/schema';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
 // with its validation and its default; nothing tenant-specific lives in code as a constant.
@@ -102,6 +103,10 @@ export const sections = {
     preset: z.enum(PROTOCOL_PRESET_KEYS).default(DEFAULT_PROTOCOL),
     // The school's own rules, started from the preset and edited; null: the preset as it is.
     pack: packSchema.nullable().default(null),
+  }),
+  // Grading: the school's own rules (rubric, bonuses, scale, awards); null: the standard rubric.
+  grading: z.object({
+    rules: gradingSchema.nullable().default(null),
   }),
   people: z.object({
     passwordMinLength: z.number().int().min(8).max(128).default(8),

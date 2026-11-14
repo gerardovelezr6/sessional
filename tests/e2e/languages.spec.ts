@@ -63,7 +63,7 @@ test('a school adds French, and an unknown language code is refused with a reaso
 
   // The translations section reports what French still lacks; English and Spanish are complete.
   const translations = await openSection(page, 'lambda', 'translations');
-  await expect(translations.getByText(/^French: \d+ texts missing, shown in English/)).toBeVisible();
+  await expect(translations.getByText(/^French: [\d,]+ texts missing, shown in English/)).toBeVisible();
   await expect(translations.getByText(/^Spanish: complete/)).toBeVisible();
   // Text written per language now offers French too.
   const identity = await openSection(page, 'lambda', 'identity');

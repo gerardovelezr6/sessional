@@ -82,6 +82,7 @@ Spanish: Diseño
 | Page header | `theme.headerStyle` | as the preset has it | `light` (Light), `brand` (In the brand colour); empty = as the preset has it | `theme.edit` | The bar at the top of every page, with your logo or name. |
 | Home page banner | `theme.homeBanner` | `on` | `on` (Show), `off` (Hide) | `theme.edit` | A band in your colours at the top of the home page, with the conference name, tagline, dates and venue. |
 | Chair console | `theme.consoleLayout` | `tabs` | `tabs` (Tabs), `single` (One page) | `theme.edit` | One tab for each part of running a committee, or everything on one page. |
+| Projection screens | `theme.screenStyle` | `dark` | `dark` (Dark), `light` (Light) | `theme.edit` | Screens in your colours on a dark background, easier to read on most projectors, or on a light one. |
 | Page titles | `theme.pageTitle` | as the preset has it | `plain` (Plain), `bar` (With a coloured bar); empty = as the preset has it | `theme.edit` | How the title at the top of each page is drawn. |
 | Tabs | `theme.tabStyle` | as the preset has it | `underline` (Underlined), `pill` (Filled), `boxed` (Outlined); empty = as the preset has it | `theme.edit` | How the selected tab is marked. |
 | Light or dark | `theme.colorMode` | `light` | `light` (Light), `dark` (Dark), `auto` (Automatic) | `theme.edit` | Automatic follows each person's device setting. |

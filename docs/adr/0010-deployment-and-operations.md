@@ -39,7 +39,8 @@ One shared database means one migration reaches every tenant at once, so:
   mode that hides navigation and re-pairs itself, visual alerts alongside every sound.
 - Degraded mode: if realtime is unavailable, clients poll; a test forces this path.
 - Load test: scripted 60 committees × (3 chairs + 1 projector + 25 viewers) against staging, with
-  latency and drop thresholds that must pass before launch and after any realtime change.
+  latency and drop thresholds that must pass before launch and after any realtime change
+  (`scripts/load-test.mjs`, results in `docs/LOAD-TEST.md`).
 
 ## Backups and restore
 

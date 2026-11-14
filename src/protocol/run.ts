@@ -4,6 +4,7 @@ import { apply, COMMUTING, commandSchema, readState, type Effect, type ErrorCode
 import { PROTOCOL_PRESETS, DEFAULT_PROTOCOL } from './presets';
 import { packSchema, type Pack } from './schema';
 import { z } from 'zod';
+import { announce } from '@/live/broadcast';
 import { flagFor } from '@/structure/flags';
 import { typeOf, type CommitteeType, type Structure } from '@/structure/schema';
 
@@ -33,6 +34,7 @@ interface Loaded {
   session_protocol: unknown;
   sessions_held: number;
   type_key: string;
+  channel: string | null;
   delegates: { id: string; label: string; flag: string | null; group_key: string | null }[];
   applied: { revision: number } | null;
 }
@@ -133,6 +135,8 @@ export async function runCommand(opts: { committeeId: string; userId: string; to
       const again = await rpc<Loaded | null>('live_load', { p_committee: committeeId, p_command: envelope.id }, 'service');
       return { ok: true, revision: again?.revision ?? stored.revision, state: readState(again?.state), duplicate: true };
     }
+    // Tell consoles and screens to fetch; they also poll, so a lost announcement only delays them.
+    await announce(live.channel, stored.revision);
     return { ok: true, revision: stored.revision, state: result.state };
   }
   const live = await rpc<Loaded | null>('live_load', { p_committee: committeeId, p_command: envelope.id }, 'service');

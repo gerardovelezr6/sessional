@@ -20,14 +20,14 @@ describe('defaults', () => {
       theme: {
         preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,
-        homeBanner: 'on', consoleLayout: 'tabs', logo: null, favicon: null, customCss: '', colorMode: 'light',
+        homeBanner: 'on', consoleLayout: 'tabs', screenStyle: 'dark', logo: null, favicon: null, customCss: '', colorMode: 'light',
       },
     });
   });
   it('a school starts with the classic conference look; the product keeps its own', () => {
-    const { homeBanner, consoleLayout, ...theme } = defaultConfig().theme;
+    const { homeBanner, consoleLayout, screenStyle, ...theme } = defaultConfig().theme;
     expect(theme).toEqual({ ...DEFAULT_THEME, preset: 'flat-institutional' });
-    expect([homeBanner, consoleLayout]).toEqual(['on', 'tabs']);
+    expect([homeBanner, consoleLayout, screenStyle]).toEqual(['on', 'tabs', 'dark']);
     expect(DEFAULT_THEME.preset).toBe('sessional');
   });
   it('the defaults pass strict validation', () => {

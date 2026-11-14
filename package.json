@@ -18,7 +18,8 @@
     "schema:check": "node scripts/build-schema.mjs --check",
     "check:secrets": "node scripts/check-secrets.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run schema:check && npm run check:secrets && npm run build",
-    "config:doc": "WRITE_CONFIG_DOC=1 vitest run tests/unit/config-doc.test.ts"
+    "config:doc": "WRITE_CONFIG_DOC=1 vitest run tests/unit/config-doc.test.ts",
+    "load:screens": "node scripts/load-test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -26,6 +27,7 @@
     "@fontsource-variable/nunito": "^5.3.0",
     "@fontsource-variable/source-serif-4": "^5.3.1",
     "@fontsource/atkinson-hyperlegible": "^5.3.0",
+    "@supabase/realtime-js": "2.11.2",
     "flag-icons": "7.6.0",
     "intl-messageformat": "^12.1.5",
     "next": "^16.4.6",

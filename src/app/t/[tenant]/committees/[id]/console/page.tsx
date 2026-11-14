@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
@@ -16,6 +15,9 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadCommittee, serverTime } from '../../data';
 import { liveViewAction, runCommandAction } from './actions';
 import { Console } from './Console';
+import { ScreensPanel } from './screens';
+import { listScreensAction, pairScreenAction, unpairScreenAction, updateScreenAction, type ScreenRow } from './actions';
+import { realtimeConfig } from '@/live/broadcast';
 import { CONSOLE_TABS } from './tabs';
 
 interface SessionRow {
@@ -51,6 +53,9 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
   }>('live_view', { p_committee: id }, { token: ctx.token });
   const sessions = await rpc<SessionRow[]>('committee_sessions_list', { p_committee: id }, { token: ctx.token });
   const docs = await rpc<DocumentRow[]>('documents_list', { p_committee: id }, { token: ctx.token });
+  const screens = await rpc<ScreenRow[]>('displays_list', { p_committee: id }, { token: ctx.token });
+  // The announcement channel, given only now that the person is known to run the committee.
+  const channel = await rpc<string | null>('live_channel', { p_committee: id }, 'service').catch(() => null);
   const { committee } = detail;
   const type = typeOf(config.structure, committee.type_key);
   const languages = enabledLocales(config);
@@ -65,13 +70,8 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
   const pattern = (k: MessageKey) => messageFor(k, locale, config.translations.messages).text;
 
   return (
-    <Shell title={t('console.title', { name: committee.name })} size="full" locale={locale} quietTitle={config.theme.consoleLayout === 'tabs'}>
+    <Shell title={t('console.title', { name: committee.name })} size="full" locale={locale} quietTitle={config.theme.consoleLayout === 'tabs'} crumbs={[{ href: `${base}/`, label: t('nav.home') }, { href: `${base}/committees/${committee.id}`, label: committee.name }, { label: t('console.crumb') }]}>
       <div className="flex flex-col gap-6">
-        <p>
-          <Link href={`${base}/committees/${committee.id}`} className="text-sm font-semibold underline underline-offset-2">
-            {t('console.back')}
-          </Link>
-        </p>
         <Console
           initial={{ revision: view.revision, state: readState(view.state) }}
           protocol={protocol}
@@ -88,6 +88,21 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
           layout={config.theme.consoleLayout}
           committee={{ name: committee.name, abbreviation: committee.abbreviation, topic: committee.topic }}
           initialTab={CONSOLE_TABS.find((x) => x === tab) ?? 'roll'}
+          realtime={realtimeConfig(channel)}
+          screens={
+            <ScreensPanel
+              initial={screens}
+              pair={pairScreenAction.bind(null, key, committee.id)}
+              update={updateScreenAction.bind(null, key, committee.id)}
+              unpair={unpairScreenAction.bind(null, key, committee.id)}
+              list={listScreensAction.bind(null, key, committee.id)}
+              displayUrl={`${base}/display`}
+              locale={locale}
+              L={{ seen: pattern('screens.seen'), ...Object.fromEntries(
+                (['title', 'help', 'openHere', 'code', 'name', 'namePlaceholder', 'layout', 'layout_standard', 'layout_timer', 'layout_speakers', 'pair', 'paired', 'none', 'unnamed', 'notSeen', 'sound', 'saved', 'unpair', 'unpairConfirm', 'unpaired', 'keep', 'error_code', 'error_forbidden', 'error_failed'] as const).map((k) => [k, t(`screens.${k}` as MessageKey)]),
+              ) }}
+            />
+          }
           vetoHolders={vetoHoldersOf(protocol, type, detail.delegates)}
           documents={docs
             .filter((d) => d.status === 'introduced' && protocol.documents.find((k) => k.key === d.kind)?.votable)
@@ -227,6 +242,10 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
             inSession: t('console.inSession'),
             notInSession: t('console.notInSession'),
             sessionBadge: pattern('console.sessionBadge'),
+            tabScreens: t('console.tab.screens'),
+            liveOn: t('console.live.on'),
+            liveOff: t('console.live.off'),
+            liveHelp: t('console.live.help'),
             error_unknown_delegate: t('console.error.unknown_delegate'),
             error_unknown_state: t('console.error.unknown_state'),
             add: t('floor.add'),

@@ -105,7 +105,8 @@ export default async function TenantLayout({ params, children }: Props) {
   const links = ctx?.membership
     ? [
         { href: `${base}/`, label: own.t('nav.home'), exact: true },
-        { href: `${base}/committees`, label: own.t('nav.committees') },
+        // Everyone sees committees on the home page; the list for managing them is for managers.
+        ...(ctx.can('committee.manage') ? [{ href: `${base}/committees`, label: own.t('nav.committees') }] : []),
         ...(ctx.can('users.view') ? [{ href: `${base}/people`, label: own.t('nav.people') }] : []),
         ...(ctx.can('tenant.manage') ? [{ href: `${base}/settings`, label: own.t('nav.settings') }] : []),
       ]

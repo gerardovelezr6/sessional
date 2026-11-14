@@ -93,12 +93,9 @@ export default async function DocumentsPage({ params, searchParams }: { params: 
   );
 
   return (
-    <Shell title={t('documents.title', { name: detail.committee.name })} size="full" locale={locale}>
+    <Shell title={t('documents.title', { name: detail.committee.name })} size="full" locale={locale} crumbs={[{ href: `${base}/`, label: t('nav.home') }, { href: `${base}/committees/${id}`, label: detail.committee.name }, { label: t('documents.crumb') }]}>
       <div className="flex flex-col gap-6">
         <p className="flex flex-wrap gap-4 text-sm font-semibold">
-          <Link href={`${base}/committees/${id}`} className="underline underline-offset-2">
-            {t('console.back')}
-          </Link>
           <Link href={`${base}/committees/${id}/console`} className="underline underline-offset-2">
             {t('committee.console.open')}
           </Link>

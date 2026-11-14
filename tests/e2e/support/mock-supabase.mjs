@@ -28,6 +28,7 @@ const TENANTS = {
   floor: { kind: 'tenant', id: tid(15), slug: 'floor', name: 'Floor School', status: 'active' },
   rules: { kind: 'tenant', id: tid(16), slug: 'rules', name: 'Rules School', status: 'active' },
   grid: { kind: 'tenant', id: tid(17), slug: 'grid', name: 'Grid School', status: 'active' },
+  screens: { kind: 'tenant', id: tid(18), slug: 'screens', name: 'Screen School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -80,6 +81,7 @@ seed('chair2@floor.test', 'Flo Floor', tid(15), 'chair');
 seed('owner@rules.test', 'Rita Rules', tid(16), 'owner');
 seed('chair@rules.test', 'Ray Rules', tid(16), 'chair');
 seed('owner@grid.test', 'Gil Grid', tid(17), 'owner');
+seed('chair@screens.test', 'Sam Screens', tid(18), 'chair');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -481,6 +483,16 @@ const openSession = (id) => liveSessions.filter((x) => x.committee_id === id && 
 // Test hook: refuse the next N commits with a network failure, to exercise resending.
 let dropNext = 0;
 
+// Screen School: one committee with a chair and four delegations (one with a student's name).
+{
+  const conf = { id: randomUUID(), tenant_id: tid(18), name: 'Screen MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9000-000000000004', tenant_id: tid(18), conference_id: conf.id, name: 'World Health', abbreviation: 'WHO', topic: 'Pandemic preparedness', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@screens.test').id });
+  for (const [label, name] of [['Brazil', 'Bea Student'], ['China', ''], ['France', ''], ['Kenya', '']]) delegates.push({ id: randomUUID(), committee_id: c.id, label, name, group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+}
+
 // Grid School: three committees, one of them in session.
 {
   const conf = { id: randomUUID(), tenant_id: tid(17), name: 'Grid MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
@@ -522,7 +534,7 @@ Object.assign(rpcs, {
     const done = commands.get(p_command);
     return {
       body: {
-        tenant_id: c.tenant_id, type_key: c.type_key, revision: l.revision, barrier: l.barrier, state: l.state,
+        tenant_id: c.tenant_id, type_key: c.type_key, channel: channelOf(c.id), revision: l.revision, barrier: l.barrier, state: l.state,
         session_protocol: openSession(c.id)?.protocol ?? null,
         sessions_held: liveSessions.filter((x) => x.committee_id === c.id).length,
         delegates: delegates.filter((d) => d.committee_id === c.id).sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase())).map((d) => ({ id: d.id, label: d.label, flag: d.flag, group_key: d.group_key })),
@@ -563,6 +575,72 @@ Object.assign(rpcs, {
       return { hang: true };
     }
     return { body: { revision } };
+  },
+});
+
+// --- Projection screens and live channels (Phase 7). ---
+const displays = []; // { id, tenant_id, committee_id, code, secret_hash, name, layout, sound, paired_at, last_seen_at, created_at }
+const channels = new Map(); // committee id -> channel
+const announcements = []; // { topic, payload }
+const channelOf = (id) => {
+  if (!channels.has(id)) channels.set(id, randomBytes(32).toString('hex'));
+  return channels.get(id);
+};
+const screenRow = (d) => ({ id: d.id, name: d.name, layout: d.layout, sound: d.sound, paired_at: d.paired_at, last_seen_at: d.last_seen_at });
+Object.assign(rpcs, {
+  display_register: ({ p_tenant, p_code, p_secret_hash }) => {
+    if (displays.some((d) => d.tenant_id === p_tenant && d.code === p_code)) return { status: 409, body: { code: '23505', message: 'duplicate key' } };
+    const d = { id: randomUUID(), tenant_id: p_tenant, committee_id: null, code: p_code, secret_hash: p_secret_hash, name: '', layout: 'standard', sound: true, paired_at: null, last_seen_at: null, created_at: Date.now() };
+    displays.push(d);
+    return { body: { id: d.id, code: d.code } };
+  },
+  display_pair: ({ p_committee, p_code, p_name, p_layout }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !(canRun(userId, c) || manages(userId, c.tenant_id))) return { status: 403, body: { code: '42501', message: 'not allowed' } };
+    const d = displays.find((x) => x.tenant_id === c.tenant_id && x.code === String(p_code).trim().toUpperCase() && !x.committee_id);
+    if (!d) return { body: null };
+    Object.assign(d, { committee_id: c.id, name: String(p_name ?? '').trim().slice(0, 60), layout: ['standard', 'timer', 'speakers'].includes(p_layout) ? p_layout : 'standard', paired_at: new Date().toISOString() });
+    channelOf(c.id);
+    return { body: { id: d.id, name: d.name, layout: d.layout } };
+  },
+  displays_list: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    if (!c || !(canRun(userId, c) || manages(userId, c.tenant_id))) return { body: [] };
+    return { body: displays.filter((d) => d.committee_id === c.id).map(screenRow) };
+  },
+  display_update: ({ p_display, p_name, p_layout, p_sound }, userId) => {
+    const d = displays.find((x) => x.id === p_display);
+    const c = d && committeeById(d.committee_id);
+    if (!c || !(canRun(userId, c) || manages(userId, c.tenant_id))) return { body: null };
+    Object.assign(d, { name: p_name, layout: p_layout, sound: p_sound });
+    return { body: screenRow(d) };
+  },
+  display_unpair: ({ p_display }, userId) => {
+    const d = displays.find((x) => x.id === p_display);
+    const c = d && committeeById(d.committee_id);
+    if (!c || !(canRun(userId, c) || manages(userId, c.tenant_id))) return { body: null };
+    displays.splice(displays.indexOf(d), 1);
+    return { body: { id: d.id } };
+  },
+  live_channel: ({ p_committee }) => ({ body: committeeById(p_committee) ? channelOf(p_committee) : null }),
+  display_view: ({ p_secret_hash }) => {
+    const d = displays.find((x) => x.secret_hash === p_secret_hash);
+    if (!d) return { body: null };
+    d.last_seen_at = new Date().toISOString();
+    if (!d.committee_id) return { body: { display: { id: d.id, code: d.code, tenant_id: d.tenant_id, paired: false, expired: Date.now() - d.created_at > 86_400_000 } } };
+    const c = committeeById(d.committee_id);
+    const l = live.get(c.id) ?? { revision: 0, state: {} };
+    return {
+      body: {
+        display: { id: d.id, tenant_id: d.tenant_id, paired: true, name: d.name, layout: d.layout, sound: d.sound },
+        committee: { id: c.id, name: c.name, abbreviation: c.abbreviation, topic: c.topic, type_key: c.type_key, language: c.language },
+        revision: l.revision,
+        state: l.state,
+        channel: channelOf(c.id),
+        session_protocol: openSession(c.id)?.protocol ?? null,
+        delegates: delegates.filter((x) => x.committee_id === c.id).sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase())).map((x) => ({ id: x.id, label: x.label, flag: x.flag, group_key: x.group_key })),
+      },
+    };
   },
 });
 
@@ -610,7 +688,7 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published', 'live_load', 'live_commit']);
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -685,6 +763,13 @@ createServer((req, res) => {
     const key = req.headers.apikey;
 
     // Test hook: make a signed-in person's access token expire, to exercise session renewal.
+    // Realtime announcements (the server role only); recorded so tests can read them.
+    if (req.method === 'POST' && req.url === '/realtime/v1/api/broadcast') {
+      if (key !== SERVICE || token !== SERVICE) return send({ status: 401, body: {} });
+      for (const m of body.messages ?? []) announcements.push({ topic: m.topic, event: m.event, payload: m.payload, private: m.private });
+      return send({ status: 202, body: {} });
+    }
+    if (req.method === 'GET' && req.url === '/__test/announcements') return send({ body: announcements.slice(-50) });
     if (req.method === 'POST' && req.url === '/__test/drop-commits') {
       dropNext = Number(body.count ?? 1);
       return send({ body: { ok: true } });

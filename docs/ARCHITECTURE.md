@@ -382,3 +382,25 @@ committees), editable email texts (email phase), flags (Phase 5).
 - Chair console: a header card (status, session, what the floor is doing, open and close) and tabs
   (roll call, speakers and caucus, motions and points, voting, discipline), with the open tab in the
   address. `theme.consoleLayout` keeps the one-page layout for schools that prefer it.
+
+## Projection screens and live updates (Phase 7)
+
+- `/display` (no sign-in): the screen page. `display/state` (route handler) registers a device
+  (rate-limited per address) and returns what it may show (`src/live/screen.ts`).
+- Table `displays` (in the isolation matrix): paired screens are visible to their committee's chairs
+  and managers; unpaired ones to nobody. Functions: `display_register`, `display_view`, `live_channel`
+  (server role only); `display_pair` (checks the caller), `displays_list`, `display_update`,
+  `display_unpair`.
+- `src/live/broadcast.ts` announces revisions; `src/live/useLive.ts` listens (Supabase Realtime) and
+  falls back to polling.
+- Screens use the school's colours in a dark stage scheme (Settings → Design → Projection screens:
+  dark or light) and three layouts chosen per screen: speaker, timer and list; timer only; list.
+
+## Interface tidy-up
+
+- The committee page has a header card (type, topic, Open the console, Documents, Projection screen)
+  and tabs: Overview (details, confidential topic, delete), Chairs, Delegates.
+- Breadcrumbs on the committee, console and documents pages replace the "back" links.
+- The Committees menu item is for people who manage committees; everyone finds committees on the
+  home page.
+- The console gains a Screens tab and a live-updates indicator.

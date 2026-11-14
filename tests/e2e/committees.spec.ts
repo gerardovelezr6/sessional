@@ -14,10 +14,12 @@ async function signIn(page: Page, email: string) {
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
 }
 
-async function openCommittee(page: Page, name: string) {
+async function openCommittee(page: Page, name: string, tab?: RegExp) {
   await page.goto(at('/committees'));
   await page.getByRole('link', { name: new RegExp(`^${name}`) }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText(name);
+  // The committee page is in tabs: Overview, Chairs, Delegates.
+  if (tab) await page.getByRole('navigation', { name: 'Parts of the committee page' }).getByRole('link', { name: tab }).click();
 }
 
 test('the standard Model UN types are added from data and published', async ({ page }) => {
@@ -91,12 +93,13 @@ test('committees are reordered and the order is kept after a reload', async ({ p
 test('chairs are assigned and a confidential topic is kept from them until shown', async ({ page, browser }) => {
   await signIn(page, 'owner@mu.test');
   for (const name of ['Senate', 'Cabinet']) {
-    await openCommittee(page, name);
+    await openCommittee(page, name, /^Chairs/);
     await page.getByLabel(/Chris Chair/).check();
-    await page.getByRole('button', { name: 'Save', exact: true }).nth(1).click();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
     await page.waitForURL(/done=chairs/);
     await expect(page.getByLabel(/Chris Chair/)).toBeChecked();
   }
+  await page.getByRole('navigation', { name: 'Parts of the committee page' }).getByRole('link', { name: 'Overview' }).click();
   await page.getByRole('textbox', { name: 'Confidential topic' }).fill('The fleet has been seized.');
   await page.getByRole('button', { name: 'Save topic' }).click();
   await page.waitForURL(/done=secret/);
@@ -128,7 +131,7 @@ test('chairs are assigned and a confidential topic is kept from them until shown
 
 test('delegates are pasted in bulk with a preview, then edited and deleted', async ({ page }) => {
   await signIn(page, 'chair@mu.test');
-  await openCommittee(page, 'Senate');
+  await openCommittee(page, 'Senate', /^Delegates/);
   await page.getByLabel('Rows to add').fill(['Ted Cruz (Texas)\tR\tAna López', 'Chuck Schumer (New York)\tDemocrat\tBen Ruiz', '\tR\tNobody', 'Bernie Sanders (Vermont)\tGreen\tCruz Díaz'].join('\n'));
   await page.getByRole('button', { name: 'Check' }).click();
   await expect(page.getByText('2 rows ready 2 rows have problems and will be skipped.')).toBeVisible();
@@ -169,7 +172,7 @@ test('delegates are pasted in bulk with a preview, then edited and deleted', asy
 
 test('one delegate is added with a country flag in a standard committee', async ({ page }) => {
   await signIn(page, 'owner@mu.test');
-  await openCommittee(page, 'DISEC');
+  await openCommittee(page, 'DISEC', /^Delegates/);
   const add = page.locator('section', { has: page.getByRole('heading', { name: 'Add one' }) });
   await add.getByLabel('Country').fill('Alemania');
   await add.getByLabel('Student').fill('Lia Ortiz');
@@ -180,7 +183,7 @@ test('one delegate is added with a country flag in a standard committee', async 
 
 test('a member without committee rights sees committees but not who is in them', async ({ page }) => {
   await signIn(page, 'hc@mu.test');
-  await openCommittee(page, 'DISEC');
+  await openCommittee(page, 'DISEC', /^Delegates/);
   await expect(page.getByText("Only the organisers and this committee's Chairs see who is in it.")).toBeVisible();
   await expect(page.getByText('Lia Ortiz')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add committee' })).toHaveCount(0);

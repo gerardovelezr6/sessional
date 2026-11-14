@@ -62,6 +62,8 @@ export const commandSchema = z.discriminatedUnion('type', [
     majority: stateKey.optional(),
   }),
   z.object({ type: z.literal('vote.cast'), delegate: uuid, choice: z.enum(['yes', 'no', 'abstain', 'pass']).nullable() }),
+  // Roll call: this delegation explained its vote (counts for grading when the rubric says so).
+  z.object({ type: z.literal('vote.explain'), delegate: uuid, given: z.boolean() }),
   z.object({ type: z.literal('vote.count'), yes: z.number().int().min(0).max(1000), no: z.number().int().min(0).max(1000), abstain: z.number().int().min(0).max(1000), vetoed: z.boolean().default(false) }),
   z.object({ type: z.literal('vote.close') }),
   z.object({ type: z.literal('vote.cancel') }),
@@ -128,6 +130,8 @@ export interface VoteState {
   ballots: Record<string, Choice>;
   // Placard and secret ballot: the counts the chair enters.
   counts: { yes: number; no: number; abstain: number; vetoed: boolean } | null;
+  // Roll call: delegations that explained their vote.
+  explained?: string[];
   openedAt: string;
 }
 
@@ -177,6 +181,7 @@ export type Effect =
       vetoed: boolean;
       // Roll call only; never for a secret ballot.
       ballots: Record<string, Choice> | null;
+      explained?: string[];
     }
   | { type: 'warning.recorded'; session: string | null; id: string; delegate: string; level: string; reason: string; points: number };
 
@@ -605,6 +610,17 @@ export function apply(state: LiveState, command: Command, ctx: Context): Result 
       else ballots[command.delegate] = command.choice;
       return ok({ ...state, vote: { ...vote, ballots } });
     }
+    case 'vote.explain': {
+      const vote = state.vote;
+      if (!vote) return fail('no_vote');
+      if (vote.method !== 'roll_call') return fail('wrong_method');
+      if (!vote.eligible.includes(command.delegate)) return fail('not_eligible');
+      const choice = vote.ballots[command.delegate];
+      // Only a vote in favour or against carries the right of explanation.
+      if (command.given && choice !== 'yes' && choice !== 'no') return fail('not_eligible');
+      const others = (vote.explained ?? []).filter((id) => id !== command.delegate);
+      return ok({ ...state, vote: { ...vote, explained: command.given ? [...others, command.delegate] : others } });
+    }
     case 'vote.count': {
       const vote = state.vote;
       if (!vote) return fail('no_vote');
@@ -642,6 +658,7 @@ export function apply(state: LiveState, command: Command, ctx: Context): Result 
         passed,
         vetoed,
         ballots: vote.method === 'roll_call' ? vote.ballots : null,
+        explained: vote.method === 'roll_call' ? (vote.explained ?? []).filter((id) => vote.ballots[id] === 'yes' || vote.ballots[id] === 'no') : [],
       };
       let next: LiveState = { ...state, vote: null, lastVote: { id: vote.id, subject: vote.subject, tally, needed: recorded.needed, passed, vetoed } };
       if (vote.subject.kind !== 'motion') return ok(next, [recorded]);

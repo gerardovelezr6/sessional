@@ -15,6 +15,10 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadCommittee, serverTime } from '../../data';
 import { liveViewAction, runCommandAction } from './actions';
 import { Console } from './Console';
+import { addGradeAction, consoleGradesAction, deleteGradeAction } from '../../../grades/actions';
+import { gradingRulesOf } from '@/grading/rules';
+
+const GRADING_WORDS = ['title', 'who', 'speaking', 'category', 'level', 'note', 'notePlaceholder', 'pickFirst', 'saving', 'leaders', 'recent', 'noneYet', 'remove', 'removeConfirm', 'removed', 'keep', 'noRubric', 'error_forbidden', 'error_invalid', 'error_failed'] as const;
 import { ScreensPanel } from './screens';
 import { listScreensAction, pairScreenAction, unpairScreenAction, updateScreenAction, type ScreenRow } from './actions';
 import { realtimeConfig } from '@/live/broadcast';
@@ -62,6 +66,13 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
   const committeeLocale = committee.language ?? config.locale.defaultLocale;
   const nextProtocol = protocolFor(null, config.protocol);
   const protocol = protocolFor(view.session?.protocol, config.protocol);
+  const rules = gradingRulesOf(config);
+  const consoleDelegates = detail.delegates.map((d) => ({
+    id: d.id,
+    label: d.label,
+    flag: flagFor(type, d, [committeeLocale, ...languages]),
+    logoUrl: d.group_key ? assetUrl(tenant.id, type.groups.find((g) => g.key === d.group_key)?.logo) : null,
+  }));
   const when = new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -77,18 +88,32 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
           protocol={protocol}
           nextProtocol={nextProtocol}
           sessionsHeld={sessions.length}
-          delegates={detail.delegates.map((d) => ({
-            id: d.id,
-            label: d.label,
-            flag: flagFor(type, d, [committeeLocale, ...languages]),
-            logoUrl: d.group_key ? assetUrl(tenant.id, type.groups.find((g) => g.key === d.group_key)?.logo) : null,
-          }))}
+          delegates={consoleDelegates}
           serverNow={serverTime()}
           outboxKey={`${ctx.user.id}:${committee.id}`}
           layout={config.theme.consoleLayout}
           committee={{ name: committee.name, abbreviation: committee.abbreviation, topic: committee.topic }}
           initialTab={CONSOLE_TABS.find((x) => x === tab) ?? 'roll'}
           realtime={realtimeConfig(channel)}
+          grading={
+            rules.enabled && ctx.can('grades.manage')
+              ? {
+                  rubric: rules.categories.map((c) => ({
+                    key: c.key,
+                    name: localize(c.name, locale, c.key),
+                    short: c.short,
+                    hint: localize(c.hint, locale, ''),
+                    levels: c.levels.map((l) => ({ key: l.key, label: localize(l.label, locale, l.key), description: localize(l.description, locale, ''), points: l.points * c.weight })),
+                  })),
+                  delegates: consoleDelegates,
+                  add: addGradeAction.bind(null, key, committee.id),
+                  remove: deleteGradeAction.bind(null, key),
+                  load: consoleGradesAction.bind(null, key, committee.id),
+                  locale,
+                  L: { points: pattern('grading.points'), given: pattern('grading.given'), giveLevel: pattern('grading.giveLevel'), removeOne: pattern('grading.removeOne'), ...Object.fromEntries(GRADING_WORDS.map((k) => [k, t(`grading.${k}` as MessageKey)])) },
+                }
+              : null
+          }
           screens={
             <ScreensPanel
               initial={screens}
@@ -176,6 +201,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
             veto: t('proc.vote.veto'),
             ballots: t('proc.vote.ballots'),
             holdsVeto: t('proc.vote.holdsVeto'),
+            explained: t('proc.vote.explained'),
             choice_yes: t('proc.vote.choice.yes'),
             choice_no: t('proc.vote.choice.no'),
             choice_abstain: t('proc.vote.choice.abstain'),
@@ -246,6 +272,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
             liveOn: t('console.live.on'),
             liveOff: t('console.live.off'),
             liveHelp: t('console.live.help'),
+            tabGrading: t('console.tab.grading'),
             error_unknown_delegate: t('console.error.unknown_delegate'),
             error_unknown_state: t('console.error.unknown_state'),
             add: t('floor.add'),

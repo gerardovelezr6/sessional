@@ -97,6 +97,14 @@ Spanish: Reglas de procedimiento
 | Starting point | `protocol.preset` | `un_style` | `un_style` (Standard UN-style), `harvard_style` (Harvard-style), `thimun_style` (THIMUN-style), `reglamento_es` (Spanish-language rules) | `tenant.manage` | The rules every committee follows. Changes apply from the next session that opens. |
 | Your own rules | `protocol.pack` | as the preset has it | edited on the rules of procedure page; empty means the starting point as it is | `tenant.manage` | The starting point, changed where your conference does things differently. Empty means the starting point as it is. |
 
+## Grading and awards (`grading`)
+
+Spanish: Calificación y premios
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Grading rules | `grading.rules` | as the preset has it | edited on the grading page; empty means the standard rubric | `tenant.manage` | Empty means Sessional's standard rubric. |
+
 ## People and sign-in (`people`)
 
 Spanish: Personas e inicio de sesión

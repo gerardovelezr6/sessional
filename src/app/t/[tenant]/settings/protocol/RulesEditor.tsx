@@ -4,24 +4,13 @@ import { useFormStatus } from 'react-dom';
 import { goTo } from '@/components/go';
 import { BASES, DISCIPLINE_EFFECTS, MOTION_EFFECTS, VOTE_METHODS, type Pack } from '@/protocol/schema';
 import { keyFrom } from '@/structure/schema';
+import { Check, firstName, int, ListEditor, Names, Num, Pick, type L, type Locale } from '@/components/edit';
 import type { RulesState } from './actions';
 
 // Edits every part of the rules of procedure. The whole pack travels as JSON; the server checks
 // it against the same schema the engine uses.
 
-type L = Record<string, string>;
 type Text = Record<string, string>;
-type Locale = { code: string; label: string; dir: 'ltr' | 'rtl' };
-
-const firstName = (t: Text) => Object.values(t).find((v) => v.trim()) ?? '';
-const move = <T,>(list: T[], i: number, by: number): T[] => {
-  const j = i + by;
-  if (j < 0 || j >= list.length) return list;
-  const next = [...list];
-  [next[i], next[j]] = [next[j]!, next[i]!];
-  return next;
-};
-const int = (v: string, fallback: number) => (Number.isFinite(Number(v)) && v !== '' ? Math.round(Number(v)) : fallback);
 
 function Submit({ label, intent, primary }: { label: string; intent: string; primary?: boolean }) {
   const { pending } = useFormStatus();
@@ -29,112 +18,6 @@ function Submit({ label, intent, primary }: { label: string; intent: string; pri
     <button type="submit" name="intent" value={intent} className={`btn ${primary ? 'btn-primary' : 'btn-secondary'}`} disabled={pending} aria-busy={pending}>
       {label}
     </button>
-  );
-}
-
-function Names({ label, value, onChange, locales }: { label: string; value: Text; onChange: (v: Text) => void; locales: Locale[] }) {
-  return (
-    <fieldset className="flex flex-col gap-1">
-      <legend className="label">{label}</legend>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {locales.map((l) => (
-          <input key={l.code} className="input" lang={l.code} dir={l.dir} maxLength={80} value={value[l.code] ?? ''} placeholder={l.label} aria-label={`${label}, ${l.label}`} onChange={(e) => onChange({ ...value, [l.code]: e.target.value })} />
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-function Num({ label, value, onChange, min, max }: { label: string; value: number; onChange: (n: number) => void; min: number; max: number }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="label">{label}</span>
-      <input className="input" type="number" min={min} max={max} value={value} onChange={(e) => onChange(int(e.target.value, value))} />
-    </label>
-  );
-}
-
-function Check({ label, value, onChange }: { label: string; value: boolean; onChange: (b: boolean) => void }) {
-  return (
-    <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
-      {label}
-    </label>
-  );
-}
-
-function Pick<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="label">{label}</span>
-      <select className="input" value={value} onChange={(e) => onChange(e.target.value as T)}>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-// A list with add, move up, move down and remove on every item.
-function ListEditor<T extends { key: string }>({
-  title,
-  help,
-  items,
-  onChange,
-  render,
-  make,
-  nameOf,
-  L,
-  min = 0,
-}: {
-  title: string;
-  help?: string;
-  items: T[];
-  onChange: (items: T[]) => void;
-  render: (item: T, set: (item: T) => void) => React.ReactNode;
-  make: (key: string) => T;
-  nameOf: (item: T) => string;
-  L: L;
-  min?: number;
-}) {
-  return (
-    <details className="rounded-control border border-border p-3">
-      <summary className="cursor-pointer font-semibold text-on-surface">
-        {title} <span className="font-normal text-on-surface-muted">({items.length})</span>
-      </summary>
-      <div className="mt-3 flex flex-col gap-3">
-        {help ? <p className="text-sm">{help}</p> : null}
-        <ul className="flex flex-col gap-3" aria-label={title}>
-          {items.map((item, i) => (
-            <li key={`${item.key}-${i}`} className="flex flex-col gap-3 rounded-control border border-border p-3">
-              {render(item, (next) => onChange(items.map((x, j) => (j === i ? next : x))))}
-              <div className="flex flex-wrap items-center gap-1">
-                <span className="me-auto font-mono text-xs text-on-surface-muted">{item.key}</span>
-                <button type="button" className="btn btn-secondary" aria-label={`${L.up}: ${nameOf(item)}`} onClick={() => onChange(move(items, i, -1))}>
-                  ↑
-                </button>
-                <button type="button" className="btn btn-secondary" aria-label={`${L.down}: ${nameOf(item)}`} onClick={() => onChange(move(items, i, 1))}>
-                  ↓
-                </button>
-                {items.length > min ? (
-                  <button type="button" className="btn btn-secondary" aria-label={`${L.remove}: ${nameOf(item)}`} onClick={() => onChange(items.filter((_, j) => j !== i))}>
-                    {L.remove}
-                  </button>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-        <div>
-          <button type="button" className="btn btn-secondary" onClick={() => onChange([...items, make(keyFrom('item', items.map((x) => x.key)))])}>
-            {L.add}
-          </button>
-        </div>
-      </div>
-    </details>
   );
 }
 

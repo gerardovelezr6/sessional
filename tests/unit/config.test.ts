@@ -16,6 +16,7 @@ describe('defaults', () => {
       translations: { messages: {} },
       structure: { categories: [], types: [STANDARD_TYPE] },
       protocol: { preset: 'un_style', pack: null },
+      grading: { rules: null },
       people: { passwordMinLength: 8 },
       theme: {
         preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,

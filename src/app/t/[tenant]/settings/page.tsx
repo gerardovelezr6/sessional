@@ -50,6 +50,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   // The school's languages as being edited (a draft may add one before it is published).
   const editingLocales = resolveSection('locale', state.locale?.draft ?? state.locale?.published).data.enabledLocales;
   const protocolPack = resolveSection('protocol', state.protocol?.draft ?? state.protocol?.published).data.pack;
+  const gradingRules = resolveSection('grading', state.grading?.draft ?? state.grading?.published).data.rules;
   const structure = resolveSection('structure', state.structure?.draft ?? state.structure?.published).data;
   const overrides = resolveSection('translations', state.translations?.draft ?? state.translations?.published).data.messages;
 
@@ -163,6 +164,16 @@ export default async function SettingsPage({ params, searchParams }: { params: P
               <p>
                 <Link className="btn btn-primary" href={`${base}/settings/protocol`}>
                   {t('settings.protocol.open')}
+                </Link>
+              </p>
+            </div>
+          ) : null}
+          {section === 'grading' ? (
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <p className="text-sm">{t(gradingRules ? 'settings.grading.custom' : 'settings.grading.standard')}</p>
+              <p>
+                <Link className="btn btn-primary" href={`${base}/settings/grading`}>
+                  {t('settings.grading.open')}
                 </Link>
               </p>
             </div>

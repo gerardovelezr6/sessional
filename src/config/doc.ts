@@ -32,6 +32,8 @@ function allowed(setting: Setting): string {
       return 'language codes (BCP 47), e.g. `en, es, fr`';
     case 'structure':
       return 'edited on the committee types page';
+    case 'grading':
+      return 'edited on the grading page; empty means the standard rubric';
     case 'protocol':
       return 'edited on the rules of procedure page; empty means the starting point as it is';
     case 'translations':

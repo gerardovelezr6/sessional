@@ -67,6 +67,7 @@ export function standardStructure(): Structure {
           { key: 'judges', name: { en: 'Judges', es: 'Jueces' }, short: 'JDG', color: '#4338CA', logo: null, aliases: ['judge', 'juez'] },
         ],
       },
+      { ...STANDARD_TYPE, key: 'security_council', name: { en: 'Security Council', es: 'Consejo de Seguridad' }, defaultCategory: 'security_council', veto: true },
       { ...STANDARD_TYPE, key: 'crisis', name: { en: 'Crisis committee', es: 'Comité de crisis' }, defaultCategory: 'specialized', confidentialTopic: true },
     ],
   };

@@ -413,6 +413,14 @@ export function StructureEditor({
                         {L.confidentialHelp}
                       </span>
                     </label>
+                    <label className="flex items-start gap-2 text-sm">
+                      <input type="checkbox" checked={type.veto} onChange={(e) => setType(i, { ...type, veto: e.target.checked })} />
+                      <span>
+                        <span className="font-semibold text-on-surface">{L.veto}</span>
+                        <br />
+                        {L.vetoHelp}
+                      </span>
+                    </label>
 
                     <fieldset className="flex flex-col gap-3 rounded-control border border-border p-3">
                       <legend className="px-1 font-semibold text-on-surface">
@@ -810,6 +818,7 @@ export function StructureEditor({
                     groups: [],
                     groupRequired: false,
                     confidentialTopic: false,
+                    veto: false,
                     fields: [],
                     bulk: ["label", "name"],
                   },

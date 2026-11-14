@@ -29,7 +29,7 @@ test('the standard Model UN types are added from data and published', async ({ p
   await page.getByRole('button', { name: 'Add the standard Model UN types' }).click();
   await page.waitForURL(/done=draft/);
   const types = page.getByRole('list', { name: 'Committee types' });
-  await expect(types.locator(':scope > li summary')).toHaveText([/^Standard/, /^Specialized/, /^US Senate/, /^Mexican Senate/, /^International Criminal Court/, /^Crisis committee/]);
+  await expect(types.locator(':scope > li summary')).toHaveText([/^Standard/, /^Specialized/, /^US Senate/, /^Mexican Senate/, /^International Criminal Court/, /^Security Council/, /^Crisis committee/]);
   await expect(page.getByRole('list', { name: 'Categories' }).getByRole('listitem')).toHaveCount(4);
 
   // Each type keeps its own rules: the US Senate takes flags from states and has three parties.
@@ -191,7 +191,7 @@ test('a type in use cannot be removed, and a committee is deleted after confirmi
   await page.goto(at('/settings/structure'));
   const types = page.getByRole('list', { name: 'Committee types' });
   await types.locator('summary', { hasText: 'Crisis committee' }).click();
-  await types.locator(':scope > li').nth(5).getByRole('button', { name: 'Remove: Crisis committee' }).click();
+  await types.locator(':scope > li').nth(6).getByRole('button', { name: 'Remove: Crisis committee' }).click();
   await page.getByRole('button', { name: 'Save and publish' }).click();
   await expect(page.locator('p[role=alert]')).toHaveText('Crisis committee is used by 1 committee. Move them to another type or category first.');
 

@@ -41,6 +41,8 @@ export const typeSchema = z
     groups: z.array(groupSchema).max(30).default([]),
     groupRequired: z.boolean().default(false),
     confidentialTopic: z.boolean().default(false),
+    // Delegations holding a veto (in the rules of procedure) may use it in committees of this type.
+    veto: z.boolean().default(false),
     fields: z.array(fieldSchema).max(10).default([]),
     bulk: z.array(z.string()).min(1).max(13).default(['label', 'name']),
   })
@@ -75,6 +77,7 @@ export const STANDARD_TYPE: CommitteeType = {
   groups: [],
   groupRequired: false,
   confidentialTopic: false,
+  veto: false,
   fields: [],
   bulk: ['label', 'name'],
 };

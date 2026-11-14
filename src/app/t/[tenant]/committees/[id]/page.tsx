@@ -70,10 +70,16 @@ export default async function CommitteePage({ params, searchParams }: { params: 
           </p>
         ) : null}
         {canRun ? (
-          <Link href={`${base}/committees/${committee.id}/console`} className="card flex flex-col gap-1 hover:border-border-strong">
-            <span className="text-lg font-bold text-on-surface">{t('committee.console.open')}</span>
-            <span className="text-sm">{t('committee.console.help')}</span>
-          </Link>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Link href={`${base}/committees/${committee.id}/console`} className="card flex flex-col gap-1 hover:border-border-strong">
+              <span className="text-lg font-bold text-on-surface">{t('committee.console.open')}</span>
+              <span className="text-sm">{t('committee.console.help')}</span>
+            </Link>
+            <Link href={`${base}/committees/${committee.id}/documents`} className="card flex flex-col gap-1 hover:border-border-strong">
+              <span className="text-lg font-bold text-on-surface">{t('committee.documents.open')}</span>
+              <span className="text-sm">{t('committee.documents.help')}</span>
+            </Link>
+          </div>
         ) : null}
 
         <section className="card flex flex-col gap-3" aria-labelledby="details-title">

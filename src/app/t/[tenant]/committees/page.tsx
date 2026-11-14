@@ -6,7 +6,7 @@ import { languageName } from '@/i18n/locales';
 import { localize } from '@/messages';
 import { typeOf } from '@/structure/schema';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
-import { reorderCommitteesAction, saveCommitteeAction, setUnlockAction, startConferenceAction } from './actions';
+import { reorderCommitteesAction, saveCommitteeAction, setUnlockAction, setUnlockRuleAction, startConferenceAction } from './actions';
 import { CommitteeList, type ListGroup } from './CommitteeList';
 import { CommitteeFields } from './CommitteeFields';
 import { choicesFor, groupByCategory, hasPassed, loadOverview } from './data';
@@ -119,6 +119,17 @@ export default async function CommitteesPage({ params, searchParams }: { params:
             <p className="text-sm">
               {!unlockedAt ? t('committees.secrets.hidden') : hasPassed(conference.secrets_unlocked_at!) ? t('committees.secrets.shown', { date: when.format(unlockedAt) }) : t('committees.secrets.scheduled', { date: when.format(unlockedAt) })}
             </p>
+            <ActionForm action={setUnlockRuleAction.bind(null, key, conference.id)} submitLabel={t('committees.secrets.rule.save')} variant="secondary">
+              <fieldset className="flex flex-col gap-2">
+                <legend className="label">{t('committees.secrets.rule')}</legend>
+                {(['manual', 'half_in_session'] as const).map((r) => (
+                  <label key={r} className="flex items-center gap-2 text-sm">
+                    <input type="radio" name="rule" value={r} defaultChecked={(conference.secrets_unlock_rule ?? 'manual') === r} />
+                    {t(`committees.secrets.rule.${r}`)}
+                  </label>
+                ))}
+              </fieldset>
+            </ActionForm>
             <UnlockForm
               action={setUnlockAction.bind(null, key, conference.id)}
               shown={!!unlockedAt}

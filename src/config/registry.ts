@@ -21,6 +21,8 @@ export type Control =
   | { kind: 'translations' }
   // Committee categories and types: edited on their own page.
   | { kind: 'structure' }
+  // The school's own rules of procedure: edited on their own page.
+  | { kind: 'protocol' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -133,6 +135,11 @@ export const registry: Setting[] = [
     section: 'protocol', key: 'preset', permission: 'tenant.manage', presentation: 'cards',
     labelKey: 'settings.protocol.preset', helpKey: 'settings.protocol.preset.help',
     control: { kind: 'select', options: [{ value: 'un_style', labelKey: 'settings.protocol.preset.un_style' }, { value: 'harvard_style', labelKey: 'settings.protocol.preset.harvard_style' }, { value: 'thimun_style', labelKey: 'settings.protocol.preset.thimun_style' }, { value: 'reglamento_es', labelKey: 'settings.protocol.preset.reglamento_es' }] },
+  },
+  {
+    section: 'protocol', key: 'pack', permission: 'tenant.manage',
+    labelKey: 'settings.protocol.pack', helpKey: 'settings.protocol.pack.help',
+    control: { kind: 'protocol' },
   },
   {
     section: 'translations', key: 'messages', permission: 'tenant.manage',

@@ -49,7 +49,7 @@ Spanish: Tipos de comité
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
 | Categories | `structure.categories` | (none) | edited on the committee types page | `tenant.manage` | Groups of committees, such as General Assembly or Security Council, each with a colour. |
-| Types | `structure.types` | `[{"key":"standard","name":{"en":"Standard","es":"Estándar"},"defaultCategory":null,"labelField":{"en":"Country","es":"País"},"flag":"country","groupLabel":{},"groups":[],"groupRequired":false,"confidentialTopic":false,"fields":[],"bulk":["label","name"]}]` | edited on the committee types page | `tenant.manage` | Kinds of committee: what the delegate list holds, where flags come from, and groups such as parties or sides. |
+| Types | `structure.types` | `[{"key":"standard","name":{"en":"Standard","es":"Estándar"},"defaultCategory":null,"labelField":{"en":"Country","es":"País"},"flag":"country","groupLabel":{},"groups":[],"groupRequired":false,"confidentialTopic":false,"veto":false,"fields":[],"bulk":["label","name"]}]` | edited on the committee types page | `tenant.manage` | Kinds of committee: what the delegate list holds, where flags come from, and groups such as parties or sides. |
 
 ## Translations (`translations`)
 
@@ -90,6 +90,7 @@ Spanish: Reglas de procedimiento
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
 | Starting point | `protocol.preset` | `un_style` | `un_style` (Standard UN-style), `harvard_style` (Harvard-style), `thimun_style` (THIMUN-style), `reglamento_es` (Spanish-language rules) | `tenant.manage` | The rules every committee follows. Changes apply from the next session that opens. |
+| Your own rules | `protocol.pack` | as the preset has it | edited on the rules of procedure page; empty means the starting point as it is | `tenant.manage` | The starting point, changed where your conference does things differently. Empty means the starting point as it is. |
 
 ## People and sign-in (`people`)
 

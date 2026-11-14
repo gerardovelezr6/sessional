@@ -182,11 +182,79 @@ describe('live_commit', () => {
   });
 });
 
+describe('votes, warnings and documents', () => {
+  let session = '';
+  let doc = '';
+  beforeAll(async () => {
+    session = randomUUID();
+    const rev = Number(await call('service', `(select revision from committee_live where committee_id = $1)`, [council]));
+    await commit({ expected: rev, kind: 'session.open', effects: [{ type: 'session.opened', id: session, number: 2, protocol: {} }] });
+    // The chair writes a draft resolution with the committee's own delegate as sponsor.
+    await db.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify({ sub: people.chair })]);
+    await db.query(`set role authenticated`);
+    doc = (await db.query(`select document_save($1, $2::jsonb) as r`, [council, JSON.stringify({ kind: 'draft_resolution', code: 'DR 1.1', title: 'Clean water', sponsors: [delegate] })])).rows[0].r.id;
+    await db.query(`select document_set_status($1, 'introduced')`, [doc]);
+    await db.query(`reset role`);
+    await db.query(`select set_config('request.jwt.claims', '', false)`);
+  });
+
+  it('a document needs sponsors from its own committee', async () => {
+    expect(await failure('owner', `document_save($1, $2::jsonb)`, [assembly, JSON.stringify({ kind: 'draft_resolution', title: 'X', sponsors: [delegate] })])).toMatch(/delegates of this committee/);
+  });
+  it('only the people who run the committee write its documents', async () => {
+    expect(await call('otherChair', `document_set_status($1, 'withdrawn')`, [doc])).toBeNull();
+    expect(await call('member', `documents_list($1)`, [council])).toEqual([]);
+    expect(await call('chair', `documents_list($1)`, [council])).toEqual([expect.objectContaining({ code: 'DR 1.1', status: 'introduced' })]);
+  });
+  it('a vote on a document records the result and passes the document', async () => {
+    const rev = Number(await call('service', `(select revision from committee_live where committee_id = $1)`, [council]));
+    const vote = randomUUID();
+    await commit({
+      expected: rev,
+      kind: 'vote.close',
+      effects: [{ type: 'vote.recorded', session, id: vote, subject: { kind: 'document', document: doc, title: 'Clean water' }, title: 'Clean water', method: 'roll_call', majority: 'simple', procedural: false, tally: { yes: 1, no: 0, abstain: 0 }, needed: 1, passed: true, vetoed: false, ballots: [{ delegate_id: delegate, label: 'Mexico', choice: 'yes' }] }],
+    });
+    expect(await call('chair', `(select status from documents where id = $1)`, [doc])).toBe('passed');
+    const list = await call('chair', `committee_sessions_list($1)`, [council]);
+    expect(list[0].votes).toEqual([expect.objectContaining({ title: 'Clean water', passed: true, tally: { yes: 1, no: 0, abstain: 0 } })]);
+  });
+  it('a secret ballot can never store who voted how', async () => {
+    let message = '';
+    try {
+      await db.query(`insert into votes (id, tenant_id, committee_id, session_id, subject, method, majority, procedural, tally, needed, passed, ballots) values (gen_random_uuid(), $1, $2, $3, '{}', 'secret', 'simple', false, '{}', 1, true, '[]')`, [A, council, session]);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toMatch(/check constraint/);
+  });
+  it('warnings are recorded with the name the delegate had', async () => {
+    const rev = Number(await call('service', `(select revision from committee_live where committee_id = $1)`, [council]));
+    await commit({ expected: rev, kind: 'discipline.warn', effects: [{ type: 'warning.recorded', session, id: randomUUID(), delegate, label: 'Mexico', level: 'warning', level_name: { en: 'Warning' }, reason: 'Late', points: 1 }] });
+    expect(await call('chair', `(select to_jsonb(w) - 'id' - 'issued_at' - 'tenant_id' - 'committee_id' - 'session_id' - 'issued_by' from warnings w where committee_id = $1)`, [council])).toMatchObject({ label: 'Mexico', reason: 'Late', points: 1 });
+    expect(await call('member', `(select count(*) from warnings where committee_id = $1)`, [council])).toBe('0');
+  });
+});
+
+describe('confidential topics shown when half the committees are in session', () => {
+  it('follows the rule as sessions open', async () => {
+    await db.query(`insert into committee_secrets (tenant_id, committee_id, topic) values ($1, $2, 'Hidden') on conflict do nothing`, [A, assembly]);
+    const conf = (await db.query(`select conference_id from committees where id = $1`, [assembly])).rows[0].conference_id;
+    const readable = () => call('otherChair', `(select count(*) from committee_secrets where committee_id = $1)`, [assembly]);
+    await db.query(`update conferences set secrets_unlock_rule = 'manual', secrets_unlocked_at = null where id = $1`, [conf]);
+    // A third committee with no session: Council and Assembly open make 2 of 3.
+    await db.query(`insert into committees (tenant_id, conference_id, name) values ($1, $2, 'Third')`, [A, conf]);
+    expect(await readable()).toBe('0');
+    await db.query(`update conferences set secrets_unlock_rule = 'half_in_session' where id = $1`, [conf]);
+    expect(await readable()).toBe('1');
+    await db.query(`update committee_sessions set closed_at = now() where committee_id = $1 and closed_at is null`, [council]);
+    expect(await readable()).toBe('0');
+  });
+});
+
 describe('reading the live committee', () => {
   it('the chair and managers see it, others get nothing', async () => {
-    expect(await call('chair', `live_view($1)`, [council])).toMatchObject({ revision: 6 });
-    expect(await call('owner', `live_view($1)`, [council])).toMatchObject({ revision: 6 });
-    expect(await call('hc', `live_view($1)`, [council])).toMatchObject({ revision: 6 });
+    const revision = Number(await call('service', `(select revision from committee_live where committee_id = $1)`, [council]));
+    for (const who of ['chair', 'owner', 'hc'] as const) expect(await call(who, `live_view($1)`, [council])).toMatchObject({ revision });
     expect(await call('otherChair', `live_view($1)`, [council])).toBeNull();
     expect(await call('member', `live_view($1)`, [council])).toBeNull();
     expect(await call('outsider', `live_view($1)`, [council])).toBeNull();

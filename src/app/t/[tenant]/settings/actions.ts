@@ -80,6 +80,13 @@ export async function saveDraftAction(tenantKey: string, section: string, _state
 
   const data = readForm(section, form, await editingLocalesOf(tenant.id, ctx.token));
   const fieldErrors: Record<string, string> = {};
+  // Settings edited on their own page are not in this form: keep what is saved.
+  const pageEdited = settingsOf(section).filter((s) => ['structure', 'translations', 'protocol'].includes(s.control.kind));
+  if (pageEdited.length) {
+    const state = await rpc<Record<string, { draft: Stored | null; published: Stored | null } | undefined>>('config_editor_state', { p_tenant: tenant.id, p_conference: null }, { token: ctx.token });
+    const current = resolveSection(section, state[section]?.draft ?? state[section]?.published).data as Record<string, unknown>;
+    for (const s of pageEdited) data[s.key] = current[s.key];
+  }
 
   // Newly chosen images: checked from their bytes before anything is stored.
   const uploads: { key: string; kind: 'logo' | 'favicon'; bytes: Uint8Array; info: Extract<ReturnType<typeof checkAsset>, { ok: true }>['info'] }[] = [];

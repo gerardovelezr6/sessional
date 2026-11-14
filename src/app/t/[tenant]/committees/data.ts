@@ -8,6 +8,7 @@ export interface Conference {
   id: string;
   name: string;
   secrets_unlocked_at: string | null;
+  secrets_unlock_rule?: 'manual' | 'half_in_session';
 }
 
 export interface CommitteeSummary {

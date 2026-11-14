@@ -8,6 +8,7 @@ import { ASSET_PATH } from '@/assets/image';
 import { CUSTOM_CSS_MAX_LENGTH } from '@/theme/custom-css';
 import { PRESET_KEYS } from '@/theme/presets';
 import { DEFAULT_PROTOCOL, PROTOCOL_PRESET_KEYS } from '@/protocol/presets';
+import { packSchema } from '@/protocol/schema';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
 // with its validation and its default; nothing tenant-specific lives in code as a constant.
@@ -89,6 +90,8 @@ export const sections = {
   // Rules of procedure: which starting point the committees follow.
   protocol: z.object({
     preset: z.enum(PROTOCOL_PRESET_KEYS).default(DEFAULT_PROTOCOL),
+    // The school's own rules, started from the preset and edited; null: the preset as it is.
+    pack: packSchema.nullable().default(null),
   }),
   people: z.object({
     passwordMinLength: z.number().int().min(8).max(128).default(8),

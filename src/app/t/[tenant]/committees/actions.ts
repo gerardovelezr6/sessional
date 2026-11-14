@@ -239,3 +239,17 @@ export async function deleteDelegateAction(tenantKey: string, committeeId: strin
   }
   return { redirectTo: `${base}/committees/${committeeId}?done=removed#delegates` };
 }
+
+// Whether confidential topics show by themselves once half the committees are in session.
+export async function setUnlockRuleAction(tenantKey: string, conferenceId: string, _s: FormState, form: FormData): Promise<FormState> {
+  const { t, ctx, base } = await setup(tenantKey);
+  if (!ctx?.can('committee.manage') || !UUID.test(conferenceId)) return { error: t('committees.error.forbidden') };
+  const rule = String(form.get('rule') ?? '');
+  if (rule !== 'manual' && rule !== 'half_in_session') return { error: t('committees.error.choice') };
+  try {
+    verifiedWrite(await rpc('conference_set_unlock_rule', { p_conference: conferenceId, p_rule: rule }, { token: ctx.token }), 'conference_set_unlock_rule');
+  } catch (e) {
+    return failure(e, t, 'conference_set_unlock_rule');
+  }
+  return { redirectTo: `${base}/committees?done=secrets#secrets` };
+}

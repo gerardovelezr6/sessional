@@ -352,3 +352,18 @@ committees), editable email texts (email phase), flags (Phase 5).
   length, speaking time and topic; pause, extend within the rules, end with confirmation).
 - `speeches` (new table, in the isolation matrix) is filled by `live_commit` from
   `speech.recorded` effects; the session history shows how many speeches and how much time.
+
+## Motions, voting, documents, discipline and the offline console (Phase 6, parts 3–5)
+
+- Console panels (`console/procedure.tsx`): motions on the floor, points, the vote in progress
+  (roll call with per-delegate answers and veto marks, or totals for placards and secret ballots),
+  the last result, and discipline. Wide screens show two columns; phones and tablets get a bar
+  fixed to the bottom with the speaker, their time, start/pause and next speaker. Keys: N next
+  speaker, S start or pause, R reset, E end speech.
+- `/committees/[id]/documents`: documents with sponsors and signatories, moved along the workflow
+  with the rules' minimums checked on the server.
+- `/settings/protocol`: the rules-of-procedure editor; the result is the `protocol.pack` setting,
+  versioned and published like any other.
+- Tables `votes`, `warnings` (written only by `live_commit`) and `documents` (written by the people
+  who run the committee), all in the isolation matrix.
+- `console/outbox.ts`: the IndexedDB outbox, per person and committee.

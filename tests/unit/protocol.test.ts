@@ -102,7 +102,7 @@ describe('engine: sessions and roll call', () => {
     const r = apply(EMPTY_STATE, { type: 'session.open', session: id(900) }, ctx({ sessionsHeld: 2 }));
     expect(r).toEqual({
       ok: true,
-      state: { v: 1, held: 3, session: { id: id(900), number: 3, openedAt: '2027-03-01T09:00:00.000Z' }, attendance: {}, rollCall: { startedAt: '2027-03-01T09:00:00.000Z', finishedAt: null }, speakers: { queue: [], seconds: 90, current: null }, caucus: null },
+      state: { v: 1, held: 3, session: { id: id(900), number: 3, openedAt: '2027-03-01T09:00:00.000Z' }, attendance: {}, rollCall: { startedAt: '2027-03-01T09:00:00.000Z', finishedAt: null }, speakers: { queue: [], seconds: 90, current: null }, caucus: null, motions: [], points: [], vote: null, debateClosed: false, warnings: {}, lastVote: null },
       effects: [{ type: 'session.opened', id: id(900), number: 3 }],
     });
   });
@@ -337,5 +337,229 @@ describe('adding speakers commutes', () => {
     const b: Command = { type: 'speakers.add', delegate: D[1]! };
     expect(COMMUTING.has('speakers.add')).toBe(true);
     expect(new Set(run([a, b], ctx(), s).speakers.queue)).toEqual(new Set(run([b, a], ctx(), s).speakers.queue));
+  });
+});
+
+// ── Motions, points, voting, discipline ──
+
+const M = (n: number) => id(500 + n);
+// Fifteen delegates for voting arithmetic.
+const F = Array.from({ length: 15 }, (_, i) => id(200 + i));
+const fifteen = (over: Partial<Context> = {}) => ctx({ delegates: F, ...over });
+// A session where `presentVoting` answered "present and voting", the rest "present".
+function floorOf(over: Partial<Context> = {}, presentVoting: string[] = []) {
+  const c = fifteen(over);
+  let s = run([{ type: 'session.open', session: id(900) }, { type: 'attendance.fillUnmarked', state: 'present' }], c);
+  for (const d of presentVoting) s = run([{ type: 'attendance.set', delegate: d, state: 'present_voting' }], c, s);
+  return s;
+}
+const go = (s: LiveState, cmds: Command[], c: Context = fifteen()) => run(cmds, c, s);
+
+describe('motions', () => {
+  it('are kept in order of precedence, whatever order they were made in', () => {
+    const s = go(floorOf(), [
+      { type: 'motion.propose', id: M(1), motion: 'speaking_time', by: null, seconds: 60, topic: '' },
+      { type: 'motion.propose', id: M(2), motion: 'moderated', by: F[0]!, minutes: 10, seconds: 45, topic: 'Water' },
+      { type: 'motion.propose', id: M(3), motion: 'unmoderated', by: null, minutes: 5, topic: '' },
+    ]);
+    expect(s.motions.map((m) => m.key)).toEqual(['unmoderated', 'moderated', 'speaking_time']);
+  });
+  it('need the details their effect uses, within the rules', () => {
+    const s = floorOf();
+    expect(apply(s, { type: 'motion.propose', id: M(1), motion: 'moderated', by: null, minutes: 10, topic: '' }, fifteen())).toEqual({ ok: false, error: 'missing_detail' });
+    expect(apply(s, { type: 'motion.propose', id: M(1), motion: 'moderated', by: null, minutes: 30, seconds: 45, topic: '' }, fifteen())).toEqual({ ok: false, error: 'too_long' });
+    expect(apply(s, { type: 'motion.propose', id: M(1), motion: 'filibuster', by: null, topic: '' }, fifteen())).toEqual({ ok: false, error: 'unknown_motion' });
+  });
+  it('are voted in order, once seconded', () => {
+    let s = go(floorOf(), [
+      { type: 'motion.propose', id: M(1), motion: 'moderated', by: null, minutes: 10, seconds: 45, topic: '' },
+      { type: 'motion.propose', id: M(2), motion: 'unmoderated', by: null, minutes: 5, topic: '' },
+    ]);
+    expect(apply(s, { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(1) } }, fifteen())).toEqual({ ok: false, error: 'out_of_order' });
+    expect(apply(s, { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(2) } }, fifteen())).toEqual({ ok: false, error: 'not_seconded' });
+    s = go(s, [{ type: 'motion.second', id: M(2) }, { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(2) } }]);
+    expect(s.vote).toMatchObject({ method: 'placard', majority: 'procedural', procedural: true });
+    // Everyone present votes on procedure, and nobody abstains.
+    expect(s.vote!.eligible).toHaveLength(15);
+    expect(s.vote!.mayAbstain).toEqual([]);
+  });
+  it('a motion that passes takes effect and clears the floor', () => {
+    const s = go(floorOf(), [
+      { type: 'motion.propose', id: M(1), motion: 'moderated', by: null, minutes: 10, seconds: 45, topic: 'Water' },
+      { type: 'motion.propose', id: M(2), motion: 'speaking_time', by: null, seconds: 30, topic: '' },
+      { type: 'motion.second', id: M(1) },
+      { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(1) } },
+      // More than half of the 15 present: 8.
+      { type: 'vote.count', yes: 8, no: 7, abstain: 0, vetoed: false },
+    ]);
+    const r = apply(s, { type: 'vote.close' }, fifteen());
+    expect(r.ok && r.effects[0]).toMatchObject({ type: 'vote.recorded', passed: true, tally: { yes: 8, no: 7, abstain: 0 }, needed: 8, ballots: null });
+    expect(r.ok && r.state.caucus).toMatchObject({ key: 'moderated', topic: 'Water', timer: { seconds: 600 }, list: { seconds: 45 } });
+    expect(r.ok && r.state.motions).toEqual([]);
+  });
+  it('a motion that fails goes, and the next one comes up', () => {
+    const s = go(floorOf(), [
+      { type: 'motion.propose', id: M(1), motion: 'moderated', by: null, minutes: 10, seconds: 45, topic: '' },
+      { type: 'motion.propose', id: M(2), motion: 'unmoderated', by: null, minutes: 5, topic: '' },
+      { type: 'motion.second', id: M(2) },
+      { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(2) } },
+      { type: 'vote.count', yes: 7, no: 8, abstain: 0, vetoed: false },
+      { type: 'vote.close' },
+    ]);
+    expect(s.caucus).toBeNull();
+    expect(s.motions.map((m) => m.id)).toEqual([M(1)]);
+  });
+  it('closing debate empties the general list and keeps it closed until reopened', () => {
+    let s = go(floorOf(), [{ type: 'speakers.add', delegate: F[1]! }]);
+    s = go(s, [
+      { type: 'motion.propose', id: M(1), motion: 'close_debate', by: null, topic: '' },
+      { type: 'motion.second', id: M(1) },
+      { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(1) } },
+      { type: 'vote.count', yes: 10, no: 5, abstain: 0, vetoed: false },
+      { type: 'vote.close' },
+    ]);
+    expect(s.debateClosed).toBe(true);
+    expect(s.speakers.queue).toEqual([]);
+    expect(apply(s, { type: 'speakers.add', delegate: F[2]! }, fifteen())).toEqual({ ok: false, error: 'debate_closed' });
+    expect(apply(go(s, [{ type: 'debate.reopen' }]), { type: 'speakers.add', delegate: F[2]! }, fifteen()).ok).toBe(true);
+  });
+  it('adjourning closes the session', () => {
+    const r = apply(
+      go(floorOf(), [
+        { type: 'motion.propose', id: M(1), motion: 'adjourn', by: null, topic: '' },
+        { type: 'motion.second', id: M(1) },
+        { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(1) } },
+        { type: 'vote.count', yes: 15, no: 0, abstain: 0, vetoed: false },
+      ]),
+      { type: 'vote.close' },
+      fifteen(),
+    );
+    expect(r.ok && r.effects.map((e) => e.type)).toEqual(['vote.recorded', 'session.closed']);
+    expect(r.ok && r.state.session).toBeNull();
+  });
+  it('can be withdrawn, but not while being voted on', () => {
+    let s = go(floorOf(), [{ type: 'motion.propose', id: M(1), motion: 'adjourn', by: null, topic: '' }, { type: 'motion.second', id: M(1) }]);
+    expect(go(s, [{ type: 'motion.withdraw', id: M(1) }]).motions).toEqual([]);
+    s = go(s, [{ type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: M(1) } }]);
+    expect(apply(s, { type: 'motion.withdraw', id: M(1) }, fifteen())).toEqual({ ok: false, error: 'vote_open' });
+  });
+});
+
+describe('points', () => {
+  it('those that interrupt come first', () => {
+    const s = go(floorOf(), [
+      { type: 'point.raise', id: M(1), point: 'inquiry', by: null },
+      { type: 'point.raise', id: M(2), point: 'order', by: F[3]! },
+    ]);
+    expect(s.points.map((x) => x.key)).toEqual(['order', 'inquiry']);
+    expect(go(s, [{ type: 'point.resolve', id: M(2) }]).points.map((x) => x.key)).toEqual(['inquiry']);
+  });
+});
+
+describe('substantive votes', () => {
+  const PV = F.slice(0, 3);
+  const open = (method: 'roll_call' | 'placard' | 'secret', c: Context = fifteen()) =>
+    go(floorOf({}, PV), [{ type: 'vote.open', id: id(700), subject: { kind: 'other', title: 'Draft resolution 1.1' }, method }], c);
+
+  it('only "present and voting" delegates may not abstain', () => {
+    const s = open('roll_call');
+    expect(s.vote).toMatchObject({ method: 'roll_call', majority: 'simple', procedural: false });
+    expect(s.vote!.eligible).toHaveLength(15);
+    expect(s.vote!.mayAbstain).toHaveLength(12);
+    expect(apply(s, { type: 'vote.cast', delegate: PV[0]!, choice: 'abstain' }, fifteen())).toEqual({ ok: false, error: 'cannot_abstain' });
+  });
+  it('a roll call records each answer; passes count for nothing unless answered later', () => {
+    let s = open('roll_call');
+    const answers: [string, 'yes' | 'no' | 'abstain' | 'pass'][] = F.map((d, i) => [d, i < 6 ? 'yes' : i < 10 ? 'no' : i < 14 ? 'abstain' : 'pass']);
+    for (const [d, c] of answers) s = go(s, [{ type: 'vote.cast', delegate: d, choice: c }]);
+    const r = apply(s, { type: 'vote.close' }, fifteen());
+    // 6 yes, 4 no: more than half of the 10 votes cast.
+    expect(r.ok && r.effects[0]).toMatchObject({ passed: true, tally: { yes: 6, no: 4, abstain: 4 }, needed: 6 });
+    expect(r.ok && (r.effects[0] as { ballots: object }).ballots).toHaveProperty(F[14]!, 'pass');
+  });
+  it('a secret ballot never records who voted how', () => {
+    const thimun = fifteen({ protocol: PROTOCOL_PRESETS.thimun_style! });
+    const s = go(floorOf({ protocol: PROTOCOL_PRESETS.thimun_style! }), [{ type: 'vote.open', id: id(700), subject: { kind: 'other', title: 'X' }, method: 'secret' }, { type: 'vote.count', yes: 9, no: 3, abstain: 3, vetoed: false }], thimun);
+    expect(apply(s, { type: 'vote.cast', delegate: F[0]!, choice: 'yes' }, fifteen())).toEqual({ ok: false, error: 'wrong_method' });
+    const r = apply(s, { type: 'vote.close' }, fifteen({ protocol: PROTOCOL_PRESETS.thimun_style! }));
+    expect(r.ok && r.effects[0]).toMatchObject({ method: 'secret', ballots: null, passed: true });
+  });
+  it('only methods the rules allow', () => {
+    expect(apply(floorOf(), { type: 'vote.open', id: id(700), subject: { kind: 'other', title: 'X' }, method: 'secret' }, fifteen())).toEqual({ ok: false, error: 'wrong_method' });
+  });
+  it('counts cannot exceed who may vote', () => {
+    expect(apply(open('placard'), { type: 'vote.count', yes: 10, no: 6, abstain: 0, vetoed: false }, fifteen())).toEqual({ ok: false, error: 'too_many' });
+  });
+  it('one veto holder voting no defeats a substantive vote', () => {
+    const c = fifteen({ vetoHolders: [F[0]!, F[1]!] });
+    let s = open('roll_call', c);
+    for (const d of F) s = go(s, [{ type: 'vote.cast', delegate: d, choice: d === F[1] ? 'no' : 'yes' }], c);
+    const r = apply(s, { type: 'vote.close' }, c);
+    expect(r.ok && r.effects[0]).toMatchObject({ tally: { yes: 14, no: 1 }, vetoed: true, passed: false });
+    // Abstaining is not a veto.
+    let t = open('roll_call', c);
+    for (const d of F) t = go(t, [{ type: 'vote.cast', delegate: d, choice: d === F[3] ? 'abstain' : 'yes' }], c);
+    const r2 = apply(t, { type: 'vote.close' }, c);
+    expect(r2.ok && r2.effects[0]).toMatchObject({ vetoed: false, passed: true });
+  });
+  it('a placard vote takes the veto from the chair, only where vetoes exist', () => {
+    const withVeto = go(open('placard'), [{ type: 'vote.count', yes: 12, no: 3, abstain: 0, vetoed: true }], fifteen({ vetoHolders: [F[0]!] }));
+    expect(withVeto.vote!.counts!.vetoed).toBe(true);
+    const without = go(open('placard'), [{ type: 'vote.count', yes: 12, no: 3, abstain: 0, vetoed: true }]);
+    expect(without.vote!.counts!.vetoed).toBe(false);
+  });
+});
+
+describe('discipline', () => {
+  it('warnings add up to the consequences the rules set', () => {
+    const c = fifteen();
+    let s = floorOf();
+    s = go(s, [{ type: 'discipline.warn', id: M(1), delegate: F[0]!, level: 'formal', reason: 'Disrespect' }], c);
+    expect(s.warnings[F[0]!]).toBe(2);
+    expect(apply(s, { type: 'speakers.add', delegate: F[0]! }, c).ok).toBe(true);
+    const r = apply(s, { type: 'discipline.warn', id: M(2), delegate: F[0]!, level: 'warning', reason: '' }, c);
+    expect(r.ok && r.effects).toEqual([{ type: 'warning.recorded', session: id(900), id: M(2), delegate: F[0], level: 'warning', reason: '', points: 3 }]);
+    s = r.ok ? r.state : s;
+    // Three points: no vote.
+    s = go(s, [{ type: 'vote.open', id: id(700), subject: { kind: 'other', title: 'X' }, method: 'placard' }]);
+    expect(s.vote!.eligible).not.toContain(F[0]);
+    s = go(s, [{ type: 'vote.cancel' }, { type: 'discipline.pardon', delegate: F[0]! }]);
+    expect(s.warnings[F[0]!]).toBeUndefined();
+  });
+  it('a delegate who may no longer speak is not added to a list', () => {
+    const harvard = fifteen({ protocol: PROTOCOL_PRESETS.harvard_style! });
+    let s = run([{ type: 'session.open', session: id(900) }, { type: 'attendance.fillUnmarked', state: 'present' }], harvard);
+    s = go(s, [{ type: 'discipline.warn', id: M(1), delegate: F[0]!, level: 'formal', reason: '' }], harvard);
+    expect(apply(s, { type: 'speakers.add', delegate: F[0]! }, harvard)).toEqual({ ok: false, error: 'barred' });
+  });
+});
+
+describe('a full simulated session runs under each preset', () => {
+  it.each(Object.keys(PROTOCOL_PRESETS))('%s', (key) => {
+    const pack = PROTOCOL_PRESETS[key]!;
+    const c = fifteen({ protocol: pack, vetoHolders: [] });
+    let s = run([{ type: 'session.open', session: id(900) }, { type: 'attendance.fillUnmarked', state: pack.attendance[0]!.key }, { type: 'rollcall.finish' }], c);
+    s = go(s, [{ type: 'speakers.add', delegate: F[0]! }, { type: 'speakers.next' }, { type: 'timer.start' }, { type: 'speakers.end' }], c);
+    // Every motion in the rules can be made; the first is voted on.
+    for (const [i, motion] of pack.motions.entries()) {
+      const caucus = pack.caucuses.find((x) => x.key === motion.caucus);
+      s = go(s, [{ type: 'motion.propose', id: M(i), motion: motion.key, by: F[i]!, minutes: 1, seconds: 30, topic: 'T' }], c);
+      if (caucus) expect(s.motions.find((m) => m.id === M(i))?.minutes).toBe(1);
+    }
+    const first = s.motions[0]!;
+    s = go(s, [{ type: 'motion.withdraw', id: first.id }], c);
+    const top = s.motions[0]!;
+    s = go(s, [{ type: 'motion.second', id: top.id }, { type: 'vote.open', id: id(700), subject: { kind: 'motion', motion: top.id } }, { type: 'vote.count', yes: 15, no: 0, abstain: 0, vetoed: false }, { type: 'vote.close' }], c);
+    expect(s.motions).toEqual([]);
+    if (s.caucus) s = go(s, [{ type: 'caucus.end' }], c);
+    if (!s.session) s = go(s, [{ type: 'session.open', session: id(901) }, { type: 'attendance.fillUnmarked', state: pack.attendance[0]!.key }], c);
+    // A resolution, by the first method the rules allow.
+    const method = pack.voting.methods[0]!;
+    s = go(s, [{ type: 'vote.open', id: id(701), subject: { kind: 'document', document: id(800), title: 'Draft resolution 1.1' }, method }], c);
+    if (method === 'roll_call') for (const d of F) s = go(s, [{ type: 'vote.cast', delegate: d, choice: 'yes' }], c);
+    else s = go(s, [{ type: 'vote.count', yes: 15, no: 0, abstain: 0, vetoed: false }], c);
+    const r = apply(s, { type: 'vote.close' }, c);
+    expect(r.ok && r.effects[0]).toMatchObject({ type: 'vote.recorded', passed: true, subject: { kind: 'document', document: id(800) } });
+    expect(r.ok && apply(r.state, { type: 'session.close' }, c).ok).toBe(true);
   });
 });

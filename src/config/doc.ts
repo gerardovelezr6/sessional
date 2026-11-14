@@ -32,6 +32,8 @@ function allowed(setting: Setting): string {
       return 'language codes (BCP 47), e.g. `en, es, fr`';
     case 'structure':
       return 'edited on the committee types page';
+    case 'protocol':
+      return 'edited on the rules of procedure page; empty means the starting point as it is';
     case 'translations':
       return 'edited in the translation editor; each text must keep the English placeholders';
   }

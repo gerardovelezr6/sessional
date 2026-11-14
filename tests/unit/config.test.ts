@@ -15,7 +15,7 @@ describe('defaults', () => {
       terminology: { pack: 'un', conference: {}, committee: {}, committees: {}, chair: {}, chairs: {}, delegate: {}, delegates: {}, highCommand: {}, advisor: {}, advisors: {} },
       translations: { messages: {} },
       structure: { categories: [], types: [STANDARD_TYPE] },
-      protocol: { preset: 'un_style' },
+      protocol: { preset: 'un_style', pack: null },
       people: { passwordMinLength: 8 },
       theme: {
         preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,

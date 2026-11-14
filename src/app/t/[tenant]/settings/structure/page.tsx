@@ -45,7 +45,7 @@ export default async function StructurePage({ params, searchParams }: { params: 
     key: t('structure.key', { key: '{key}' }), labelField: t('structure.type.labelField'), labelFieldHelp: t('structure.type.labelField.help'),
     logo: t('structure.group.logo'), moveDown: t('structure.moveDown'), moveUp: t('structure.moveUp'), name: t('structure.name'), noCategory: t('structure.type.noCategory'),
     remove: t('structure.remove'), saveAndPublish: t('settings.saveAndPublish'), saveDraft: t('settings.saveDraft'), short: t('structure.group.short'),
-    typesHelp: t('structure.types.help'), typesTitle: t('structure.types.title'),
+    typesHelp: t('structure.types.help'), typesTitle: t('structure.types.title'), veto: t('structure.type.veto'), vetoHelp: t('structure.type.veto.help'),
     ...(Object.fromEntries(FLAG_SOURCES.map((f) => [`flag_${f}`, t(`structure.flag.${f}`)])) as Record<`flag_${(typeof FLAG_SOURCES)[number]}`, string>),
   };
 

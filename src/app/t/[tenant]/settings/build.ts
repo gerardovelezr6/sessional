@@ -44,6 +44,7 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
     switch (c.kind) {
       case 'translations':
       case 'structure':
+      case 'protocol':
       case 'locale':
         break; // shown with the list of languages, or on its own page
       case 'localeList':

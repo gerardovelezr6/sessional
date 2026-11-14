@@ -295,6 +295,15 @@ export function Floor(p: FloorProps) {
         </div>
       ) : null}
 
+      {!caucus && state.debateClosed ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-control border border-border-strong p-3">
+          <span className="flex-1 font-semibold text-on-surface">{L.debateClosed}</span>
+          <button type="button" className="btn btn-secondary" onClick={() => send({ type: 'debate.reopen' })}>
+            {L.debateReopen}
+          </button>
+        </div>
+      ) : null}
+
       {list ? (
         <>
           <SpeakerControls list={list} pack={pack} now={now} send={send} L={L} byId={byId} />
@@ -313,5 +322,82 @@ export function Floor(p: FloorProps) {
         </details>
       ) : null}
     </section>
+  );
+}
+
+// Fixed to the bottom on phones and tablets: who has the floor, their time, and the two buttons
+// used most. Hidden on wide screens, where the floor panel is always in view.
+export function PhoneBar({ list, now, pack, delegates, send, L }: { list: SpeakerList; now: number; pack: Pack; delegates: ConsoleDelegate[]; send: (c: Command) => void; L: Labels }) {
+  const current = list.current;
+  const d = current ? delegates.find((x) => x.id === current.delegate) : null;
+  const left = current ? remainingMs(current.timer, now) : 0;
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-10 flex items-center gap-3 border-t border-border-strong bg-surface-raised px-4 py-3 xl:hidden" role="region" aria-label={L.quickBar}>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate font-semibold text-on-surface">{d?.label ?? L.nobody}</span>
+        {current ? (
+          <span className={`font-mono text-2xl font-bold tabular-nums ${left <= 0 ? 'text-danger' : 'text-on-surface'}`} aria-hidden="true">
+            {clock(left)}
+          </span>
+        ) : null}
+      </div>
+      {current ? (
+        <button type="button" className="btn btn-secondary" onClick={() => send({ type: current.timer.runningSince ? 'timer.pause' : 'timer.start' })}>
+          {current.timer.runningSince ? L.pause : L.timerStart}
+        </button>
+      ) : null}
+      <button type="button" className="btn btn-primary" disabled={list.queue.length === 0 && !current} onClick={() => send({ type: 'speakers.next' })}>
+        {L.next}
+      </button>
+      {/* Keeps the warning colour rule in one place for the screen-reader-free bar. */}
+      <span className="sr-only">{left > 0 && left <= pack.speaking.warnSeconds * 1000 ? L.almost : ''}</span>
+    </div>
+  );
+}
+
+// Keys for the things a chair does most, when not typing in a field.
+export function useShortcuts(enabled: boolean, state: LiveState, send: (c: Command) => void) {
+  useEffect(() => {
+    if (!enabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return;
+      const list = state.caucus ? state.caucus.list : state.speakers;
+      if (!list) return;
+      const key = e.key.toLowerCase();
+      if (key === 'n') send({ type: 'speakers.next' });
+      else if (key === 's' && list.current) send({ type: list.current.timer.runningSince ? 'timer.pause' : 'timer.start' });
+      else if (key === 'r' && list.current) send({ type: 'timer.reset' });
+      else if (key === 'e' && list.current) send({ type: 'speakers.end' });
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [enabled, state, send]);
+}
+
+export function Shortcuts({ L }: { L: Labels }) {
+  const keys: [string, string][] = [
+    ['N', L.keyNext!],
+    ['S', L.keyStart!],
+    ['R', L.keyReset!],
+    ['E', L.keyEnd!],
+  ];
+  return (
+    <details className="card">
+      <summary className="cursor-pointer font-semibold text-on-surface">{L.shortcuts}</summary>
+      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        {keys.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt>
+              <kbd className="rounded-control border border-border-strong px-2 font-mono text-on-surface">{k}</kbd>
+            </dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }

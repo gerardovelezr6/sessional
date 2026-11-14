@@ -24,7 +24,7 @@ async function runCommandUntimed(tenantKey: string, committeeId: string, envelop
   if (!parsed.success) return { ok: false, error: 'failed' };
   const { config } = await tenantTranslator(tenant.id);
   try {
-    return await runCommand({ committeeId, userId: ctx.user.id, token: ctx.token, presetKey: config.protocol.preset, envelope: parsed.data });
+    return await runCommand({ committeeId, userId: ctx.user.id, token: ctx.token, school: config.protocol, structure: config.structure, envelope: parsed.data });
   } catch (e) {
     if (e instanceof RpcError) {
       // Ids only: never names or what was typed.

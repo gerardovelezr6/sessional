@@ -75,6 +75,9 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   committee_sessions: { insert: `insert into committee_sessions (id, tenant_id, committee_id, number, protocol) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 99, '{}')`, params: (t) => [t] },
   committee_commands: { insert: `insert into committee_commands (id, tenant_id, committee_id, revision, kind) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 99, 'session.close')`, params: (t) => [t] },
   speeches: { insert: `insert into speeches (tenant_id, committee_id, session_id, list, started_at, seconds) values ($1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), 'general', now(), 60)`, params: (t) => [t] },
+  votes: { insert: `insert into votes (id, tenant_id, committee_id, session_id, subject, method, majority, procedural, tally, needed, passed) values (gen_random_uuid(), $1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), '{}', 'placard', 'simple', true, '{}', 1, true)`, params: (t) => [t] },
+  warnings: { insert: `insert into warnings (id, tenant_id, committee_id, level, points) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 'warning', 1)`, params: (t) => [t] },
+  documents: { insert: `insert into documents (tenant_id, committee_id, kind, title) values ($1, (select id from committees where tenant_id = $1 limit 1), 'working_paper', 'Intruder')`, params: (t) => [t] },
   roll_calls: { insert: `insert into roll_calls (tenant_id, committee_id, session_id, entries) values ($1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), '[]')`, params: (t) => [t] },
 };
 
@@ -121,6 +124,9 @@ beforeAll(async () => {
     await db.query(`insert into committee_commands (id, tenant_id, committee_id, revision, kind) values (gen_random_uuid(), $1, $2, 1, 'session.open')`, [t, c]);
     await db.query(`insert into roll_calls (tenant_id, committee_id, session_id, entries) values ($1, $2, $3, '[]')`, [t, c, s]);
     await db.query(`insert into speeches (tenant_id, committee_id, session_id, label, list, started_at, seconds) values ($1, $2, $3, 'Mexico', 'general', now(), 60)`, [t, c, s]);
+    await db.query(`insert into votes (id, tenant_id, committee_id, session_id, subject, method, majority, procedural, tally, needed, passed) values (gen_random_uuid(), $1, $2, $3, '{}', 'placard', 'simple', true, '{}', 1, true)`, [t, c, s]);
+    await db.query(`insert into warnings (id, tenant_id, committee_id, session_id, level, points) values (gen_random_uuid(), $1, $2, $3, 'warning', 1)`, [t, c, s]);
+    await db.query(`insert into documents (tenant_id, committee_id, kind, title) values ($1, $2, 'draft_resolution', 'Resolution')`, [t, c]);
     // A second committee without a confidential topic, so a forged one has somewhere to go.
     await db.query(`insert into committees (tenant_id, conference_id, name) values ($1, $2, 'Spare')`, [t, conf]);
   }

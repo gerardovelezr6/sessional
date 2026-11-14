@@ -1,6 +1,6 @@
 # ADR-0007 — Protocol engine
 
-Status: accepted; built step by step in Phase 6 (parts 1–2: engine, sessions, roll call, speakers, timers, caucuses) · Date: 2026-11-10
+Status: accepted; built in Phase 6 · Date: 2026-11-10
 
 ## Decision
 
@@ -99,3 +99,29 @@ commands gives the same state), and Playwright runs that drop the network mid-vo
   as it was) for grading and analytics later.
 - Sounds at the end of a timer come with projection in Phase 7; the console shows the warning and
   "time is up" visually and announces it to screen readers.
+
+## As built (Phase 6, parts 3–5)
+
+- Packs gain `motions` (precedence, an effect from a fixed set, the caucus they start, second,
+  speakers for and against, the majority), `points` (which interrupt), `voting` (allowed methods,
+  the majority for resolutions, passing, procedural abstentions, veto holders by country code),
+  `documents` (kinds with sponsor and signatory minimums, whether voted, whether an amendment) and
+  `discipline` (weighted warning levels and the rights lost at each threshold). All four presets
+  define them; Settings → Rules of procedure → Edit edits every part, starting from the preset.
+- Motions on the floor are kept in precedence order and voted only from the top, once seconded.
+  A passed motion takes effect through the same commands a chair would use and clears the floor.
+- Procedural votes are by placard and open to everyone present; substantive votes use the methods
+  the rules allow. Roll calls store each answer with the name the delegation had; a secret ballot
+  stores only totals (a database check makes ballots impossible for secret votes). A veto counts
+  only in committee types that allow it (`veto` on the type) and only for delegations whose flag
+  resolves to a holder country.
+- Documents are rows, not live state: draft → submitted → approved (minimums checked) →
+  introduced → passed or failed by a vote, or withdrawn. A vote on a document updates it in the
+  same transaction that records the vote.
+- Warnings are recorded with the delegate's name at the time; reasons are short and visible only to
+  the people who run or manage the committee.
+- The outbox: every command is written to IndexedDB before it is sent and removed when the server
+  answers. On load, the console sends what was left, with the same ids, so a reload or a lost
+  connection loses nothing and applies nothing twice.
+- Confidential topics can show by themselves when at least half of the conference's committees
+  have a session open (`conferences.secrets_unlock_rule`), decided in the database.

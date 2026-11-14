@@ -11,7 +11,9 @@ const type = (key: string) => typeOf(standard, key);
 describe('committee types', () => {
   it('the standard set is valid and covers the usual Model UN committees', () => {
     expect(structureSchema.safeParse(standard).success).toBe(true);
-    expect(standard.types.map((t) => t.key)).toEqual(['standard', 'specialized', 'us_senate', 'mx_senate', 'icc', 'crisis']);
+    expect(standard.types.map((t) => t.key)).toEqual(['standard', 'specialized', 'us_senate', 'mx_senate', 'icc', 'security_council', 'crisis']);
+    expect(type('security_council').veto).toBe(true);
+    expect(standard.types.filter((t) => t.veto).map((t) => t.key)).toEqual(['security_council']);
     expect(type('crisis').confidentialTopic).toBe(true);
     expect(type('us_senate')).toMatchObject({ flag: 'us_state', groupRequired: true, bulk: ['label', 'group', 'name'] });
     expect(type('icc')).toMatchObject({ flag: 'country_in_text', bulk: ['group', 'label', 'name'] });

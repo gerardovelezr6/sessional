@@ -7,7 +7,9 @@ import type { RunResult } from '@/protocol/run';
 import { countsOf, quorumOf } from '@/protocol/rules';
 import type { Pack } from '@/protocol/schema';
 import type { FlagChoice } from '@/structure/flags';
-import { Floor, useServerNow } from './floor';
+import { drop, keep, loadOutbox } from './outbox';
+import { Floor, PhoneBar, Shortcuts, useServerNow, useShortcuts } from './floor';
+import { DisciplinePanel, MotionsPanel, PointsPanel, VotePanel, type VotableDocument } from './procedure';
 
 export interface ConsoleDelegate {
   id: string;
@@ -31,9 +33,19 @@ interface Props {
   locale: string;
   timeZone: string;
   run: (envelope: { id: string; base: number; command: Command }) => Promise<RunResult & { now: string }>;
-  poll: () => Promise<{ revision: number; state: LiveState; now: string } | null>;
+  poll: () => Promise<{
+    revision: number;
+    state: LiveState;
+    now: string;
+  } | null>;
   // The server's time when the page was made.
   serverNow: string;
+  // Delegates who may veto substantive votes here.
+  vetoHolders: string[];
+  // Documents on the floor that can be put to a vote.
+  documents: VotableDocument[];
+  // Whose unsent changes on this device belong to this console: person and committee.
+  outboxKey: string;
   L: Record<string, string>;
 }
 
@@ -61,14 +73,26 @@ export function Console(p: Props) {
 
   // The rules in force: the open session's, else what a new session would use.
   const pack = confirmed.state.session ? p.protocol : p.nextProtocol;
-  const time = useMemo(() => new Intl.DateTimeFormat(locale, { timeStyle: 'short', timeZone: p.timeZone }), [locale, p.timeZone]);
+  const time = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        timeStyle: 'short',
+        timeZone: p.timeZone,
+      }),
+    [locale, p.timeZone],
+  );
 
   // What the screen shows: the confirmed state with the changes still on their way applied on top.
   const sessionsHeld = Math.max(p.sessionsHeld, confirmed.state.held);
   const shown = useMemo(() => {
     let s = confirmed.state;
     for (const q of queue) {
-      const r = apply(s, q.command, { protocol: pack, delegates: ids, sessionsHeld, now: new Date(now).toISOString() });
+      const r = apply(s, q.command, {
+        protocol: pack,
+        delegates: ids,
+        sessionsHeld,
+        now: new Date(now).toISOString(),
+      });
       if (r.ok) s = r.state;
     }
     return s;
@@ -100,7 +124,11 @@ export function Console(p: Props) {
     let result: RunResult & { now: string };
     const sentAt = Date.now();
     try {
-      result = await p.run({ id: head.id, base: revision.current, command: head.command });
+      result = await p.run({
+        id: head.id,
+        base: revision.current,
+        command: head.command,
+      });
       learnClock(result.now, sentAt);
     } catch {
       // No answer: keep the command and send it again with the same id, so it is applied once.
@@ -113,6 +141,7 @@ export function Console(p: Props) {
     busy.current = false;
     retries.current = 0;
     setOffline(false);
+    void drop(head.id);
     if (result.ok) {
       accept({ revision: result.revision, state: result.state });
       setError(null);
@@ -148,9 +177,26 @@ export function Console(p: Props) {
 
   const send = (command: Command) => {
     setError(null);
-    setQ([...queueRef.current, { id: crypto.randomUUID(), command }]);
-    void pump();
+    const q = { id: crypto.randomUUID(), command };
+    setQ([...queueRef.current, q]);
+    // Kept on the device first, then sent.
+    void keep(p.outboxKey, q).finally(() => void pump());
   };
+
+  // Changes left unsent last time (the page was closed or reloaded): send them first.
+  const outboxKey = p.outboxKey;
+  useEffect(() => {
+    let cancelled = false;
+    void loadOutbox(outboxKey).then((left) => {
+      if (cancelled || left.length === 0) return;
+      const known = new Set(queueRef.current.map((x) => x.id));
+      setQ([...left.filter((x) => !known.has(x.id)), ...queueRef.current]);
+      again.current();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [outboxKey]);
 
   const counts = countsOf(pack, shown.attendance, ids);
   const quorum = quorumOf(pack, counts);
@@ -159,117 +205,199 @@ export function Console(p: Props) {
   const session = shown.session;
   const rollCall = shown.rollCall;
 
+  useShortcuts(!!session, shown, send);
+  const shared = {
+    state: shown,
+    pack,
+    delegates: p.delegates,
+    vetoHolders: p.vetoHolders,
+    documents: p.documents,
+    locale,
+    send,
+    L,
+  };
+  const active = shown.caucus ? shown.caucus.list : shown.speakers;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-28 xl:pb-0">
       <p role="status" aria-live="polite" className={error ? 'error-text' : 'text-sm text-on-surface-muted'}>
         {error ?? (offline ? fmt(L.offline, locale, { count: queue.length }) : fmt(L.saving, locale, { count: queue.length }))}
       </p>
 
-      <section className="card flex flex-col gap-3" aria-labelledby="session-title">
-        <h2 id="session-title" className="text-lg font-bold text-on-surface">
-          {L.sessionTitle}
-        </h2>
-        {session ? (
-          <>
-            <p>{fmt(L.sessionOpen, locale, { number: session.number, time: time.format(new Date(session.openedAt)) })}</p>
-            <div className="flex flex-wrap gap-2">
-              {confirmClose ? (
-                <>
-                  <button type="button" className="btn btn-danger" onClick={() => (setConfirmClose(false), send({ type: 'session.close' }))}>
-                    {fmt(L.closeConfirm, locale, { number: session.number })}
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setConfirmClose(false)} autoFocus>
-                    {L.closeCancel}
-                  </button>
-                </>
-              ) : (
-                <button type="button" className="btn btn-secondary" onClick={() => setConfirmClose(true)}>
-                  {L.close}
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <p>{L.noSession}</p>
-            <div>
-              <button type="button" className="btn btn-primary" onClick={() => send({ type: 'session.open', session: crypto.randomUUID() })} disabled={!idle}>
-                {fmt(L.open, locale, { number: sessionsHeld + 1 })}
-              </button>
-            </div>
-          </>
-        )}
-      </section>
-
-      {session ? <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} /> : null}
-
-      <section className="card flex flex-col gap-2" aria-labelledby="quorum-title">
-        <h2 id="quorum-title" className="text-lg font-bold text-on-surface">
-          {L.quorumTitle}
-        </h2>
-        <p className="text-2xl font-bold text-on-surface">{fmt(L.present, locale, { present: counts.present, members: counts.members })}</p>
-        <ul className="flex flex-col gap-1 text-sm">
-          <li>{fmt(L.quorumDebate, locale, { needed: quorum.debate.needed, met: quorum.debate.met ? 'yes' : 'no' })}</li>
-          <li>{fmt(L.quorumVote, locale, { needed: quorum.vote.needed, met: quorum.vote.met ? 'yes' : 'no' })}</li>
-        </ul>
-      </section>
-
-      {session ? (
-        <section className="card flex flex-col gap-3" aria-labelledby="rollcall-title">
-          <h2 id="rollcall-title" className="text-lg font-bold text-on-surface">
-            {L.rollCallTitle}
-          </h2>
-          {p.delegates.length === 0 ? <p className="text-sm">{L.empty}</p> : null}
-          <p className="text-sm">
-            {rollCall && !rollCall.finishedAt ? L.running : rollCall?.finishedAt ? fmt(L.taken, locale, { time: time.format(new Date(rollCall.finishedAt)) }) : L.notStarted}
-            {' '}
-            {fmt(L.unanswered, locale, { count: unanswered })}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {rollCall && !rollCall.finishedAt ? (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
+        <div className="flex min-w-0 flex-col gap-6">
+          <section className="card flex flex-col gap-3" aria-labelledby="session-title">
+            <h2 id="session-title" className="text-lg font-bold text-on-surface">
+              {L.sessionTitle}
+            </h2>
+            {session ? (
               <>
-                <button type="button" className="btn btn-secondary" disabled={unanswered === 0} onClick={() => send({ type: 'attendance.fillUnmarked', state: absent.key })}>
-                  {fmt(L.fill, locale, { state: nameOf(absent.name, locale) })}
-                </button>
-                <button type="button" className="btn btn-primary" onClick={() => send({ type: 'rollcall.finish' })}>
-                  {L.finish}
-                </button>
+                <p>
+                  {fmt(L.sessionOpen, locale, {
+                    number: session.number,
+                    time: time.format(new Date(session.openedAt)),
+                  })}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {confirmClose ? (
+                    <>
+                      <button type="button" className="btn btn-danger" onClick={() => (setConfirmClose(false), send({ type: 'session.close' }))}>
+                        {fmt(L.closeConfirm, locale, {
+                          number: session.number,
+                        })}
+                      </button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setConfirmClose(false)} autoFocus>
+                        {L.closeCancel}
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="btn btn-secondary" onClick={() => setConfirmClose(true)}>
+                      {L.close}
+                    </button>
+                  )}
+                </div>
               </>
             ) : (
-              <button type="button" className="btn btn-secondary" onClick={() => send({ type: 'rollcall.start' })}>
-                {rollCall ? L.startAgain : L.start}
-              </button>
+              <>
+                <p>{L.noSession}</p>
+                <div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() =>
+                      send({
+                        type: 'session.open',
+                        session: crypto.randomUUID(),
+                      })
+                    }
+                    disabled={!idle}
+                  >
+                    {fmt(L.open, locale, { number: sessionsHeld + 1 })}
+                  </button>
+                </div>
+              </>
             )}
-          </div>
-          <ul className="flex flex-col" aria-label={L.rollCallTitle}>
-            {p.delegates.map((d) => {
-              const current = shown.attendance[d.id] ?? null;
-              return (
-                <li key={d.id} className="flex flex-wrap items-center gap-3 border-b border-border py-2">
-                  <Flag choice={d.flag} logoUrl={d.logoUrl} />
-                  <span className="min-w-40 flex-1 font-semibold text-on-surface">{d.label}</span>
-                  {pendingFor.has(d.id) ? <span className="text-xs text-on-surface-muted">{L.pendingOne}</span> : null}
-                  <div role="group" aria-label={d.label} className="flex flex-wrap gap-1">
-                    {pack.attendance.map((a) => (
-                      <button
-                        key={a.key}
-                        type="button"
-                        aria-pressed={current === a.key}
-                        title={nameOf(a.name, locale)}
-                        className={`btn ${current === a.key ? 'btn-primary' : 'btn-secondary'} min-w-12`}
-                        onClick={() => send({ type: 'attendance.set', delegate: d.id, state: current === a.key ? null : a.key })}
-                      >
-                        <span aria-hidden="true">{a.short}</span>
-                        <span className="sr-only">{nameOf(a.name, locale)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
+          </section>
+          {session ? (
+            <>
+              <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} />
+              <VotePanel key={shown.vote?.id ?? 'none'} {...shared} />
+              <MotionsPanel {...shared} />
+            </>
+          ) : null}
+        </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          <section className="card flex flex-col gap-2" aria-labelledby="quorum-title">
+            <h2 id="quorum-title" className="text-lg font-bold text-on-surface">
+              {L.quorumTitle}
+            </h2>
+            <p className="text-2xl font-bold text-on-surface">
+              {fmt(L.present, locale, {
+                present: counts.present,
+                members: counts.members,
+              })}
+            </p>
+            <ul className="flex flex-col gap-1 text-sm">
+              <li>
+                {fmt(L.quorumDebate, locale, {
+                  needed: quorum.debate.needed,
+                  met: quorum.debate.met ? 'yes' : 'no',
+                })}
+              </li>
+              <li>
+                {fmt(L.quorumVote, locale, {
+                  needed: quorum.vote.needed,
+                  met: quorum.vote.met ? 'yes' : 'no',
+                })}
+              </li>
+            </ul>
+          </section>
+          {session ? <PointsPanel {...shared} /> : null}
+          {session ? (
+            <section className="card flex flex-col gap-3" aria-labelledby="rollcall-title">
+              <h2 id="rollcall-title" className="text-lg font-bold text-on-surface">
+                {L.rollCallTitle}
+              </h2>
+              {p.delegates.length === 0 ? <p className="text-sm">{L.empty}</p> : null}
+              <p className="text-sm">
+                {rollCall && !rollCall.finishedAt
+                  ? L.running
+                  : rollCall?.finishedAt
+                    ? fmt(L.taken, locale, {
+                        time: time.format(new Date(rollCall.finishedAt)),
+                      })
+                    : L.notStarted}{' '}
+                {fmt(L.unanswered, locale, { count: unanswered })}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {rollCall && !rollCall.finishedAt ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={unanswered === 0}
+                      onClick={() =>
+                        send({
+                          type: 'attendance.fillUnmarked',
+                          state: absent.key,
+                        })
+                      }
+                    >
+                      {fmt(L.fill, locale, {
+                        state: nameOf(absent.name, locale),
+                      })}
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={() => send({ type: 'rollcall.finish' })}>
+                      {L.finish}
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="btn btn-secondary" onClick={() => send({ type: 'rollcall.start' })}>
+                    {rollCall ? L.startAgain : L.start}
+                  </button>
+                )}
+              </div>
+              <ul className="flex flex-col" aria-label={L.rollCallTitle}>
+                {p.delegates.map((d) => {
+                  const current = shown.attendance[d.id] ?? null;
+                  return (
+                    <li key={d.id} className="flex flex-wrap items-center gap-3 border-b border-border py-2">
+                      <Flag choice={d.flag} logoUrl={d.logoUrl} />
+                      <span className="min-w-40 flex-1 font-semibold text-on-surface">{d.label}</span>
+                      {pendingFor.has(d.id) ? <span className="text-xs text-on-surface-muted">{L.pendingOne}</span> : null}
+                      <div role="group" aria-label={d.label} className="flex flex-wrap gap-1">
+                        {pack.attendance.map((a) => (
+                          <button
+                            key={a.key}
+                            type="button"
+                            aria-pressed={current === a.key}
+                            title={nameOf(a.name, locale)}
+                            className={`btn ${current === a.key ? 'btn-primary' : 'btn-secondary'} min-w-12`}
+                            onClick={() =>
+                              send({
+                                type: 'attendance.set',
+                                delegate: d.id,
+                                state: current === a.key ? null : a.key,
+                              })
+                            }
+                          >
+                            <span aria-hidden="true">{a.short}</span>
+                            <span className="sr-only">{nameOf(a.name, locale)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ) : null}
+          <DisciplinePanel {...shared} />
+          <Shortcuts L={L} />
+        </div>
+      </div>
+
+      {session && active ? <PhoneBar list={active} now={now} pack={pack} delegates={p.delegates} send={send} L={L} /> : null}
     </div>
   );
 }

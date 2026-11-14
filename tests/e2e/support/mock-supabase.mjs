@@ -26,6 +26,7 @@ const TENANTS = {
   mumun: { kind: 'tenant', id: tid(13), slug: 'mumun', name: 'Committee School', status: 'active' },
   console: { kind: 'tenant', id: tid(14), slug: 'console', name: 'Console School', status: 'active' },
   floor: { kind: 'tenant', id: tid(15), slug: 'floor', name: 'Floor School', status: 'active' },
+  rules: { kind: 'tenant', id: tid(16), slug: 'rules', name: 'Rules School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -75,10 +76,20 @@ seed('chair@console.test', 'Cam Console', tid(14), 'chair');
 seed('chair2@console.test', 'Cleo Console', tid(14), 'chair');
 seed('chair@floor.test', 'Fay Floor', tid(15), 'chair');
 seed('chair2@floor.test', 'Flo Floor', tid(15), 'chair');
+seed('owner@rules.test', 'Rita Rules', tid(16), 'owner');
+seed('chair@rules.test', 'Ray Rules', tid(16), 'chair');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
 const CONFIG = {
+  // A school with a Security Council type, where vetoes apply.
+  [tid(16)]: {
+    structure: {
+      version: 1,
+      schema_version: 1,
+      data: { categories: [], types: [{ key: 'standard', name: { en: 'Standard' }, labelField: { en: 'Country' } }, { key: 'security_council', name: { en: 'Security Council' }, labelField: { en: 'Country' }, veto: true }, { key: 'crisis', name: { en: 'Crisis' }, labelField: { en: 'Country' }, confidentialTopic: true }] },
+    },
+  },
   // An Arabic school, written right to left, with a few of its own texts.
   [tid(11)]: {
     locale: { version: 1, schema_version: 1, data: { enabledLocales: ['ar', 'en'], defaultLocale: 'ar' } },
@@ -273,6 +284,16 @@ const delegateRow = (d) => ({ id: d.id, label: d.label, name: d.name, group_key:
   chairs.push({ committee_id: c.id, user_id: byEmail('chair@console.test').id }, { committee_id: c.id, user_id: byEmail('chair2@console.test').id });
   for (const label of ['Brazil', 'China', 'France', 'Kenya', 'Mexico']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
 }
+// Rules School: a Security Council with two veto holders, for motions, votes and documents.
+{
+  const conf = { id: randomUUID(), tenant_id: tid(16), name: 'Rules MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9000-000000000003', tenant_id: tid(16), conference_id: conf.id, name: 'Security Council', abbreviation: 'SC', topic: '', description: '', category_key: null, type_key: 'security_council', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@rules.test').id });
+  for (const label of ['Brazil', 'China', 'France', 'Kenya', 'Mexico']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+}
+
 // Floor School: the same, for speakers, timers and caucuses.
 {
   const conf = { id: randomUUID(), tenant_id: tid(15), name: 'Floor MUN', status: 'active', secrets_unlocked_at: null, created_at: new Date().toISOString() };
@@ -311,7 +332,9 @@ Object.assign(rpcs, {
     const c = committeeById(p_committee);
     if (!c || !memberOf(userId, c.tenant_id)) return { body: null };
     const conf = conferences.find((f) => f.id === c.conference_id);
-    const unlocked = conf.secrets_unlocked_at && new Date(conf.secrets_unlocked_at).getTime() <= Date.now();
+    const inConf = committees.filter((x) => x.conference_id === conf.id);
+    const half = conf.secrets_unlock_rule === 'half_in_session' && 2 * inConf.filter((x) => liveSessions.some((s) => s.committee_id === x.id && !s.closed_at)).length >= inConf.length;
+    const unlocked = half || (conf.secrets_unlocked_at && new Date(conf.secrets_unlocked_at).getTime() <= Date.now());
     const readsSecret = manages(userId, c.tenant_id) || can(userId, c.tenant_id, 'crisis.view') || (unlocked && isChairOf(userId, c.id) && can(userId, c.tenant_id, 'committee.run'));
     return {
       body: {
@@ -420,6 +443,9 @@ const commands = new Map(); // command id -> { committee_id, revision }
 const liveSessions = []; // { id, committee_id, number, protocol, opened_at, closed_at }
 const rollCalls = []; // { id, session_id, taken_at, entries }
 const speechLog = []; // { session_id, label, list, seconds, started_at }
+const voteLog = []; // { session_id, ...vote }
+const warningLog = []; // { committee_id, ...warning }
+const documents = []; // documents rows
 const canRun = (userId, c) => {
   const role = c && roleOf(memberOf(userId, c.tenant_id)?.role_key);
   return !!role && (role.all || (role.permissions.includes('committee.run') && (isChairOf(userId, c.id) || role.key !== 'chair')));
@@ -444,7 +470,7 @@ Object.assign(rpcs, {
       body: liveSessions
         .filter((x) => x.committee_id === c.id)
         .sort((a, b) => b.number - a.number)
-        .map((x) => ({ id: x.id, number: x.number, opened_at: x.opened_at, closed_at: x.closed_at, roll_calls: rollCalls.filter((r) => r.session_id === x.id), speeches: speechLog.filter((r) => r.session_id === x.id) })),
+        .map((x) => ({ id: x.id, number: x.number, opened_at: x.opened_at, closed_at: x.closed_at, roll_calls: rollCalls.filter((r) => r.session_id === x.id), speeches: speechLog.filter((r) => r.session_id === x.id), votes: voteLog.filter((r) => r.session_id === x.id) })),
     };
   },
   live_load: ({ p_committee, p_command }) => {
@@ -454,10 +480,10 @@ Object.assign(rpcs, {
     const done = commands.get(p_command);
     return {
       body: {
-        tenant_id: c.tenant_id, revision: l.revision, barrier: l.barrier, state: l.state,
+        tenant_id: c.tenant_id, type_key: c.type_key, revision: l.revision, barrier: l.barrier, state: l.state,
         session_protocol: openSession(c.id)?.protocol ?? null,
         sessions_held: liveSessions.filter((x) => x.committee_id === c.id).length,
-        delegates: delegates.filter((d) => d.committee_id === c.id).sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase())).map((d) => ({ id: d.id, label: d.label })),
+        delegates: delegates.filter((d) => d.committee_id === c.id).sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase())).map((d) => ({ id: d.id, label: d.label, flag: d.flag, group_key: d.group_key })),
         applied: done && done.committee_id === c.id ? { revision: done.revision } : null,
       },
     };
@@ -478,6 +504,14 @@ Object.assign(rpcs, {
         const x = liveSessions.find((y) => y.id === e.id);
         if (x) x.closed_at = new Date().toISOString();
       }
+      if (e.type === 'vote.recorded') {
+        voteLog.push({ session_id: e.session, id: e.id, title: e.title, subject: e.subject, method: e.method, procedural: e.procedural, tally: e.tally, needed: e.needed, passed: e.passed, vetoed: e.vetoed, closed_at: new Date().toISOString(), ballots: e.method === 'roll_call' ? e.ballots : null });
+        if (e.subject.kind === 'document') {
+          const d = documents.find((x) => x.id === e.subject.document && x.committee_id === c.id && x.status === 'introduced');
+          if (d) d.status = e.passed ? 'passed' : 'failed';
+        }
+      }
+      if (e.type === 'warning.recorded') warningLog.push({ committee_id: c.id, ...e });
       if (e.type === 'speech.recorded') speechLog.push({ session_id: e.session, label: e.label, list: e.list, seconds: e.seconds, started_at: e.startedAt });
       if (e.type === 'rollcall.recorded') rollCalls.push({ id: randomUUID(), session_id: e.session, taken_at: new Date().toISOString(), entries: e.entries });
     }
@@ -487,6 +521,50 @@ Object.assign(rpcs, {
       return { hang: true };
     }
     return { body: { revision } };
+  },
+});
+
+// --- Documents and the unlock rule (Phase 6, part 4). ---
+const runsOrManages = (userId, c) => !!c && (canRun(userId, c) || manages(userId, c.tenant_id));
+Object.assign(rpcs, {
+  documents_list: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    return { body: runsOrManages(userId, c) ? documents.filter((d) => d.committee_id === c.id).sort((a, b) => a.created_at.localeCompare(b.created_at)) : [] };
+  },
+  document_save: ({ p_committee, p_data }, userId) => {
+    const c = committeeById(p_committee);
+    if (!runsOrManages(userId, c)) return { body: null };
+    const mine = new Set(delegates.filter((d) => d.committee_id === c.id).map((d) => d.id));
+    const sponsors = p_data.sponsors ?? [];
+    const signatories = p_data.signatories ?? [];
+    if ([...sponsors, ...signatories].some((x) => !mine.has(x))) return { status: 400, body: { code: '22023', message: 'sponsors and signatories must be delegates of this committee' } };
+    if (!p_data.id) {
+      const row = { id: randomUUID(), committee_id: c.id, kind: p_data.kind, code: p_data.code ?? '', title: String(p_data.title).trim(), body: p_data.body ?? '', parent_id: p_data.parent_id || null, sponsors, signatories, status: 'draft', created_at: new Date().toISOString() };
+      documents.push(row);
+      return { body: row };
+    }
+    const d = documents.find((x) => x.id === p_data.id && x.committee_id === c.id);
+    if (!d) return { body: null };
+    Object.assign(d, { code: p_data.code ?? '', title: String(p_data.title).trim(), body: p_data.body ?? '', sponsors, signatories });
+    return { body: d };
+  },
+  document_set_status: ({ p_document, p_status }, userId) => {
+    const d = documents.find((x) => x.id === p_document);
+    if (!d || !runsOrManages(userId, committeeById(d.committee_id))) return { body: null };
+    d.status = p_status;
+    return { body: d };
+  },
+  document_delete: ({ p_document }, userId) => {
+    const d = documents.find((x) => x.id === p_document);
+    if (!d || !runsOrManages(userId, committeeById(d.committee_id))) return { body: null };
+    documents.splice(documents.indexOf(d), 1);
+    return { body: { id: d.id } };
+  },
+  conference_set_unlock_rule: ({ p_conference, p_rule }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !manages(userId, f.tenant_id)) return { body: null };
+    f.secrets_unlock_rule = p_rule;
+    return { body: { id: f.id, secrets_unlock_rule: p_rule } };
   },
 });
 

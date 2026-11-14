@@ -251,6 +251,21 @@ describe('confidential topics shown when half the committees are in session', ()
   });
 });
 
+describe('the status every member sees', () => {
+  it('members of the school get status words; nobody else gets anything', async () => {
+    // A member who does not run the committee and cannot read its sessions.
+    expect(await call('member', `(select count(*) from committee_sessions where committee_id = $1)`, [council])).toBe('0');
+    const live = await call('member', `app.committee_status($1)`, [council]);
+    expect(live).toMatchObject({ status: expect.stringMatching(/^(in_session|between_sessions)$/), mode: expect.any(String) });
+    // Only status words: no live state, no attendance, no votes.
+    expect(Object.keys(live).sort()).toEqual(['caucus_key', 'mode', 'session_number', 'status']);
+    const unused = (await db.query(`insert into committees (tenant_id, conference_id, name) select tenant_id, conference_id, 'Unused' from committees where id = $1 returning id`, [council])).rows[0].id;
+    expect(await call('member', `app.committee_status($1)`, [unused])).toEqual({ status: 'not_started', session_number: null, mode: null, caucus_key: null });
+    expect(await call('outsider', `app.committee_status($1)`, [council])).toBeNull();
+    expect(await call('member', `app.committee_status($1)`, [other])).toBeNull();
+  });
+});
+
 describe('reading the live committee', () => {
   it('the chair and managers see it, others get nothing', async () => {
     const revision = Number(await call('service', `(select revision from committee_live where committee_id = $1)`, [council]));

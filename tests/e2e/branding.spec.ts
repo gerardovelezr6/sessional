@@ -102,7 +102,9 @@ test('a logo and a browser icon are uploaded, previewed, published and shown on 
   const visitor = await (await browser.newContext()).newPage();
   await visitor.goto(at('/login'));
   const headerLogo = visitor.locator('header.app-header img');
-  await expect(headerLogo).toHaveAttribute('alt', 'Logo School');
+  // The name is written beside the logo, so the image itself is decorative.
+  await expect(headerLogo).toHaveAttribute('alt', '');
+  await expect(visitor.locator('header.app-header .app-identity-name')).toHaveText('Logo School');
   expect(await headerLogo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(240);
   const icon = await visitor.locator('link[rel="icon"]').first().getAttribute('href');
   expect(icon).toMatch(/public-assets\/00000000-0000-4000-8000-000000000008\/favicon-[0-9a-f]{16}\.png$/);

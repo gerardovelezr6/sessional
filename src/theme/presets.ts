@@ -43,11 +43,13 @@ export const PRESETS: Record<PresetKey, Preset> = {
     headerStyle: 'light', pageTitle: 'bar', tabStyle: 'underline',
     pinned: { '--s-color-on-surface': '#14213D', '--s-color-on-surface-muted': '#5B6577', '--s-color-border': '#DCE1E9', '--s-color-border-strong': '#5B6577' },
   },
-  // Flat, square, institutional: spaced uppercase labels on white.
+  // The classic conference look, and a school's starting point: flat and square, white, Montserrat,
+  // slate text under deep-indigo headings, spaced uppercase labels and buttons, a white header.
   'flat-institutional': {
     brand: '#1E40AF', accent: '#F59E0B', background: '#FFFFFF', font: 'montserrat', radius: 'none', density: 'comfortable',
     uppercaseLabels: true, shadows: false, contrast: 'standard',
-    headerStyle: 'brand', pageTitle: 'bar', tabStyle: 'underline',
+    headerStyle: 'light', pageTitle: 'bar', tabStyle: 'underline',
+    pinned: { '--s-color-on-surface-muted': '#5E6973', '--s-color-border': '#DFE3E8' },
   },
   'classic-formal': {
     brand: '#6B1F2A', accent: '#B08D57', background: '#FAF7F2', font: 'source-serif', radius: 'small', density: 'comfortable',

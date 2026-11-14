@@ -16,6 +16,7 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadCommittee, serverTime } from '../../data';
 import { liveViewAction, runCommandAction } from './actions';
 import { Console } from './Console';
+import { CONSOLE_TABS } from './tabs';
 
 interface SessionRow {
   id: string;
@@ -30,13 +31,14 @@ interface SessionRow {
   speeches: { seconds: number }[];
 }
 
-export default async function ConsolePage({ params }: { params: Promise<{ tenant: string; id: string }> }) {
+export default async function ConsolePage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { tenant: key, id } = await params;
   const tenant = await requireTenant(key);
   const { t, locale, config } = await tenantTranslator(tenant.id);
   const base = await basePath();
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
+  const { tab } = await searchParams;
   const detail = await loadCommittee(tenant.id, id, ctx.token);
   if (!detail) notFound();
   const canRun = await rpc<boolean>('committee_can_run', { p_committee: id }, { token: ctx.token });
@@ -63,7 +65,7 @@ export default async function ConsolePage({ params }: { params: Promise<{ tenant
   const pattern = (k: MessageKey) => messageFor(k, locale, config.translations.messages).text;
 
   return (
-    <Shell title={t('console.title', { name: committee.name })} size="full" locale={locale}>
+    <Shell title={t('console.title', { name: committee.name })} size="full" locale={locale} quietTitle={config.theme.consoleLayout === 'tabs'}>
       <div className="flex flex-col gap-6">
         <p>
           <Link href={`${base}/committees/${committee.id}`} className="text-sm font-semibold underline underline-offset-2">
@@ -83,6 +85,9 @@ export default async function ConsolePage({ params }: { params: Promise<{ tenant
           }))}
           serverNow={serverTime()}
           outboxKey={`${ctx.user.id}:${committee.id}`}
+          layout={config.theme.consoleLayout}
+          committee={{ name: committee.name, abbreviation: committee.abbreviation, topic: committee.topic }}
+          initialTab={CONSOLE_TABS.find((x) => x === tab) ?? 'roll'}
           vetoHolders={vetoHoldersOf(protocol, type, detail.delegates)}
           documents={docs
             .filter((d) => d.status === 'introduced' && protocol.documents.find((k) => k.key === d.kind)?.votable)
@@ -213,6 +218,15 @@ export default async function ConsolePage({ params }: { params: Promise<{ tenant
             error_unknown_level: t('console.error.unknown_level'),
             error_debate_closed: t('console.error.debate_closed'),
             error_barred: t('console.error.barred'),
+            tabRoll: pattern('console.tab.roll'),
+            tabFloor: t('console.tab.floor'),
+            tabMotions: pattern('console.tab.motions'),
+            tabVoting: t('console.tab.voting'),
+            tabDiscipline: t('console.tab.discipline'),
+            tabsLabel: t('console.tabs'),
+            inSession: t('console.inSession'),
+            notInSession: t('console.notInSession'),
+            sessionBadge: pattern('console.sessionBadge'),
             error_unknown_delegate: t('console.error.unknown_delegate'),
             error_unknown_state: t('console.error.unknown_state'),
             add: t('floor.add'),

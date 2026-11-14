@@ -27,6 +27,7 @@ const TENANTS = {
   console: { kind: 'tenant', id: tid(14), slug: 'console', name: 'Console School', status: 'active' },
   floor: { kind: 'tenant', id: tid(15), slug: 'floor', name: 'Floor School', status: 'active' },
   rules: { kind: 'tenant', id: tid(16), slug: 'rules', name: 'Rules School', status: 'active' },
+  grid: { kind: 'tenant', id: tid(17), slug: 'grid', name: 'Grid School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -78,12 +79,26 @@ seed('chair@floor.test', 'Fay Floor', tid(15), 'chair');
 seed('chair2@floor.test', 'Flo Floor', tid(15), 'chair');
 seed('owner@rules.test', 'Rita Rules', tid(16), 'owner');
 seed('chair@rules.test', 'Ray Rules', tid(16), 'chair');
+seed('owner@grid.test', 'Gil Grid', tid(17), 'owner');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
 const CONFIG = {
-  // A school with a Security Council type, where vetoes apply.
+  // The home page: a banner with dates and venue, committees under categories.
+  [tid(17)]: {
+    identity: { version: 1, schema_version: 1, data: { tagline: { en: 'Diplomacy in action' }, dates: { en: 'March 12–14, 2027' }, venue: { en: 'City Hall' } } },
+    structure: {
+      version: 1,
+      schema_version: 1,
+      data: {
+        categories: [{ key: 'general_assembly', name: { en: 'General Assembly' }, color: '#2563EB' }],
+        types: [{ key: 'standard', name: { en: 'Standard' }, labelField: { en: 'Country' } }, { key: 'crisis', name: { en: 'Crisis' }, labelField: { en: 'Country' }, confidentialTopic: true }],
+      },
+    },
+  },
+  // A school with a Security Council type, where vetoes apply, and the console on one page.
   [tid(16)]: {
+    theme: { version: 1, schema_version: 1, data: { consoleLayout: 'single' } },
     structure: {
       version: 1,
       schema_version: 1,
@@ -273,6 +288,17 @@ const nameOf = (id) => {
   return u.full_name || u.email;
 };
 const pick = (c) => ({ ...c });
+// The status words every member sees: in session, between sessions or not started; what the floor does.
+const liveStatus = (id) => {
+  const mine = liveSessions.filter((x) => x.committee_id === id);
+  const state = live.get(id)?.state ?? {};
+  return {
+    status: mine.some((x) => !x.closed_at) ? 'in_session' : mine.length ? 'between_sessions' : 'not_started',
+    session_number: mine.length ? Math.max(...mine.map((x) => x.number)) : null,
+    mode: state.vote ? 'voting' : state.caucus ? state.caucus.kind : 'formal',
+    caucus_key: state.caucus?.key ?? null,
+  };
+};
 const delegateRow = (d) => ({ id: d.id, label: d.label, name: d.name, group_key: d.group_key, flag: d.flag, extra: d.extra });
 
 // Console School: one committee, ready to run, chaired by Cam and Cleo, with five delegations.
@@ -324,6 +350,7 @@ Object.assign(rpcs, {
           delegates: seesDelegates(userId, c) ? delegates.filter((d) => d.committee_id === c.id).length : 0,
           chairs: chairs.filter((x) => x.committee_id === c.id).map((x) => ({ user_id: x.user_id, name: nameOf(x.user_id) })),
           is_chair: isChairOf(userId, c.id),
+          live: liveStatus(c.id),
         })),
       },
     };
@@ -453,6 +480,21 @@ const canRun = (userId, c) => {
 const openSession = (id) => liveSessions.filter((x) => x.committee_id === id && !x.closed_at).at(-1) ?? null;
 // Test hook: refuse the next N commits with a network failure, to exercise resending.
 let dropNext = 0;
+
+// Grid School: three committees, one of them in session.
+{
+  const conf = { id: randomUUID(), tenant_id: tid(17), name: 'Grid MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const add = (n, name, abbreviation, topic, category_key, type_key) => {
+    const c = { id: `00000000-0000-4000-9100-00000000000${n}`, tenant_id: tid(17), conference_id: conf.id, name, abbreviation, topic, description: '', category_key, type_key, language: null, sort_order: n, created_at: conf.created_at };
+    committees.push(c);
+    return c;
+  };
+  const disec = add(1, 'Disarmament and Security', 'DISEC', 'Autonomous weapons', 'general_assembly', 'standard');
+  add(2, 'Environment Programme', 'UNEP', 'Climate finance', 'general_assembly', 'standard');
+  add(3, 'Emergency Cabinet', 'EC', 'This must not show', null, 'crisis');
+  liveSessions.push({ id: randomUUID(), committee_id: disec.id, number: 1, protocol: null, opened_at: conf.created_at, closed_at: null });
+}
 
 Object.assign(rpcs, {
   committee_can_run: ({ p_committee }, userId) => ({ body: canRun(userId, committeeById(p_committee)) }),

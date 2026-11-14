@@ -8,6 +8,7 @@ import { countsOf, quorumOf } from '@/protocol/rules';
 import type { Pack } from '@/protocol/schema';
 import type { FlagChoice } from '@/structure/flags';
 import { drop, keep, loadOutbox } from './outbox';
+import type { ConsoleTab } from './tabs';
 import { Floor, PhoneBar, Shortcuts, useServerNow, useShortcuts } from './floor';
 import { DisciplinePanel, MotionsPanel, PointsPanel, VotePanel, type VotableDocument } from './procedure';
 
@@ -46,8 +47,13 @@ interface Props {
   documents: VotableDocument[];
   // Whose unsent changes on this device belong to this console: person and committee.
   outboxKey: string;
+  // One tab per part, or everything on one page (the school's choice).
+  layout: 'tabs' | 'single';
+  committee: { name: string; abbreviation: string; topic: string };
+  initialTab: ConsoleTab;
   L: Record<string, string>;
 }
+
 
 const POLL_MS = 5000;
 const RETRY_MS = [1000, 2000, 4000, 8000, 15000];
@@ -61,6 +67,14 @@ export function Console(p: Props) {
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  // The open tab is in the address (?tab=), so a reload or a shared link opens the same one.
+  const [tab, setTab] = useState<ConsoleTab>(p.initialTab);
+  const chooseTab = (t: ConsoleTab) => {
+    setTab(t);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', t);
+    window.history.replaceState(window.history.state, '', url);
+  };
   const retries = useRef(0);
   // How far the server's clock is from this device's: timers count on the server's clock.
   const [offset, setOffset] = useState(() => Date.parse(p.serverNow) - Date.now());
@@ -218,15 +232,8 @@ export function Console(p: Props) {
   };
   const active = shown.caucus ? shown.caucus.list : shown.speakers;
 
-  return (
-    <div className="flex flex-col gap-6 pb-28 xl:pb-0">
-      <p role="status" aria-live="polite" className={error ? 'error-text' : 'text-sm text-on-surface-muted'}>
-        {error ?? (offline ? fmt(L.offline, locale, { count: queue.length }) : fmt(L.saving, locale, { count: queue.length }))}
-      </p>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
-        <div className="flex min-w-0 flex-col gap-6">
-          <section className="card flex flex-col gap-3" aria-labelledby="session-title">
+  const sessionCard = (
+    <section className="card flex flex-col gap-3" aria-labelledby="session-title">
             <h2 id="session-title" className="text-lg font-bold text-on-surface">
               {L.sessionTitle}
             </h2>
@@ -278,16 +285,9 @@ export function Console(p: Props) {
               </>
             )}
           </section>
-          {session ? (
-            <>
-              <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} />
-              <VotePanel key={shown.vote?.id ?? 'none'} {...shared} />
-              <MotionsPanel {...shared} />
-            </>
-          ) : null}
-        </div>
-        <div className="flex min-w-0 flex-col gap-6">
-          <section className="card flex flex-col gap-2" aria-labelledby="quorum-title">
+  );
+  const quorumCard = (
+    <section className="card flex flex-col gap-2" aria-labelledby="quorum-title">
             <h2 id="quorum-title" className="text-lg font-bold text-on-surface">
               {L.quorumTitle}
             </h2>
@@ -312,9 +312,9 @@ export function Console(p: Props) {
               </li>
             </ul>
           </section>
-          {session ? <PointsPanel {...shared} /> : null}
-          {session ? (
-            <section className="card flex flex-col gap-3" aria-labelledby="rollcall-title">
+  );
+  const rollCallCard = (
+    <section className="card flex flex-col gap-3" aria-labelledby="rollcall-title">
               <h2 id="rollcall-title" className="text-lg font-bold text-on-surface">
                 {L.rollCallTitle}
               </h2>
@@ -391,13 +391,133 @@ export function Console(p: Props) {
                 })}
               </ul>
             </section>
+  );
+  const status = (
+    <p role="status" aria-live="polite" className={error ? 'error-text' : 'text-sm text-on-surface-muted'}>
+      {error ?? (offline ? fmt(L.offline, locale, { count: queue.length }) : fmt(L.saving, locale, { count: queue.length }))}
+    </p>
+  );
+  const bar = session && active ? <PhoneBar list={active} now={now} pack={pack} delegates={p.delegates} send={send} L={L} /> : null;
+
+  if (p.layout === 'tabs') {
+    const present = counts.present;
+    const tabs: { id: ConsoleTab; label: string }[] = [
+      { id: 'roll', label: fmt(L.tabRoll, locale, { present, total: counts.members }) },
+      { id: 'floor', label: L.tabFloor! },
+      { id: 'motions', label: fmt(L.tabMotions, locale, { count: shown.motions.length + shown.points.length }) },
+      { id: 'voting', label: shown.vote ? `${L.tabVoting} •` : L.tabVoting! },
+      { id: 'discipline', label: L.tabDiscipline! },
+    ];
+    return (
+      <div className="flex flex-col gap-4 pb-28 xl:pb-0">
+        <section className="card flex flex-wrap items-center gap-4" aria-label={L.sessionTitle}>
+          <div className="min-w-0 flex-1">
+            {p.committee.abbreviation ? <div className="label-text text-primary">{p.committee.abbreviation}</div> : null}
+            <p className="truncate text-xl font-bold text-on-surface">{p.committee.name}</p>
+            {p.committee.topic ? <p className="truncate text-sm">{p.committee.topic}</p> : null}
+            {session ? null : <p className="mt-1 text-sm">{L.noSession}</p>}
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className={`badge ${session ? 'bg-primary text-on-primary' : 'border border-border-strong text-on-surface'}`}>{session ? L.inSession : L.notInSession}</span>
+              {session ? <span className="badge border border-border-strong text-on-surface">{fmt(L.sessionBadge, locale, { number: session.number })}</span> : null}
+              {session ? <span className="badge border border-border text-on-surface">{shown.vote ? L.tabVoting : shown.caucus ? nameOf(pack.caucuses.find((c) => c.key === shown.caucus!.key)?.name ?? {}, locale) || shown.caucus.key : L.general}</span> : null}
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              {session ? (
+                confirmClose ? (
+                  <>
+                    <button type="button" className="btn btn-danger" onClick={() => (setConfirmClose(false), send({ type: 'session.close' }))}>
+                      {fmt(L.closeConfirm, locale, { number: session.number })}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setConfirmClose(false)} autoFocus>
+                      {L.closeCancel}
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="btn btn-secondary" onClick={() => setConfirmClose(true)}>
+                    {L.close}
+                  </button>
+                )
+              ) : (
+                <button type="button" className="btn btn-primary" onClick={() => send({ type: 'session.open', session: crypto.randomUUID() })} disabled={!idle}>
+                  {fmt(L.open, locale, { number: sessionsHeld + 1 })}
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+        {status}
+        {session ? (
+          <>
+            <div role="tablist" aria-label={L.tabsLabel} className="tabs">
+              {tabs.map((t) => (
+                <button key={t.id} type="button" role="tab" id={`tab-${t.id}`} aria-controls={`panel-${t.id}`} aria-selected={tab === t.id} className="tab" onClick={() => chooseTab(t.id)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="flex flex-col gap-6">
+              {tab === 'roll' ? (
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+                  {rollCallCard}
+                  {quorumCard}
+                </div>
+              ) : null}
+              {tab === 'floor' ? <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} /> : null}
+              {tab === 'motions' ? (
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+                  <MotionsPanel {...shared} />
+                  <PointsPanel {...shared} />
+                </div>
+              ) : null}
+              {tab === 'voting' ? (
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+                  <VotePanel key={shown.vote?.id ?? 'none'} {...shared} />
+                  {quorumCard}
+                </div>
+              ) : null}
+              {tab === 'discipline' ? (
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+                  <DisciplinePanel {...shared} />
+                  <Shortcuts L={L} />
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          quorumCard
+        )}
+        {bar}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 pb-28 xl:pb-0">
+      {status}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
+        <div className="flex min-w-0 flex-col gap-6">
+          {sessionCard}
+          {session ? (
+            <>
+              <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} />
+              <VotePanel key={shown.vote?.id ?? 'none'} {...shared} />
+              <MotionsPanel {...shared} />
+            </>
           ) : null}
+        </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          {quorumCard}
+          {session ? <PointsPanel {...shared} /> : null}
+          {session ? rollCallCard : null}
           <DisciplinePanel {...shared} />
           <Shortcuts L={L} />
         </div>
       </div>
 
-      {session && active ? <PhoneBar list={active} now={now} pack={pack} delegates={p.delegates} send={send} L={L} /> : null}
+      {bar}
     </div>
   );
 }

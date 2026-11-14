@@ -14,7 +14,8 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel('Password').fill('correct-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((url) => !url.pathname.endsWith('/login'));
-  await page.goto(at(CONSOLE));
+  // The floor has its own tab; the address keeps it.
+  await page.goto(at(`${CONSOLE}?tab=floor`));
 }
 
 const saved = (page: Page) => expect(page.getByText('All changes saved.')).toBeVisible();
@@ -32,13 +33,18 @@ const seconds = (text: string) => {
 test('the speakers list takes present delegates only, and can be reordered', async ({ page }) => {
   await signIn(page, 'chair@floor.test');
   await page.getByRole('button', { name: 'Open session 1' }).click();
+  await page.getByRole('tab', { name: /^Roll call/ }).click();
   await page.getByRole('group', { name: 'Mexico', exact: true }).getByRole('button', { name: 'Absent' }).click();
   await page.getByRole('button', { name: /Mark everyone not answered as Absent/ }).click();
   await saved(page);
+  await page.getByRole('tab', { name: 'Speakers & caucus' }).click();
+  await expect(page).toHaveURL(/tab=floor/);
   // Nobody is present yet, so nobody can be added.
   await expect(floor(page).getByText(/Nobody else can be added/)).toBeVisible();
+  await page.getByRole('tab', { name: /^Roll call/ }).click();
   for (const d of ['Brazil', 'China', 'France', 'Kenya']) await page.getByRole('group', { name: d, exact: true }).getByRole('button', { name: 'Present', exact: true }).click();
   await saved(page);
+  await page.getByRole('tab', { name: 'Speakers & caucus' }).click();
 
   const chips = floor(page).getByRole('group', { name: 'Add to the list' });
   await expect(chips.getByRole('button')).toHaveText(['+ Brazil', '+ China', '+ France', '+ Kenya']);

@@ -13,6 +13,8 @@ Spanish: Identidad
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
 | Tagline | `identity.tagline` | (none) | text per language, up to 160 characters each | `tenant.manage` | A short line shown under your conference name on the sign-in page. |
+| Dates | `identity.dates` | (none) | text per language, up to 120 characters each | `tenant.manage` | When the conference takes place, shown on the home page, for example "March 12–14, 2027". |
+| Venue | `identity.venue` | (none) | text per language, up to 120 characters each | `tenant.manage` | Where it takes place, shown on the home page. |
 | Time zone | `identity.timeZone` | `UTC` | an IANA time zone, e.g. `America/Mexico_City` | `tenant.manage` | Dates and times are shown in this time zone. |
 
 ## Language (`locale`)
@@ -65,7 +67,7 @@ Spanish: Diseño
 
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
-| Design preset | `theme.preset` | `sessional` | `sessional` (Sessional), `flat-institutional` (Flat institutional), `classic-formal` (Classic formal), `modern-rounded` (Modern rounded), `high-contrast` (High contrast), `playful-school` (Playful school) | `theme.edit` | A complete look to start from. The settings below change parts of it. |
+| Design preset | `theme.preset` | `flat-institutional` | `sessional` (Sessional), `flat-institutional` (Classic conference), `classic-formal` (Classic formal), `modern-rounded` (Modern rounded), `high-contrast` (High contrast), `playful-school` (Playful school) | `theme.edit` | A complete look to start from. The settings below change parts of it. |
 | Logo | `theme.logo` | as the preset has it | uploaded PNG, JPEG or WebP, up to 2 MB | `theme.edit` | PNG, JPEG or WebP, up to 2 MB. Shown in the page header and on the sign-in page. |
 | Browser icon | `theme.favicon` | as the preset has it | uploaded square PNG, 32 to 1024 px | `theme.edit` | A square PNG, 32 to 1024 pixels, shown in the browser tab. It should still be clear at 16 pixels. |
 | Brand colour | `theme.brand` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | Your main colour, used for buttons and highlights. Pick one, or keep the design's. |
@@ -78,6 +80,8 @@ Spanish: Diseño
 | Shadows | `theme.shadows` | as the preset has it | `on` (On), `off` (Off); empty = as the preset has it | `theme.edit` | A soft shadow under cards. |
 | Contrast | `theme.contrast` | as the preset has it | `standard` (Standard), `high` (High); empty = as the preset has it | `theme.edit` | High contrast makes text and outlines stronger for easier reading. |
 | Page header | `theme.headerStyle` | as the preset has it | `light` (Light), `brand` (In the brand colour); empty = as the preset has it | `theme.edit` | The bar at the top of every page, with your logo or name. |
+| Home page banner | `theme.homeBanner` | `on` | `on` (Show), `off` (Hide) | `theme.edit` | A band in your colours at the top of the home page, with the conference name, tagline, dates and venue. |
+| Chair console | `theme.consoleLayout` | `tabs` | `tabs` (Tabs), `single` (One page) | `theme.edit` | One tab for each part of running a committee, or everything on one page. |
 | Page titles | `theme.pageTitle` | as the preset has it | `plain` (Plain), `bar` (With a coloured bar); empty = as the preset has it | `theme.edit` | How the title at the top of each page is drawn. |
 | Tabs | `theme.tabStyle` | as the preset has it | `underline` (Underlined), `pill` (Filled), `boxed` (Outlined); empty = as the preset has it | `theme.edit` | How the selected tab is marked. |
 | Light or dark | `theme.colorMode` | `light` | `light` (Light), `dark` (Dark), `auto` (Automatic) | `theme.edit` | Automatic follows each person's device setting. |

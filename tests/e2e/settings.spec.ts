@@ -166,19 +166,19 @@ test('"Save and publish" makes a change live in one step; history lists versions
 test('a draft can be discarded, and text in several languages is saved per language', async ({ page }) => {
   await signIn(page, 'owner@epsilon.test', ES);
   let identidad = await openSection(page, HOST, 'identity');
-  await identidad.getByLabel('inglés (English)').fill('Diplomacy first');
-  await identidad.getByLabel('español').fill('La diplomacia primero');
+  await identidad.locator('#tagline\\.en').fill('Diplomacy first');
+  await identidad.locator('#tagline\\.es').fill('La diplomacia primero');
   await identidad.getByLabel('Zona horaria').selectOption('America/Mexico_City');
   await identidad.getByRole('button', { name: 'Guardar borrador' }).click();
   await page.waitForURL(/done=draft/);
   identidad = sectionOf(page, 'identity');
-  await expect(identidad.getByLabel('español')).toHaveValue('La diplomacia primero');
+  await expect(identidad.locator('#tagline\\.es')).toHaveValue('La diplomacia primero');
   await expect(identidad.getByLabel('Zona horaria')).toHaveValue('America/Mexico_City');
 
   await identidad.getByRole('button', { name: 'Descartar borrador' }).click();
   await page.waitForURL(/done=discarded/);
   identidad = sectionOf(page, 'identity');
   await expect(identidad.getByRole('status')).toHaveText('Borrador descartado.');
-  await expect(identidad.getByLabel('español')).toHaveValue('');
+  await expect(identidad.locator('#tagline\\.es')).toHaveValue('');
   await expect(identidad.getByLabel('Zona horaria')).toHaveValue('UTC');
 });

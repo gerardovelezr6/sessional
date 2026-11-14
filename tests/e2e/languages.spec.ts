@@ -67,7 +67,7 @@ test('a school adds French, and an unknown language code is refused with a reaso
   await expect(translations.getByText(/^Spanish: complete/)).toBeVisible();
   // Text written per language now offers French too.
   const identity = await openSection(page, 'lambda', 'identity');
-  await expect(identity.getByLabel('French (français)')).toBeVisible();
+  await expect(identity.locator('#tagline\\.fr')).toBeVisible();
 });
 
 test('the translation editor: search, broken texts refused and kept, saved as a draft, published', async ({ page }) => {

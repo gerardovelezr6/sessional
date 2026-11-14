@@ -23,6 +23,8 @@ export interface CommitteeSummary {
   delegates: number;
   chairs: { user_id: string; name: string }[];
   is_chair: boolean;
+  // Live status words (see committee_status in the database).
+  live?: { status: 'in_session' | 'between_sessions' | 'not_started'; session_number: number | null; mode: 'formal' | 'voting' | 'moderated' | 'unmoderated' | 'caucus' | null; caucus_key: string | null } | null;
 }
 
 export interface Overview {

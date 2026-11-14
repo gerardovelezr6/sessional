@@ -41,8 +41,11 @@
     @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60;
     padding: var(--s-space-control-y) var(--s-space-control-x);
   }
-  .btn-primary { @apply bg-primary text-on-primary; }
-  .btn-danger { @apply bg-danger text-on-danger; }
+  /* Main and destructive actions follow the label style: spaced capitals in the classic look. */
+  .btn-primary { @apply bg-primary text-on-primary; text-transform: var(--s-label-transform); letter-spacing: var(--s-label-tracking); }
+  .btn-danger { @apply bg-danger text-on-danger; text-transform: var(--s-label-transform); letter-spacing: var(--s-label-tracking); }
+  .btn-ghost { @apply text-on-surface; padding: var(--s-space-control-y) calc(var(--s-space-control-x) * 0.75); }
+  .btn-ghost:hover { background: var(--s-color-surface); }
   .btn-secondary {
     @apply border-border-strong bg-surface-raised text-on-surface;
     border-style: solid;
@@ -130,7 +133,25 @@
     border-bottom: var(--s-border-width) solid var(--s-header-line);
     padding: 0.75rem var(--s-space-surface);
   }
-  .app-header img { @apply block h-8 w-auto; max-width: 12rem; }
+  .app-header img { @apply block h-9 w-auto; max-width: 12rem; }
+  /* Small status labels on cards. */
+  .badge {
+    @apply inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 text-[10px] font-bold;
+    border-radius: var(--s-radius-control);
+    text-transform: var(--s-label-transform);
+    letter-spacing: var(--s-label-tracking);
+  }
+  /* The home page banner: the brand colour, deepening towards the far end. */
+  .home-banner {
+    background: linear-gradient(135deg, var(--s-color-primary), var(--s-color-banner-end));
+    color: var(--s-color-on-primary);
+    border-radius: var(--s-radius-surface);
+  }
+  .home-banner h1 { color: inherit; }
+  /* The school's name and tagline beside the logo. */
+  .app-identity { @apply flex min-w-0 items-center gap-3; }
+  .app-identity-name { @apply block truncate text-sm font-bold; }
+  .app-identity-tagline { @apply block truncate text-xs font-normal; opacity: 0.75; }
   .app-nav a {
     @apply text-sm font-semibold;
     padding: 0.35rem 0.6rem;
@@ -162,7 +183,9 @@
     border-bottom: var(--s-border-width) solid var(--s-color-border);
   }
   .tab {
-    @apply text-sm font-semibold text-on-surface-muted;
+    @apply text-xs font-bold text-on-surface-muted;
+    text-transform: var(--s-label-transform);
+    letter-spacing: var(--s-label-tracking);
     padding: var(--s-space-control-y) var(--s-space-control-x);
     border: var(--s-border-width) solid transparent;
     border-radius: var(--s-tab-radius);

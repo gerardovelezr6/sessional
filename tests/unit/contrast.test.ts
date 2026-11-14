@@ -153,9 +153,17 @@ describe('overrides on top of a preset', () => {
   });
   it('header, title and tab styles come from the preset and can be overridden', () => {
     const flat = buildTheme(choice({ preset: 'flat-institutional' })).light;
-    expect(flat).toMatchObject({ '--s-header-bg': 'var(--s-color-primary)', '--s-header-fg': 'var(--s-color-on-primary)', '--s-title-bar-display': 'block', '--s-tab-active-line': 'var(--s-color-primary)' });
-    const changed = buildTheme(choice({ preset: 'flat-institutional', headerStyle: 'light', pageTitle: 'plain', tabStyle: 'pill' })).light;
-    expect(changed).toMatchObject({ '--s-header-bg': 'var(--s-color-surface-raised)', '--s-header-fg': 'var(--s-color-on-surface)', '--s-title-bar-display': 'none', '--s-tab-active-bg': 'var(--s-color-primary)', '--s-tab-active-fg': 'var(--s-color-on-primary)' });
+    expect(flat).toMatchObject({ '--s-header-bg': 'var(--s-color-surface-raised)', '--s-header-fg': 'var(--s-color-on-surface)', '--s-title-bar-display': 'block', '--s-tab-active-line': 'var(--s-color-primary)' });
+    const changed = buildTheme(choice({ preset: 'flat-institutional', headerStyle: 'brand', pageTitle: 'plain', tabStyle: 'pill' })).light;
+    expect(changed).toMatchObject({ '--s-header-bg': 'var(--s-color-primary)', '--s-header-fg': 'var(--s-color-on-primary)', '--s-title-bar-display': 'none', '--s-tab-active-bg': 'var(--s-color-primary)', '--s-tab-active-fg': 'var(--s-color-on-primary)' });
+  });
+  it('the home banner keeps its text readable from one end to the other', () => {
+    for (const preset of PRESET_KEYS) {
+      for (const brand of [null, '#FFE66D', '#0B0B0B', '#22C55E']) {
+        const t = buildTheme(choice({ preset, brand })).light;
+        expect(contrastRatio(t['--s-color-on-primary']!, t['--s-color-banner-end']!), `${preset} ${brand}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
   it('structural tokens only point at colour tokens whose pairs are contrast-checked', () => {
     // Header text and selected-tab text always sit on the colour they were derived for.

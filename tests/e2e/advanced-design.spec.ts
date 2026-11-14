@@ -54,35 +54,35 @@ body { color: #000 }
 test('allowed custom CSS is rebuilt, scoped, and applied after publishing', async ({ page, browser }) => {
   const design = await openSettings(page, 'theta');
   await (await customCss(design)).fill(`/* square buttons, roomier cards */
-.btn-primary { border-radius: 0; letter-spacing: 0.1em }
+.btn-primary { border-radius: 3px; letter-spacing: 0.1em }
 .card { padding: 3rem }`);
   await design.getByRole('button', { name: 'Save draft' }).click();
   await page.waitForURL(/done=draft/);
   // Not live yet.
-  expect(await style(page, '.btn-primary', 'border-radius')).not.toBe('0px');
+  expect(await style(page, '.btn-primary', 'border-radius')).not.toBe('3px');
   await publishDesign(page);
 
   const visitor = await (await browser.newContext()).newPage();
   const res = await visitor.goto(at('theta', '/login'));
   const html = await res!.text();
-  expect(html).toContain(':root:root .btn-primary{border-radius:0;letter-spacing:0.1em}');
+  expect(html).toContain(':root:root .btn-primary{border-radius:3px;letter-spacing:0.1em}');
   expect(html).not.toContain('square buttons'); // comments are not passed through
-  expect(await style(visitor, 'button[type=submit]', 'border-radius')).toBe('0px');
+  expect(await style(visitor, 'button[type=submit]', 'border-radius')).toBe('3px');
   expect(await style(visitor, '.card', 'padding-top')).toBe('48px');
   await visitor.context().close();
 });
 
 test('safe mode shows the page without custom CSS, and the CSS can be removed', async ({ page }) => {
   await openSettings(page, 'theta');
-  expect(await style(page, '.btn-primary', 'border-radius')).toBe('0px');
+  expect(await style(page, '.btn-primary', 'border-radius')).toBe('3px');
   await page.goto(at('theta', '/settings?section=theme&safe-mode'));
   await expect(page.getByText('Safe mode: custom CSS is switched off on this page.')).toBeVisible();
-  expect(await style(page, '.btn-primary', 'border-radius')).toBe('8px');
+  expect(await style(page, '.btn-primary', 'border-radius')).toBe('0px');
 
   // A visitor cannot switch safe mode on by sending the internal header themselves.
   const visitor = await (await page.context().browser()!.newContext({ extraHTTPHeaders: { 'x-sessional-safe-mode': '1' } })).newPage();
   const forged = await visitor.goto(at('theta', '/login'));
-  expect(await forged!.text()).toContain(':root:root .btn-primary{border-radius:0');
+  expect(await forged!.text()).toContain(':root:root .btn-primary{border-radius:3px');
   await expect(visitor.getByText('Safe mode')).toHaveCount(0);
   await visitor.context().close();
 
@@ -90,7 +90,7 @@ test('safe mode shows the page without custom CSS, and the CSS can be removed', 
   await page.waitForURL(/done=draft/);
   await expect(await customCss(page.locator('section#theme'))).toHaveValue('');
   await publishDesign(page);
-  expect(await style(page, '.btn-primary', 'border-radius')).toBe('8px');
+  expect(await style(page, '.btn-primary', 'border-radius')).toBe('0px');
 });
 
 test('a design is exported as a file and imported into another school as a draft', async ({ page, browser }, testInfo) => {

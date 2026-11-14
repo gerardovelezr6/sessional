@@ -89,6 +89,16 @@ export const registry: Setting[] = [
     control: { kind: 'localizedText', maxLength: 160 },
   },
   {
+    section: 'identity', key: 'dates', permission: 'tenant.manage',
+    labelKey: 'settings.identity.dates', helpKey: 'settings.identity.dates.help',
+    control: { kind: 'localizedText', maxLength: 120 },
+  },
+  {
+    section: 'identity', key: 'venue', permission: 'tenant.manage',
+    labelKey: 'settings.identity.venue', helpKey: 'settings.identity.venue.help',
+    control: { kind: 'localizedText', maxLength: 120 },
+  },
+  {
     section: 'identity', key: 'timeZone', permission: 'tenant.manage',
     labelKey: 'settings.identity.timeZone', helpKey: 'settings.identity.timeZone.help',
     control: { kind: 'timeZone' },
@@ -210,6 +220,16 @@ export const registry: Setting[] = [
     section: 'theme', key: 'headerStyle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
     labelKey: 'settings.theme.headerStyle', helpKey: 'settings.theme.headerStyle.help',
     control: { kind: 'select', optional: true, options: [{ value: 'light', labelKey: 'settings.theme.headerStyle.light' }, { value: 'brand', labelKey: 'settings.theme.headerStyle.brand' }] },
+  },
+  {
+    section: 'theme', key: 'homeBanner', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
+    labelKey: 'settings.theme.homeBanner', helpKey: 'settings.theme.homeBanner.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.theme.homeBanner.on' }, { value: 'off', labelKey: 'settings.theme.homeBanner.off' }] },
+  },
+  {
+    section: 'theme', key: 'consoleLayout', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
+    labelKey: 'settings.theme.consoleLayout', helpKey: 'settings.theme.consoleLayout.help',
+    control: { kind: 'select', options: [{ value: 'tabs', labelKey: 'settings.theme.consoleLayout.tabs' }, { value: 'single', labelKey: 'settings.theme.consoleLayout.single' }] },
   },
   {
     section: 'theme', key: 'pageTitle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',

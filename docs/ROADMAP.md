@@ -1,13 +1,8 @@
 # Roadmap
 
-Status: Phases 0 to 5 and Phase 6 parts 1–2 are merged. The rest of Phase 6 (parts 3–5) is up
-for review as one pull request:
-
-3. Motions and points with precedence, voting (roll call, placard, secret, veto).
-4. Documents and the resolution workflow, discipline, the rules-of-procedure editor, and the
-   "half of the committees in session" unlock rule for confidential topics.
-5. The offline outbox (IndexedDB), keyboard shortcuts, tablet and phone layouts, and the network
-   test that pulls the connection mid-vote.
+Status: Phases 0 to 6 and the classic conference look are merged. Phase 7 (projection screens and
+live updates) and a tidy-up of the interface are up for review. The realtime load test at full
+conference size passed locally; the degraded-mode test needs staging (see `docs/LOAD-TEST.md`).
 
 Editable email texts move to the email phase.
 

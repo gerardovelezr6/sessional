@@ -125,3 +125,28 @@ commands gives the same state), and Playwright runs that drop the network mid-vo
   connection loses nothing and applies nothing twice.
 - Confidential topics can show by themselves when at least half of the conference's committees
   have a session open (`conferences.secrets_unlock_rule`), decided in the database.
+
+## Live updates and screens (Phase 7)
+
+- Projection screens are devices, not people. A screen opens `/display`, gets a six-character code
+  and a long random secret in a cookie (only its hash is stored), and a chair enters the code in the
+  console's Screens tab. Pairing checks the chair may run that committee, in the same school, with a
+  code less than a day old. A screen reads only its own committee, through the server.
+- What a screen sees is `projectionOf(state)`: floor, timers, the next speakers, motions' names,
+  vote totals. It never includes attendance by delegate, warnings, movers, points or individual
+  votes; secret ballots show nothing until closed; confidential topics are never projected; students'
+  names are not sent.
+- Realtime: after each commit the server announces "revision N" on the committee's channel (Supabase
+  Realtime broadcast, a random 256-bit channel name given only to the committee's chairs and paired
+  screens). The message carries no data, so a leaked channel name reveals only that something
+  changed; the content always comes from the server after the usual checks. This replaces the
+  "private channels" of the original plan: screens have no Supabase session to authorise a private
+  channel, and content-free announcements keep every permission check in one place.
+- Degraded mode: if realtime does not connect within five seconds, consoles poll every five seconds
+  and screens every two; with realtime working both poll only every thirty seconds as a safety net.
+- Screens keep the last picture through a lost connection, mark it "reconnecting", retry with back-off
+  up to every thirty seconds, catch up as soon as the network returns, keep the display awake, and
+  reload themselves after ten minutes of server errors while online.
+- Sounds: a short tone at the warning mark and three at time up, generated in the browser, after one
+  click or key press on the screen (browsers block sound before that). The timer also turns the accent
+  colour near the end and flashes the danger colour when time is up (steady for reduced motion).

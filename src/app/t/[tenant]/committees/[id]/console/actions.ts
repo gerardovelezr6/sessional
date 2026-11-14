@@ -47,3 +47,80 @@ export async function liveViewAction(tenantKey: string, committeeId: string): Pr
     throw e;
   }
 }
+
+// ── Projection screens ──
+
+export interface ScreenRow {
+  id: string;
+  name: string;
+  layout: 'standard' | 'timer' | 'speakers';
+  sound: boolean;
+  paired_at: string;
+  last_seen_at: string | null;
+}
+
+export type ScreensResult = { ok: true; screens: ScreenRow[] } | { ok: false; error: 'code' | 'forbidden' | 'failed' };
+
+async function screensOf(committeeId: string, token: string): Promise<ScreenRow[]> {
+  return rpc<ScreenRow[]>('displays_list', { p_committee: committeeId }, { token });
+}
+
+async function screensContext(tenantKey: string, committeeId: string) {
+  const tenant = await requireTenant(tenantKey);
+  const ctx = await tenantContext(tenant.id);
+  return ctx && UUID.test(committeeId) ? ctx : null;
+}
+
+const LAYOUTS = new Set(['standard', 'timer', 'speakers']);
+
+export async function pairScreenAction(tenantKey: string, committeeId: string, input: { code: string; name: string; layout: string }): Promise<ScreensResult> {
+  const ctx = await screensContext(tenantKey, committeeId);
+  if (!ctx) return { ok: false, error: 'forbidden' };
+  const code = String(input.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) return { ok: false, error: 'code' };
+  try {
+    const row = await rpc<{ id: string } | null>('display_pair', { p_committee: committeeId, p_code: code, p_name: String(input.name ?? '').slice(0, 60), p_layout: LAYOUTS.has(input.layout) ? input.layout : 'standard' }, { token: ctx.token });
+    if (!row) return { ok: false, error: 'code' };
+    return { ok: true, screens: await screensOf(committeeId, ctx.token) };
+  } catch (e) {
+    if (e instanceof RpcError) return { ok: false, error: e.forbidden ? 'forbidden' : 'failed' };
+    throw e;
+  }
+}
+
+export async function updateScreenAction(tenantKey: string, committeeId: string, input: { id: string; name: string; layout: string; sound: boolean }): Promise<ScreensResult> {
+  const ctx = await screensContext(tenantKey, committeeId);
+  if (!ctx || !UUID.test(input.id) || !LAYOUTS.has(input.layout)) return { ok: false, error: 'forbidden' };
+  try {
+    const row = await rpc('display_update', { p_display: input.id, p_name: String(input.name ?? '').slice(0, 60), p_layout: input.layout, p_sound: !!input.sound }, { token: ctx.token });
+    if (!row) return { ok: false, error: 'failed' };
+    return { ok: true, screens: await screensOf(committeeId, ctx.token) };
+  } catch (e) {
+    if (e instanceof RpcError) return { ok: false, error: e.forbidden ? 'forbidden' : 'failed' };
+    throw e;
+  }
+}
+
+export async function unpairScreenAction(tenantKey: string, committeeId: string, id: string): Promise<ScreensResult> {
+  const ctx = await screensContext(tenantKey, committeeId);
+  if (!ctx || !UUID.test(id)) return { ok: false, error: 'forbidden' };
+  try {
+    const row = await rpc('display_unpair', { p_display: id }, { token: ctx.token });
+    if (!row) return { ok: false, error: 'failed' };
+    return { ok: true, screens: await screensOf(committeeId, ctx.token) };
+  } catch (e) {
+    if (e instanceof RpcError) return { ok: false, error: e.forbidden ? 'forbidden' : 'failed' };
+    throw e;
+  }
+}
+
+export async function listScreensAction(tenantKey: string, committeeId: string): Promise<ScreensResult> {
+  const ctx = await screensContext(tenantKey, committeeId);
+  if (!ctx) return { ok: false, error: 'forbidden' };
+  try {
+    return { ok: true, screens: await screensOf(committeeId, ctx.token) };
+  } catch (e) {
+    if (e instanceof RpcError) return { ok: false, error: e.forbidden ? 'forbidden' : 'failed' };
+    throw e;
+  }
+}

@@ -232,6 +232,11 @@ export const registry: Setting[] = [
     control: { kind: 'select', options: [{ value: 'tabs', labelKey: 'settings.theme.consoleLayout.tabs' }, { value: 'single', labelKey: 'settings.theme.consoleLayout.single' }] },
   },
   {
+    section: 'theme', key: 'screenStyle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
+    labelKey: 'settings.theme.screenStyle', helpKey: 'settings.theme.screenStyle.help',
+    control: { kind: 'select', options: [{ value: 'dark', labelKey: 'settings.theme.screenStyle.dark' }, { value: 'light', labelKey: 'settings.theme.screenStyle.light' }] },
+  },
+  {
     section: 'theme', key: 'pageTitle', permission: 'theme.edit', group: 'layout', presentation: 'buttons',
     labelKey: 'settings.theme.pageTitle', helpKey: 'settings.theme.pageTitle.help',
     control: { kind: 'select', optional: true, options: [{ value: 'plain', labelKey: 'settings.theme.pageTitle.plain' }, { value: 'bar', labelKey: 'settings.theme.pageTitle.bar' }] },

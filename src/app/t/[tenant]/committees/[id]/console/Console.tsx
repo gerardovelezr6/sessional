@@ -7,6 +7,7 @@ import type { RunResult } from '@/protocol/run';
 import { countsOf, quorumOf } from '@/protocol/rules';
 import type { Pack } from '@/protocol/schema';
 import type { FlagChoice } from '@/structure/flags';
+import { useLive, type RealtimeConfig } from '@/live/useLive';
 import { drop, keep, loadOutbox } from './outbox';
 import type { ConsoleTab } from './tabs';
 import { Floor, PhoneBar, Shortcuts, useServerNow, useShortcuts } from './floor';
@@ -51,6 +52,10 @@ interface Props {
   layout: 'tabs' | 'single';
   committee: { name: string; abbreviation: string; topic: string };
   initialTab: ConsoleTab;
+  // Where this committee's changes are announced; null: polling only.
+  realtime: RealtimeConfig | null;
+  // The projection screens panel, made by the page.
+  screens: React.ReactNode;
   L: Record<string, string>;
 }
 
@@ -170,24 +175,24 @@ export function Console(p: Props) {
     again.current = () => void pump();
   }, [pump]);
 
-  // Other chairs' changes: read the committee every few seconds while nothing is being sent.
+  // Other chairs' changes: fetched when realtime announces a new revision, and by a regular poll
+  // (slow while realtime works, every few seconds when it does not). Never while sending.
   const idle = queue.length === 0;
-  useEffect(() => {
-    if (!idle) return;
-    const poll = p.poll;
-    const timer = setInterval(async () => {
-      if (document.visibilityState !== 'visible') return;
+  const refresh = useCallback(
+    async (announced: number | null) => {
+      if (queueRef.current.length || (announced !== null && announced <= revision.current)) return;
       try {
         const sentAt = Date.now();
-        const view = await poll();
+        const view = await p.poll();
         if (view) learnClock(view.now, sentAt);
         if (view && view.revision > revision.current && queueRef.current.length === 0) accept({ revision: view.revision, state: view.state });
       } catch {
-        // Polling quietly retries on the next tick.
+        // Retried on the next signal or poll.
       }
-    }, POLL_MS);
-    return () => clearInterval(timer);
-  }, [idle, p.poll, accept, learnClock]);
+    },
+    [p, accept, learnClock],
+  );
+  const liveMode = useLive(p.realtime, (r) => void refresh(r), { live: 30_000, degraded: POLL_MS });
 
   const send = (command: Command) => {
     setError(null);
@@ -393,9 +398,14 @@ export function Console(p: Props) {
             </section>
   );
   const status = (
-    <p role="status" aria-live="polite" className={error ? 'error-text' : 'text-sm text-on-surface-muted'}>
-      {error ?? (offline ? fmt(L.offline, locale, { count: queue.length }) : fmt(L.saving, locale, { count: queue.length }))}
-    </p>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <p role="status" aria-live="polite" className={error ? 'error-text' : 'text-sm text-on-surface-muted'}>
+        {error ?? (offline ? fmt(L.offline, locale, { count: queue.length }) : fmt(L.saving, locale, { count: queue.length }))}
+      </p>
+      <span className="text-xs text-on-surface-muted" title={L.liveHelp}>
+        {liveMode === 'live' ? L.liveOn : L.liveOff}
+      </span>
+    </div>
   );
   const bar = session && active ? <PhoneBar list={active} now={now} pack={pack} delegates={p.delegates} send={send} L={L} /> : null;
 
@@ -407,6 +417,7 @@ export function Console(p: Props) {
       { id: 'motions', label: fmt(L.tabMotions, locale, { count: shown.motions.length + shown.points.length }) },
       { id: 'voting', label: shown.vote ? `${L.tabVoting} •` : L.tabVoting! },
       { id: 'discipline', label: L.tabDiscipline! },
+      { id: 'screens', label: L.tabScreens! },
     ];
     return (
       <div className="flex flex-col gap-4 pb-28 xl:pb-0">
@@ -477,6 +488,7 @@ export function Console(p: Props) {
                   {quorumCard}
                 </div>
               ) : null}
+              {tab === 'screens' ? p.screens : null}
               {tab === 'discipline' ? (
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
                   <DisciplinePanel {...shared} />
@@ -486,7 +498,10 @@ export function Console(p: Props) {
             </div>
           </>
         ) : (
-          quorumCard
+          <>
+            {quorumCard}
+            {p.screens}
+          </>
         )}
         {bar}
       </div>
@@ -513,6 +528,7 @@ export function Console(p: Props) {
           {session ? <PointsPanel {...shared} /> : null}
           {session ? rollCallCard : null}
           <DisciplinePanel {...shared} />
+          {p.screens}
           <Shortcuts L={L} />
         </div>
       </div>

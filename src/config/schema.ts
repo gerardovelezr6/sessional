@@ -87,6 +87,8 @@ export const sections = {
     homeBanner: z.enum(['on', 'off']).default('on'),
     // The chair console: one tab per part (roll call, speakers, caucus…) or everything on one page.
     consoleLayout: z.enum(['tabs', 'single']).default('tabs'),
+    // Projection screens: dark (easier to read on projectors) or light, in the school's colours.
+    screenStyle: z.enum(['dark', 'light']).default('dark'),
     // Files the school uploaded; the server checks they belong to the school before using them.
     logo: z.string().regex(ASSET_PATH).nullable().default(null),
     favicon: z.string().regex(ASSET_PATH).nullable().default(null),

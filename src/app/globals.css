@@ -203,3 +203,15 @@
 [dir="rtl"] .side-nav a[aria-current] {
   box-shadow: inset -3px 0 0 var(--s-color-primary);
 }
+
+/* Projection screens. Colours come from the school's theme, rendered for the screen (dark by
+   default); timers turn the accent colour near the end and the danger colour when time is up. */
+.screen { background: var(--s-color-surface); color: var(--s-color-on-surface); cursor: none; }
+.screen .label-text { color: var(--s-color-on-surface-muted); }
+.screen-chip { background: var(--s-color-surface-raised); color: var(--s-color-on-surface); }
+.screen-warn { background: var(--s-color-accent); color: var(--s-color-on-accent); padding: 0 0.15em; }
+.screen-alert { background: var(--s-color-danger); color: var(--s-color-on-danger); padding: 0 0.15em; animation: screen-flash 1s steps(2, start) infinite; }
+@keyframes screen-flash { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .screen-alert { animation: none; } }
+/* A screen covers the whole window: no header or menus behind it. */
+body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }

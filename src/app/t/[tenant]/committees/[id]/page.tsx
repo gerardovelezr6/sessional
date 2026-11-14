@@ -20,7 +20,7 @@ import { Delegates } from './Delegates';
 
 const DONE: Record<string, MessageKey> = { saved: 'committee.saved', chairs: 'committee.saved', secret: 'committee.saved', delegate: 'delegates.saved', removed: 'delegates.deleted' };
 
-export default async function CommitteePage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ done?: string; count?: string }> }) {
+export default async function CommitteePage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ done?: string; count?: string; tab?: string }> }) {
   const { tenant: key, id } = await params;
   const tenant = await requireTenant(key);
   const { t, locale, config } = await tenantTranslator(tenant.id);
@@ -46,6 +46,13 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const people = manage ? await loadPeople(tenant.id, ctx.token).catch(() => null) : null;
   const candidates = (people?.members ?? []).filter((m) => m.status !== 'disabled');
 
+  // The page's parts as tabs. A save comes back to the tab it was made on.
+  const tabs = ['overview', ...(manage ? ['chairs'] : []), 'delegates'] as const;
+  const fromDone = query.done === 'chairs' ? 'chairs' : ['added', 'delegate', 'removed'].includes(query.done ?? '') ? 'delegates' : null;
+  const tab = (tabs as readonly string[]).includes(query.tab ?? '') ? query.tab! : (fromDone ?? 'overview');
+  const tabHref = (x: string) => `${base}/committees/${committee.id}?tab=${x}`;
+  const tabLabel: Record<string, string> = { overview: t('committee.tab.overview'), chairs: t('committee.chairs.title'), delegates: `${t('delegates.title')} (${detail.delegates.length})` };
+
   const done = query.done === 'added' ? t('delegates.added', { count: Number(query.count) || 0 }) : query.done && DONE[query.done] ? t(DONE[query.done]!) : null;
 
   // Patterns for the browser, with the school's own wording, filled in there.
@@ -57,31 +64,52 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const columnName = (c: string) => (c === 'label' ? labelField : c === 'name' ? t('delegates.col.name') : c === 'group' ? groupLabel : (fields.find((f) => f.key === c)?.name ?? c));
 
   return (
-    <Shell title={committee.abbreviation ? `${committee.name} (${committee.abbreviation})` : committee.name} size="full" locale={locale}>
+    <Shell
+      title={committee.abbreviation ? `${committee.name} (${committee.abbreviation})` : committee.name}
+      size="full"
+      locale={locale}
+      quietTitle
+      crumbs={[{ href: `${base}/`, label: t('nav.home') }, { label: committee.name }]}
+    >
       <div className="flex flex-col gap-6">
-        <p>
-          <Link href={`${base}/committees`} className="text-sm font-semibold underline underline-offset-2">
-            {t('committee.back')}
-          </Link>
-        </p>
+        <section className="card flex flex-wrap items-center gap-4" aria-label={committee.name}>
+          <div className="min-w-0 flex-1">
+            {committee.abbreviation ? <div className="label-text text-primary">{committee.abbreviation}</div> : null}
+            <p className="text-2xl font-bold text-on-surface">{committee.name}</p>
+            <p className="text-sm">
+              {localize(type.name, locale, type.key)}
+              {committee.topic && !type.confidentialTopic ? ` · ${committee.topic}` : ''}
+            </p>
+          </div>
+          {canRun ? (
+            <div className="flex flex-wrap gap-2">
+              <Link href={`${base}/committees/${committee.id}/console`} className="btn btn-primary">
+                {t('committee.console.open')}
+              </Link>
+              <Link href={`${base}/committees/${committee.id}/documents`} className="btn btn-secondary">
+                {t('committee.documents.open')}
+              </Link>
+              <a href={`${base}/display`} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                {t('committee.screen.open')}
+              </a>
+            </div>
+          ) : null}
+        </section>
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
             {done}
           </p>
         ) : null}
-        {canRun ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Link href={`${base}/committees/${committee.id}/console`} className="card flex flex-col gap-1 hover:border-border-strong">
-              <span className="text-lg font-bold text-on-surface">{t('committee.console.open')}</span>
-              <span className="text-sm">{t('committee.console.help')}</span>
+        <nav aria-label={t('committee.tabs')} className="tabs">
+          {tabs.map((x) => (
+            <Link key={x} href={tabHref(x)} className="tab" aria-current={tab === x ? 'page' : undefined}>
+              {tabLabel[x]}
             </Link>
-            <Link href={`${base}/committees/${committee.id}/documents`} className="card flex flex-col gap-1 hover:border-border-strong">
-              <span className="text-lg font-bold text-on-surface">{t('committee.documents.open')}</span>
-              <span className="text-sm">{t('committee.documents.help')}</span>
-            </Link>
-          </div>
-        ) : null}
+          ))}
+        </nav>
 
+        {tab === 'overview' ? (
+        <>
         <section className="card flex flex-col gap-3" aria-labelledby="details-title">
           <h2 id="details-title" className="text-lg font-bold text-on-surface">
             {t('committee.details')}
@@ -106,7 +134,43 @@ export default async function CommitteePage({ params, searchParams }: { params: 
           )}
         </section>
 
+
+        {type.confidentialTopic ? (
+          <section id="secret" className="card flex flex-col gap-3" aria-labelledby="secret-title">
+            <h2 id="secret-title" className="text-lg font-bold text-on-surface">
+              {t('committee.secret.title')}
+            </h2>
+            {manage ? (
+              <>
+                <p className="text-sm">{t('committee.secret.help')}</p>
+                <ActionForm action={setSecretAction.bind(null, key, committee.id)} submitLabel={t('committee.secret.save')} variant="secondary">
+                  <textarea className="input min-h-24" name="secret" maxLength={2000} defaultValue={detail.secret ?? ''} aria-label={t('committee.secret.title')} />
+                </ActionForm>
+              </>
+            ) : // The database returns the topic to a chair only once topics are shown.
+            detail.secret ? (
+              <p className="whitespace-pre-line text-on-surface">{detail.secret}</p>
+            ) : (
+              <p className="text-sm">{t('committee.secret.hidden')}</p>
+            )}
+          </section>
+        ) : null}
+
+
         {manage ? (
+          <section className="card flex flex-col gap-3" aria-labelledby="delete-title">
+            <h2 id="delete-title" className="text-lg font-bold text-on-surface">
+              {t('committee.delete.title')}
+            </h2>
+            <p className="text-sm">{t('committee.delete.help')}</p>
+            <div>
+              <ConfirmButton action={deleteCommitteeAction.bind(null, key, committee.id)} ask={t('committee.delete.ask')} confirm={t('committee.delete.confirm', { name: committee.name })} cancel={t('committee.delete.cancel')} />
+            </div>
+          </section>
+        ) : null}
+        </>
+        ) : null}
+        {tab === 'chairs' && manage ? (
           <section id="chairs" className="card flex flex-col gap-3" aria-labelledby="chairs-title">
             <h2 id="chairs-title" className="text-lg font-bold text-on-surface">
               {t('committee.chairs.title')}
@@ -130,28 +194,7 @@ export default async function CommitteePage({ params, searchParams }: { params: 
             )}
           </section>
         ) : null}
-
-        {type.confidentialTopic ? (
-          <section id="secret" className="card flex flex-col gap-3" aria-labelledby="secret-title">
-            <h2 id="secret-title" className="text-lg font-bold text-on-surface">
-              {t('committee.secret.title')}
-            </h2>
-            {manage ? (
-              <>
-                <p className="text-sm">{t('committee.secret.help')}</p>
-                <ActionForm action={setSecretAction.bind(null, key, committee.id)} submitLabel={t('committee.secret.save')} variant="secondary">
-                  <textarea className="input min-h-24" name="secret" maxLength={2000} defaultValue={detail.secret ?? ''} aria-label={t('committee.secret.title')} />
-                </ActionForm>
-              </>
-            ) : // The database returns the topic to a chair only once topics are shown.
-            detail.secret ? (
-              <p className="whitespace-pre-line text-on-surface">{detail.secret}</p>
-            ) : (
-              <p className="text-sm">{t('committee.secret.hidden')}</p>
-            )}
-          </section>
-        ) : null}
-
+        {tab === 'delegates' ? (
         <section id="delegates" className="card flex flex-col gap-3" aria-labelledby="delegates-title">
           <h2 id="delegates-title" className="text-lg font-bold text-on-surface">
             {t('delegates.title')}
@@ -194,17 +237,6 @@ export default async function CommitteePage({ params, searchParams }: { params: 
             <p className="text-sm">{t('delegates.notYours')}</p>
           )}
         </section>
-
-        {manage ? (
-          <section className="card flex flex-col gap-3" aria-labelledby="delete-title">
-            <h2 id="delete-title" className="text-lg font-bold text-on-surface">
-              {t('committee.delete.title')}
-            </h2>
-            <p className="text-sm">{t('committee.delete.help')}</p>
-            <div>
-              <ConfirmButton action={deleteCommitteeAction.bind(null, key, committee.id)} ask={t('committee.delete.ask')} confirm={t('committee.delete.confirm', { name: committee.name })} cancel={t('committee.delete.cancel')} />
-            </div>
-          </section>
         ) : null}
       </div>
     </Shell>

@@ -343,3 +343,12 @@ committees), editable email texts (email phase), flags (Phase 5).
   committees. It opens and closes sessions, takes the roll call (any attendance state the rules
   define, "mark the rest absent", finish and record), shows quorum for debate and voting live, and
   lists past sessions with their roll calls.
+
+## Speakers, timers and caucuses (Phase 6, part 2)
+
+- The console's floor panel (`console/floor.tsx`) shows who has the floor with a large timer,
+  start, pause, reset, end speech and next speaker, quick speaking times from the rules, the
+  speakers list (add present delegates by tapping, reorder, remove) and caucuses (start with kind,
+  length, speaking time and topic; pause, extend within the rules, end with confirmation).
+- `speeches` (new table, in the isolation matrix) is filled by `live_commit` from
+  `speech.recorded` effects; the session history shows how many speeches and how much time.

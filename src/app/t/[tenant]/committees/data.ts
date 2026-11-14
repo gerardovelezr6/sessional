@@ -73,3 +73,6 @@ export const choicesFor = (structure: Structure, locale: string): Choices => ({
 
 // Whether a stored time has passed, for "shown since" against "scheduled for".
 export const hasPassed = (iso: string) => new Date(iso).getTime() <= Date.now();
+
+// The server's time, for clocks that must agree across screens.
+export const serverTime = () => new Date().toISOString();

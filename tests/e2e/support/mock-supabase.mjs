@@ -25,6 +25,7 @@ const TENANTS = {
   lambda: { kind: 'tenant', id: tid(12), slug: 'lambda', name: 'Lambda School', status: 'active' },
   mumun: { kind: 'tenant', id: tid(13), slug: 'mumun', name: 'Committee School', status: 'active' },
   console: { kind: 'tenant', id: tid(14), slug: 'console', name: 'Console School', status: 'active' },
+  floor: { kind: 'tenant', id: tid(15), slug: 'floor', name: 'Floor School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -72,6 +73,8 @@ seed('hc@mu.test', 'Hal Command', tid(13), 'high_command');
 seed('owner@console.test', 'Olga Console', tid(14), 'owner');
 seed('chair@console.test', 'Cam Console', tid(14), 'chair');
 seed('chair2@console.test', 'Cleo Console', tid(14), 'chair');
+seed('chair@floor.test', 'Fay Floor', tid(15), 'chair');
+seed('chair2@floor.test', 'Flo Floor', tid(15), 'chair');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -270,6 +273,15 @@ const delegateRow = (d) => ({ id: d.id, label: d.label, name: d.name, group_key:
   chairs.push({ committee_id: c.id, user_id: byEmail('chair@console.test').id }, { committee_id: c.id, user_id: byEmail('chair2@console.test').id });
   for (const label of ['Brazil', 'China', 'France', 'Kenya', 'Mexico']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
 }
+// Floor School: the same, for speakers, timers and caucuses.
+{
+  const conf = { id: randomUUID(), tenant_id: tid(15), name: 'Floor MUN', status: 'active', secrets_unlocked_at: null, created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9000-000000000002', tenant_id: tid(15), conference_id: conf.id, name: 'Human Rights', abbreviation: 'HRC', topic: '', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@floor.test').id }, { committee_id: c.id, user_id: byEmail('chair2@floor.test').id });
+  for (const label of ['Brazil', 'China', 'France', 'Kenya', 'Mexico']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+}
 
 Object.assign(rpcs, {
   current_conference: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? activeConference(p_tenant) : null }),
@@ -407,6 +419,7 @@ const live = new Map(); // committee id -> { revision, barrier, state }
 const commands = new Map(); // command id -> { committee_id, revision }
 const liveSessions = []; // { id, committee_id, number, protocol, opened_at, closed_at }
 const rollCalls = []; // { id, session_id, taken_at, entries }
+const speechLog = []; // { session_id, label, list, seconds, started_at }
 const canRun = (userId, c) => {
   const role = c && roleOf(memberOf(userId, c.tenant_id)?.role_key);
   return !!role && (role.all || (role.permissions.includes('committee.run') && (isChairOf(userId, c.id) || role.key !== 'chair')));
@@ -431,7 +444,7 @@ Object.assign(rpcs, {
       body: liveSessions
         .filter((x) => x.committee_id === c.id)
         .sort((a, b) => b.number - a.number)
-        .map((x) => ({ id: x.id, number: x.number, opened_at: x.opened_at, closed_at: x.closed_at, roll_calls: rollCalls.filter((r) => r.session_id === x.id) })),
+        .map((x) => ({ id: x.id, number: x.number, opened_at: x.opened_at, closed_at: x.closed_at, roll_calls: rollCalls.filter((r) => r.session_id === x.id), speeches: speechLog.filter((r) => r.session_id === x.id) })),
     };
   },
   live_load: ({ p_committee, p_command }) => {
@@ -465,6 +478,7 @@ Object.assign(rpcs, {
         const x = liveSessions.find((y) => y.id === e.id);
         if (x) x.closed_at = new Date().toISOString();
       }
+      if (e.type === 'speech.recorded') speechLog.push({ session_id: e.session, label: e.label, list: e.list, seconds: e.seconds, started_at: e.startedAt });
       if (e.type === 'rollcall.recorded') rollCalls.push({ id: randomUUID(), session_id: e.session, taken_at: new Date().toISOString(), entries: e.entries });
     }
     // The answer is lost after the change was stored, as on a dropped connection.

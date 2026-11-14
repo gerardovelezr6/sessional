@@ -153,6 +153,27 @@ describe('live_commit', () => {
     expect(list[0].closed_at).not.toBeNull();
     expect(await call('service', `(select protocol from committee_sessions where id = $1)`, [session])).toEqual({ key: 'un_style' });
   });
+  it('records speeches with the name the delegate had, and never a delegate of another committee', async () => {
+    const session = randomUUID();
+    await commit({ committee: assembly, expected: 0, kind: 'session.open', effects: [{ type: 'session.opened', id: session, number: 1, protocol: {} }] });
+    await commit({
+      committee: assembly,
+      expected: 1,
+      kind: 'speakers.next',
+      effects: [
+        { type: 'speech.recorded', session, delegate, label: 'Mexico', list: 'general', caucus: null, startedAt: '2027-03-01T09:00:00Z', seconds: 75 },
+        { type: 'speech.recorded', session, delegate, label: 'Mexico', list: 'caucus', caucus: 'moderated', startedAt: '2027-03-01T09:02:00Z', seconds: 40 },
+      ],
+    });
+    const list = await call('otherChair', `committee_sessions_list($1)`, [assembly]);
+    expect(list[0].speeches).toEqual([
+      expect.objectContaining({ label: 'Mexico', list: 'general', seconds: 75 }),
+      expect.objectContaining({ label: 'Mexico', list: 'caucus', seconds: 40 }),
+    ]);
+    // `delegate` belongs to the Council, not the Assembly: the link is dropped, the label kept.
+    expect(await call('service', `(select count(*) from speeches where committee_id = $1 and delegate_id is null)`, [assembly])).toBe('2');
+    expect(await call('chair', `(select count(*) from speeches where committee_id = $1)`, [assembly])).toBe('0');
+  });
   it('a command cannot target another school through its effects', async () => {
     // The session row takes the committee's own tenant, whatever the caller passes.
     const session = randomUUID();
@@ -171,12 +192,13 @@ describe('reading the live committee', () => {
     expect(await call('outsider', `live_view($1)`, [council])).toBeNull();
   });
   it('a committee never run reads as revision 0', async () => {
-    expect(await call('otherChair', `live_view($1)`, [assembly])).toEqual({ revision: 0, state: {}, session: null });
+    const fresh = (await db.query(`insert into committees (tenant_id, conference_id, name) select tenant_id, conference_id, 'Fresh' from committees where id = $1 returning id`, [council])).rows[0].id;
+    expect(await call('owner', `live_view($1)`, [fresh])).toEqual({ revision: 0, state: {}, session: null });
   });
   it('an open session comes with its rules', async () => {
     const session = randomUUID();
-    await commit({ committee: assembly, expected: 0, kind: 'session.open', effects: [{ type: 'session.opened', id: session, number: 1, protocol: { key: 'thimun_style' } }] });
-    expect(await call('otherChair', `live_view($1)`, [assembly])).toMatchObject({ revision: 1, session: { number: 1, protocol: { key: 'thimun_style' } } });
+    await commit({ committee: assembly, expected: 2, kind: 'session.open', effects: [{ type: 'session.opened', id: session, number: 2, protocol: { key: 'thimun_style' } }] });
+    expect(await call('otherChair', `live_view($1)`, [assembly])).toMatchObject({ revision: 3, session: { number: 2, protocol: { key: 'thimun_style' } } });
     expect(await call('otherChair', `(select count(*) from committee_commands where committee_id = $1)`, [council])).toBe('0');
   });
 });

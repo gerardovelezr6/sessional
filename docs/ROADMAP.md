@@ -1,9 +1,9 @@
 # Roadmap
 
-Status: Phases 0 to 5 are merged. Phase 6 is in progress, in five parts:
+Status: Phases 0 to 5 and Phase 6 part 1 are merged. Phase 6 is in progress, in five parts:
 
-1. Engine, four presets, sessions and roll call, exactly-once commands (up for review).
-2. Speakers lists, timers on the server clock, moderated and unmoderated caucuses.
+1. Engine, four presets, sessions and roll call, exactly-once commands (merged).
+2. Speakers lists, timers on the server clock, moderated and unmoderated caucuses (up for review).
 3. Motions and points with precedence, voting (roll call, placard, secret, veto).
 4. Documents and the resolution workflow, discipline, the rules-of-procedure editor, and the
    "half of the committees in session" unlock rule for confidential topics.

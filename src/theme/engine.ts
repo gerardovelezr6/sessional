@@ -86,6 +86,13 @@ function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): T
   };
   const primary = fill(p.brand, '--s-color-primary', 3);
   const darkInk = tint(0.2, 0.06);
+  const onPrimary = readableOn(primary, darkInk);
+  // The far end of the home page banner: the brand colour, deeper under light text and lighter
+  // under dark text, so the banner's text stays readable from one end to the other.
+  const pc = toOklch(primary);
+  const lightText = contrastRatio(onPrimary, WHITE) < 1.5;
+  const end = fromOklch({ l: Math.max(0.12, Math.min(0.95, pc.l + (lightText ? -0.2 : 0.12))), c: pc.c, h: pc.h });
+  const bannerEnd = contrastRatio(onPrimary, end) >= 4.5 ? end : primary;
 
   return {
     '--s-color-surface': surface,
@@ -93,7 +100,8 @@ function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): T
     '--s-color-on-surface': ink,
     '--s-color-on-surface-muted': muted,
     '--s-color-primary': primary,
-    '--s-color-on-primary': readableOn(primary, darkInk),
+    '--s-color-on-primary': onPrimary,
+    '--s-color-banner-end': bannerEnd,
     '--s-color-accent': p.accent.toUpperCase(),
     '--s-color-on-accent': readableOn(p.accent, darkInk),
     '--s-color-border': border,

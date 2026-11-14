@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { NavLinks } from '@/components/NavLinks';
+import { localize } from '@/messages';
 import { enabledLocales, tenantTranslator } from '@/config/store';
 import { languageName } from '@/i18n/locales';
 import { DEFAULT_LOCALE, translator } from '@/messages';
@@ -109,33 +110,37 @@ export default async function TenantLayout({ params, children }: Props) {
         ...(ctx.can('tenant.manage') ? [{ href: `${base}/settings`, label: own.t('nav.settings') }] : []),
       ]
     : [];
+  const tagline = localize(own.config.identity.tagline, own.locale);
   const header = (
-    <header className="app-header flex-wrap">
-      <a href={`${base}/`} className="flex items-center">
+    <header className="app-header sticky top-0 z-20 flex-wrap">
+      <a href={`${base}/`} className="app-identity">
         {logo ? (
+          // The name is written beside it, so the image needs no text of its own.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt={found.tenant.name} />
-        ) : (
-          <span>{found.tenant.name}</span>
-        )}
+          <img src={logo} alt="" />
+        ) : null}
+        <span className="min-w-0">
+          <span className="app-identity-name">{found.tenant.name}</span>
+          {tagline ? <span className="app-identity-tagline">{tagline}</span> : null}
+        </span>
       </a>
-      {links.length > 1 ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
-      <div className="ms-auto flex flex-wrap items-center gap-3">
-      {languages.length > 1 ? (
-        <LanguageSwitch
-          action={setLanguageAction.bind(null, key)}
-          current={own.locale}
-          // Each language is named in itself, so people can find their own.
-          options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
-          labels={{ language: own.t('language.label'), change: own.t('language.change') }}
-        />
-      ) : null}
-      {ctx ? (
-        <div className="flex items-center gap-2 text-sm font-normal">
-          <span className="hidden sm:inline">{ctx.user.fullName || ctx.user.email}</span>
-          <ActionButton action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
-        </div>
-      ) : null}
+      <div className="ms-auto flex flex-wrap items-center gap-2">
+        {links.length > 1 ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
+        {languages.length > 1 ? (
+          <LanguageSwitch
+            action={setLanguageAction.bind(null, key)}
+            current={own.locale}
+            // Each language is named in itself, so people can find their own.
+            options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
+            labels={{ language: own.t('language.label'), change: own.t('language.change') }}
+          />
+        ) : null}
+        {ctx ? (
+          <div className="flex items-center gap-2 text-sm font-normal">
+            <span className="hidden sm:inline">{ctx.user.fullName || ctx.user.email}</span>
+            <ActionButton action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
+          </div>
+        ) : null}
       </div>
     </header>
   );

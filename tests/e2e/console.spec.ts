@@ -30,7 +30,9 @@ test('a chair opens a session and takes the roll call', async ({ page }) => {
   await expect(page.getByText('No sessions yet.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Open session 1' }).click();
-  await expect(page.getByText(/^Session 1, open since/)).toBeVisible();
+  await expect(page.getByText('Session 1', { exact: true })).toBeVisible();
+  // Tabs, opening on the roll call.
+  await expect(page.getByRole('tab', { name: /^Roll call/ })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText(/In progress\. Mark each Delegate as they answer\. 5 have not answered yet\./)).toBeVisible();
   await expect(page.getByText('0 of 5 present')).toBeVisible();
 
@@ -96,7 +98,7 @@ test('the roll call is finished and recorded, then the session is closed', async
 
   await page.getByRole('button', { name: 'Close session' }).click();
   await page.getByRole('button', { name: 'Keep it open' }).click();
-  await expect(page.getByText(/^Session 1, open since/)).toBeVisible();
+  await expect(page.getByText('Session 1', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close session' }).click();
   await page.getByRole('button', { name: 'Yes, close session 1' }).click();
   await expect(page.getByText('No session is open.')).toBeVisible();
@@ -117,7 +119,7 @@ test('a new rule set applies from the next session', async ({ page }) => {
 
   await page.goto(at(`/committees/${COMMITTEE}/console`));
   await page.getByRole('button', { name: 'Open session 2' }).click();
-  await expect(page.getByText(/^Session 2, open since/)).toBeVisible();
+  await expect(page.getByText('Session 2', { exact: true })).toBeVisible();
   await expect(row(page, 'Brazil').getByRole('button')).toHaveCount(2);
   await expect(row(page, 'Brazil').getByRole('button', { name: 'Present and voting' })).toHaveCount(0);
   await expect(page.getByText('Voting needs 3: not reached')).toBeVisible();

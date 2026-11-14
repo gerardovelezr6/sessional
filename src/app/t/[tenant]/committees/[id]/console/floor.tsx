@@ -305,10 +305,10 @@ export function Floor(p: FloorProps) {
       ) : null}
 
       {list ? (
-        <>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start">
           <SpeakerControls list={list} pack={pack} now={now} send={send} L={L} byId={byId} />
           <SpeakersList {...p} list={list} byId={byId} title={caucus ? L.caucusList! : L.generalList!} />
-        </>
+        </div>
       ) : (
         <p className="text-sm">{L.unmoderated}</p>
       )}

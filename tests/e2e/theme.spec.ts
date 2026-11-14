@@ -27,11 +27,12 @@ async function contrastOf(page: Page, selector: string) {
   });
 }
 
-test('a school that changed nothing has the product\'s own look', async ({ page }) => {
+test('a school that changed nothing has the classic conference look', async ({ page }) => {
   await page.goto(at('alpha.localhost', '/login'));
-  expect(await style(page, 'body', 'background-color')).toBe('rgb(244, 241, 234)');
-  expect(await style(page, 'button[type=submit]', 'background-color')).toBe('rgb(20, 33, 61)');
-  expect(await style(page, 'button[type=submit]', 'border-radius')).toBe('8px');
+  expect(await style(page, 'body', 'background-color')).toBe('rgb(255, 255, 255)');
+  expect(await style(page, 'button[type=submit]', 'background-color')).toBe('rgb(30, 64, 175)');
+  expect(await style(page, 'button[type=submit]', 'border-radius')).toBe('0px');
+  expect(await style(page, 'button[type=submit]', 'text-transform')).toBe('uppercase');
   expect(await style(page, 'body', 'font-family')).toContain('Montserrat');
 });
 
@@ -54,7 +55,7 @@ test("a school's published design arrives with the first HTML, for signed-out vi
 test('one school\'s design does not leak into another, or into the marketing site', async ({ page }) => {
   await page.goto(at('delta.localhost', '/login'));
   await page.goto(at('alpha.localhost', '/login'));
-  expect(await style(page, 'button[type=submit]', 'background-color')).toBe('rgb(20, 33, 61)');
+  expect(await style(page, 'button[type=submit]', 'background-color')).toBe('rgb(30, 64, 175)');
   await page.goto(at('localhost'));
   expect(await style(page, 'body', 'background-color')).toBe('rgb(244, 241, 234)');
 });
@@ -86,7 +87,7 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   await expect(design.getByRole('radio', { name: /Modern rounded/ })).toBeChecked();
   await expect(design.getByLabel('Brand colour', { exact: true })).toHaveValue('#fde68a');
   // Still the old look: a draft is not live.
-  expect(await style(page, '.btn-primary', 'border-radius')).toBe('8px');
+  expect(await style(page, '.btn-primary', 'border-radius')).toBe('0px');
 
   await design.getByRole('button', { name: 'Preview my drafts' }).click();
   await expect(page.getByText('Preview: you are seeing your unpublished drafts.')).toBeVisible();
@@ -103,7 +104,7 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   // A visitor still sees the old design.
   const visitor = await (await browser.newContext()).newPage();
   await visitor.goto(at('zeta.localhost', '/login'));
-  expect(await style(visitor, 'button[type=submit]', 'border-radius')).toBe('8px');
+  expect(await style(visitor, 'button[type=submit]', 'border-radius')).toBe('0px');
 
   await page.getByRole('button', { name: 'Leave preview' }).first().click();
   await page.goto(at('zeta.localhost', '/settings?section=theme'));

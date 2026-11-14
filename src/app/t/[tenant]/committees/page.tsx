@@ -31,7 +31,7 @@ export default async function CommitteesPage({ params, searchParams }: { params:
 
   if (!overview.conference) {
     return (
-      <Shell title={t('committees.title')} size="wide" locale={locale}>
+      <Shell title={t('committees.title')} size="full" locale={locale}>
         {manage ? (
           <section className="card flex flex-col gap-3" aria-labelledby="start-title">
             <h2 id="start-title" className="text-lg font-bold text-on-surface">
@@ -75,7 +75,7 @@ export default async function CommitteesPage({ params, searchParams }: { params:
   const message = done && done in DONE ? t(DONE[done as keyof typeof DONE]) : null;
 
   return (
-    <Shell title={t('committees.title')} size="wide" locale={locale}>
+    <Shell title={t('committees.title')} size="full" locale={locale}>
       <div className="flex flex-col gap-6">
         <p className="text-sm text-on-surface-muted">{conference.name}</p>
         {message ? (

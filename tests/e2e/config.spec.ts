@@ -12,7 +12,8 @@ test('a school with no saved settings uses the defaults', async ({ page }) => {
 test("a school's published language and tagline apply to visitors who are not signed in", async ({ page }) => {
   await page.goto(at('delta.localhost', '/login'));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inicia sesión en Colegio Delta');
-  await expect(page.getByText('La diplomacia primero')).toBeVisible();
+  await expect(page.getByRole('main').getByText('La diplomacia primero')).toBeVisible();
+  await expect(page.locator('header .app-identity-tagline')).toHaveText('La diplomacia primero');
   await expect(page.getByLabel('Correo electrónico')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
   await expect(page.getByText('Desarrollado con')).toBeVisible();

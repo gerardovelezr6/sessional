@@ -57,7 +57,7 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const columnName = (c: string) => (c === 'label' ? labelField : c === 'name' ? t('delegates.col.name') : c === 'group' ? groupLabel : (fields.find((f) => f.key === c)?.name ?? c));
 
   return (
-    <Shell title={committee.abbreviation ? `${committee.name} (${committee.abbreviation})` : committee.name} size="wide" locale={locale}>
+    <Shell title={committee.abbreviation ? `${committee.name} (${committee.abbreviation})` : committee.name} size="full" locale={locale}>
       <div className="flex flex-col gap-6">
         <p>
           <Link href={`${base}/committees`} className="text-sm font-semibold underline underline-offset-2">

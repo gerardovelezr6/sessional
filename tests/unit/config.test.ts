@@ -10,7 +10,7 @@ import { DEFAULT_THEME } from '@/theme/default-tokens';
 describe('defaults', () => {
   it('every section parses from nothing', () => {
     expect(defaultConfig()).toEqual({
-      identity: { tagline: {}, timeZone: 'UTC' },
+      identity: { tagline: {}, dates: {}, venue: {}, timeZone: 'UTC' },
       locale: { enabledLocales: ['en', 'es'], defaultLocale: 'en' },
       terminology: { pack: 'un', conference: {}, committee: {}, committees: {}, chair: {}, chairs: {}, delegate: {}, delegates: {}, highCommand: {}, advisor: {}, advisors: {} },
       translations: { messages: {} },
@@ -18,14 +18,17 @@ describe('defaults', () => {
       protocol: { preset: 'un_style', pack: null },
       people: { passwordMinLength: 8 },
       theme: {
-        preset: 'sessional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
+        preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,
-        logo: null, favicon: null, customCss: '', colorMode: 'light',
+        homeBanner: 'on', consoleLayout: 'tabs', logo: null, favicon: null, customCss: '', colorMode: 'light',
       },
     });
   });
-  it('the default design is the product\'s own', () => {
-    expect(defaultConfig().theme).toEqual(DEFAULT_THEME);
+  it('a school starts with the classic conference look; the product keeps its own', () => {
+    const { homeBanner, consoleLayout, ...theme } = defaultConfig().theme;
+    expect(theme).toEqual({ ...DEFAULT_THEME, preset: 'flat-institutional' });
+    expect([homeBanner, consoleLayout]).toEqual(['on', 'tabs']);
+    expect(DEFAULT_THEME.preset).toBe('sessional');
   });
   it('the defaults pass strict validation', () => {
     const config = defaultConfig();
@@ -127,13 +130,13 @@ describe('forgiving resolution (rendering)', () => {
   });
   it('fills settings added after the data was stored', () => {
     expect(resolveSection('identity', { data: { timeZone: 'America/Mexico_City' }, schema_version: 1 })).toEqual({
-      data: { tagline: {}, timeZone: 'America/Mexico_City' },
+      data: { tagline: {}, dates: {}, venue: {}, timeZone: 'America/Mexico_City' },
       repaired: [],
     });
   });
   it('keeps the valid fields and repairs only the broken one', () => {
     const r = resolveSection('identity', { data: { tagline: { es: 'Hola' }, timeZone: 'Nowhere/Land' }, schema_version: 1 });
-    expect(r).toEqual({ data: { tagline: { es: 'Hola' }, timeZone: 'UTC' }, repaired: ['identity.timeZone'] });
+    expect(r).toEqual({ data: { tagline: { es: 'Hola' }, dates: {}, venue: {}, timeZone: 'UTC' }, repaired: ['identity.timeZone'] });
   });
   it.each([null, 'text', [1, 2], 42])('falls back to defaults for stored %j', (data) => {
     expect(resolveSection('people', { data, schema_version: 1 })).toEqual({ data: { passwordMinLength: 8 }, repaired: ['people'] });

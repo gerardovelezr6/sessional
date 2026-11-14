@@ -31,6 +31,9 @@ const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'not a six-digit hex col
 export const sections = {
   identity: z.object({
     tagline: localizedText(160).default({}),
+    // Shown on the home page banner: "March 12–14, 2027", "City Hall".
+    dates: localizedText(120).default({}),
+    venue: localizedText(120).default({}),
     timeZone: z.string().refine((v) => TIME_ZONES.has(v), 'unknown time zone').default('UTC'),
   }),
   locale: z
@@ -66,7 +69,8 @@ export const sections = {
   // Design. null means "as the chosen preset has it"; the engine derives every text colour, so no
   // choice here can make text unreadable.
   theme: z.object({
-    preset: z.enum(PRESET_KEYS).default('sessional'),
+    // A school starts with the classic conference look: white, square, spaced uppercase labels.
+    preset: z.enum(PRESET_KEYS).default('flat-institutional'),
     brand: hexColour.nullable().default(null),
     accent: hexColour.nullable().default(null),
     background: hexColour.nullable().default(null),
@@ -79,6 +83,10 @@ export const sections = {
     headerStyle: z.enum(['light', 'brand']).nullable().default(null),
     pageTitle: z.enum(['plain', 'bar']).nullable().default(null),
     tabStyle: z.enum(['underline', 'pill', 'boxed']).nullable().default(null),
+    // The home page opens with a banner: conference name, tagline, dates and venue.
+    homeBanner: z.enum(['on', 'off']).default('on'),
+    // The chair console: one tab per part (roll call, speakers, caucus…) or everything on one page.
+    consoleLayout: z.enum(['tabs', 'single']).default('tabs'),
     // Files the school uploaded; the server checks they belong to the school before using them.
     logo: z.string().regex(ASSET_PATH).nullable().default(null),
     favicon: z.string().regex(ASSET_PATH).nullable().default(null),

@@ -367,3 +367,18 @@ committees), editable email texts (email phase), flags (Phase 5).
 - Tables `votes`, `warnings` (written only by `live_commit`) and `documents` (written by the people
   who run the committee), all in the isolation matrix.
 - `console/outbox.ts`: the IndexedDB outbox, per person and committee.
+
+## The classic conference look (after Phase 6)
+
+- New schools start with the "Classic conference" design (`flat-institutional`): white, square,
+  Montserrat, slate text under deep headings, spaced uppercase labels, tabs and main buttons, a
+  white header with the school's name and tagline. The product's own pages keep the Sessional look.
+- Home page: a banner in the brand colour (`--s-color-banner-end` is derived so its text stays
+  readable end to end) with the conference name, tagline, dates and venue; then the committees as
+  cards under their categories, with live status, filters and search. `identity.dates`,
+  `identity.venue` and `theme.homeBanner` are settings.
+- Live status comes from `app.committee_status`, which returns only status words for committees of
+  the caller's own schools; sessions and live state stay private to the people who run them.
+- Chair console: a header card (status, session, what the floor is doing, open and close) and tabs
+  (roll call, speakers and caucus, motions and points, voting, discipline), with the open tab in the
+  address. `theme.consoleLayout` keeps the one-page layout for schools that prefer it.

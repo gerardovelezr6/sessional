@@ -41,6 +41,6 @@ export async function saveSiteAction(tenantKey: string, _s: SiteState, form: For
   }
   // Back to the part of the editor the person was on.
   const part = String(form.get('part') ?? '');
-  const back = ['header', 'menu', 'home', 'announcements', 'admin'].includes(part) ? `&part=${part}` : '';
+  const back = ['header', 'menu', 'home', 'admin'].includes(part) ? `&part=${part}` : '';
   return { redirectTo: `${await basePath()}/settings/site?done=${publish ? 'published' : 'draft'}${back}` };
 }

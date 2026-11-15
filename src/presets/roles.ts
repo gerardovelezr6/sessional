@@ -12,12 +12,15 @@ export interface RolePreset {
   permissions: string[];
 }
 
-const MANAGEMENT = ['users.view', 'users.manage', 'roles.manage', 'conference.manage', 'tenant.manage', 'audit.view', 'committee.manage', 'committee.run', 'delegates.manage', 'crisis.view', 'grades.view', 'grades.manage'];
+// Staff (Advisors) hold everything. High Command, usually students, runs the conference but does
+// not change the school's settings or roles, nor read the audit log.
+const STAFF = ['users.view', 'users.manage', 'roles.manage', 'conference.manage', 'tenant.manage', 'audit.view', 'committee.manage', 'committee.run', 'delegates.manage', 'crisis.view', 'grades.view', 'grades.manage', 'announcements.manage'];
+const HIGH_COMMAND = STAFF.filter((p) => !['tenant.manage', 'roles.manage', 'audit.view'].includes(p));
 const CHAIR = ['committee.run', 'delegates.manage', 'grades.manage'];
 
 const STARTER: { key: string; term: TermKey; rank: number; scope: RolePreset['scope']; permissions: string[] }[] = [
-  { key: 'advisor', term: 'advisor', rank: 10, scope: 'tenant', permissions: MANAGEMENT },
-  { key: 'high_command', term: 'highCommand', rank: 20, scope: 'tenant', permissions: MANAGEMENT },
+  { key: 'advisor', term: 'advisor', rank: 10, scope: 'tenant', permissions: STAFF },
+  { key: 'high_command', term: 'highCommand', rank: 20, scope: 'tenant', permissions: HIGH_COMMAND },
   { key: 'chair', term: 'chair', rank: 30, scope: 'assigned', permissions: CHAIR },
 ];
 

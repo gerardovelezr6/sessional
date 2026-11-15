@@ -24,7 +24,6 @@ import { realtimeConfig } from '@/live/broadcast';
 import { CONSOLE_TABS } from './tabs';
 import { AnnouncementList } from '@/site/AnnouncementList';
 import { currentAnnouncements } from '@/site/presets';
-import { siteOf } from '@/site/rules';
 
 interface SessionRow {
   id: string;
@@ -100,7 +99,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
           grading={
             rules.enabled && ctx.can('grades.manage') ? gradingPanelProps({ tenantKey: key, committeeId: committee.id, rules, delegates: consoleDelegates, config, locale, t }) : null
           }
-          notices={<AnnouncementList items={currentAnnouncements(siteOf(config), Date.parse(new Date().toISOString()), 'console')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />}
+          notices={<AnnouncementList items={currentAnnouncements(config, Date.parse(new Date().toISOString()), 'console')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />}
           screens={
             <ScreensPanel
               initial={screens}

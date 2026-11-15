@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
-import { AdminTabs } from '@/site/AdminTabs';
+import { AdminTabs, OwnerTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 
 // Parts of the administration still to come: a page that says so, in the school's layout.
@@ -23,7 +23,7 @@ export default async function AdminPart({ params }: { params: Promise<{ tenant: 
   if (!ctx.can(p.permission)) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
   return (
     <Shell title={t(p.title)} size="full" locale={locale}>
-      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={part as keyof typeof PARTS} />
+      {part === 'archive' ? <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="archive" /> : <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current="documents" />}
       <div className="placeholder">
         <h2 className="font-bold text-on-surface">{t('site.placeholder.title')}</h2>
         <p className="text-sm">{t(p.body)}</p>

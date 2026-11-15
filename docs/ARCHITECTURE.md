@@ -478,3 +478,22 @@ committees), editable email texts (email phase), flags (Phase 5).
   cookie for the current code, or the person is a signed-in member (unless the school asks members
   too). Invitation links and projection screens are not asked. Ten tries per address per ten
   minutes.
+
+## The Owner area (after Phase 9)
+
+- High Command members are usually students. The school's settings, its roles and its audit log
+  are staff permissions (`staff: true` in `src/people/permissions.ts`: `tenant.manage`,
+  `roles.manage`, `audit.view`), held by the Owner and Advisors. The starter High Command role no
+  longer has them; the migration `20261122000000_owner_area.sql` removes them from existing
+  `high_command` roles. A school can give them back on the roles page, where they carry a "Staff" tag.
+- `/owner` (menu item "Owner", `tenant.manage`): one card per customisation (website, branding,
+  conference details, languages and words, committee types, rules of procedure, grading, sign-in,
+  access code, roles, audit log, archive) and the roles that hold staff permissions today. Its own
+  row of tabs (`OwnerTabs`) shows on every settings page it leads to.
+- High Command (`/admin`) keeps running the conference: analytics, committees and chairs, grades,
+  people, announcements and documents.
+- Announcements are their own settings section (`announcements.items`), posted on `/announcements`
+  with the new `announcements.manage` permission (High Command and Advisors) and published at once
+  through `announcements_publish`, which checks the permission itself because settings are
+  otherwise written only with `tenant.manage`. Until something is posted there, announcements
+  written in the website settings keep showing.

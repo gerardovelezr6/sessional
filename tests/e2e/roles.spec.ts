@@ -102,8 +102,8 @@ test('someone is disabled, loses access, is enabled again, then removed', async 
 
 test('the audit log shows who did what', async ({ page }) => {
   await signIn(page, 'owner@people.test');
-  await page.goto(at('/admin'));
-  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Audit log' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
+  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Audit log' }).click();
   const log = page.getByRole('table', { name: 'Audit log' });
   await expect(log.getByRole('row', { name: /Removed a person.*Lee Leaver|Removed a person/ }).first()).toContainText('Pat People');
   await expect(log.getByText('Added a role').first()).toBeVisible();
@@ -198,4 +198,37 @@ test('sign-in with Google lets an invited person in; an uninvited Microsoft acco
   // Gina is active now.
   await page.goto(at('/people?status=active'));
   await expect(page.getByRole('row', { name: /Gina Google/ })).toBeVisible();
+});
+
+test('High Command (students) runs the conference and posts announcements, but has no Owner area', async ({ page }) => {
+  await signIn(page, 'hc@people.test');
+  const menu = page.getByRole('navigation', { name: 'Main' });
+  await expect(menu.getByRole('link', { name: 'Owner' })).toHaveCount(0);
+  await menu.getByRole('link', { name: 'High Command' }).click();
+  const tabs = page.getByRole('navigation', { name: 'Administration' });
+  await expect(tabs.getByRole('link', { name: 'Website' })).toHaveCount(0);
+  await expect(tabs.getByRole('link', { name: 'Audit log' })).toHaveCount(0);
+  await tabs.getByRole('link', { name: 'Announcements' }).click();
+  await page.getByRole('button', { name: 'Add' }).click();
+  await page.getByRole('list', { name: 'Announcements' }).getByRole('listitem').last().getByLabel('Message, English').fill('Lunch is served in the gym.');
+  await page.getByRole('button', { name: 'Publish announcements' }).click();
+  await expect(page.getByText('Published. They show now.')).toBeVisible();
+  await page.goto(at('/'));
+  await expect(page.getByText('Lunch is served in the gym.')).toBeVisible();
+  for (const path of ['/owner', '/settings', '/settings/site', '/settings/access', '/people/audit']) {
+    await page.goto(at(path));
+    await expect(page.getByRole('heading', { level: 1 }), path).toHaveText('You do not have access to this page');
+  }
+});
+
+test('the Owner area gathers every customisation, and says who can see it', async ({ page }) => {
+  await signIn(page, 'owner@people.test');
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner');
+  for (const name of ['Website', 'Branding', 'Conference details', 'Languages and words', 'Committee types', 'Rules of procedure', 'Grading and awards', 'People and sign-in', 'Access code', 'Roles and permissions', 'Audit log']) {
+    await expect(page.getByRole('region', { name: 'Owner' }).getByRole('link', { name: new RegExp(`^${name}`) })).toBeVisible();
+  }
+  await expect(page.getByText('Owner', { exact: true }).last()).toBeVisible();
+  await page.getByRole('region', { name: 'Owner' }).getByRole('link', { name: /^Branding/ }).click();
+  await expect(page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Branding' })).toHaveAttribute('aria-current', 'page');
 });

@@ -10,7 +10,7 @@ import { PRESET_KEYS } from '@/theme/presets';
 import { DEFAULT_PROTOCOL, PROTOCOL_PRESET_KEYS } from '@/protocol/presets';
 import { packSchema } from '@/protocol/schema';
 import { gradingSchema } from '@/grading/schema';
-import { siteSchema } from '@/site/schema';
+import { announcementSchema, siteSchema } from '@/site/schema';
 import { gateSchema } from '@/access/schema';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
@@ -126,6 +126,11 @@ export const sections = {
     // set up in the authentication service; these choose whether this school offers them.
     googleSignIn: z.enum(['on', 'off']).default('off'),
     microsoftSignIn: z.enum(['on', 'off']).default('off'),
+  }),
+  // Announcements (posted by High Command on their own page, published at once); null: those
+  // written in the website settings before announcements had their own place.
+  announcements: z.object({
+    items: z.array(announcementSchema).max(20).nullable().default(null),
   }),
   // The conference access code (edited on its own page); null: no code is asked.
   access: z.object({

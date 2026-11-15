@@ -32,6 +32,8 @@ function allowed(setting: Setting): string {
       return 'language codes (BCP 47), e.g. `en, es, fr`';
     case 'structure':
       return 'edited on the committee types page';
+    case 'announcements':
+      return 'posted on the announcements page and published at once; empty means those of the website settings';
     case 'access':
       return 'edited on the access code page; stores only a hash of the code; empty means no code';
     case 'site':

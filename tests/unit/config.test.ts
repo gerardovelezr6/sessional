@@ -20,6 +20,7 @@ describe('defaults', () => {
       site: { page: null },
       people: { passwordMinLength: 8, passwordRequire: 'length', passwordBlockCommon: 'on', googleSignIn: 'off', microsoftSignIn: 'off' },
       access: { gate: null },
+      announcements: { items: null },
       theme: {
         preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,

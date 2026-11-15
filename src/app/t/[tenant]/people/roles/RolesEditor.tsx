@@ -91,6 +91,7 @@ export function RolesEditor({ roles, myRank, mine, locales, locale, labels, L, s
                   <tr key={p.key} className="border-b border-border">
                     <th scope="row" className="p-2 text-start font-normal">
                       <span className="font-semibold text-on-surface">{labels[p.key]?.name}</span>
+                      {p.staff ? <span className="badge tone-paused ms-2">{L.staff}</span> : null}
                       <span className="block text-xs">{labels[p.key]?.help}</span>
                     </th>
                     {drafts.map((r) => {

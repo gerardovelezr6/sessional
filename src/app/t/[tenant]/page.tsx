@@ -64,7 +64,7 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
         );
       }
       case 'announcements':
-        return <AnnouncementList items={currentAnnouncements(site, now, 'home')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />;
+        return <AnnouncementList items={currentAnnouncements(config, now, 'home')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />;
       case 'welcome':
         return (
           <p className="text-sm">

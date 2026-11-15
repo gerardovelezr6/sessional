@@ -3,10 +3,10 @@ import { useActionState, useEffect, useMemo, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Check, firstName, ListEditor, move, Names, Pick, type L, type Locale } from '@/components/edit';
 import { goTo } from '@/components/go';
-import { BLOCK_KINDS, SITE_PARTS as PARTS, TONES, type Announcement, type Block, type Site, type SitePart as Part } from '@/site/schema';
+import { BLOCK_KINDS, SITE_PARTS as PARTS, type Block, type Site, type SitePart as Part } from '@/site/schema';
 import type { SiteState } from './actions';
 
-// The website editor: header, menu, home page blocks, announcements and the administration page.
+// The website editor: header, menu, home page blocks and the administration page.
 // Changes are kept as a draft until published; the preview beside it shows the home page.
 
 function Submit({ label, intent, primary }: { label: string; intent: string; primary?: boolean }) {
@@ -18,14 +18,6 @@ function Submit({ label, intent, primary }: { label: string; intent: string; pri
   );
 }
 
-// A date and time in this browser's zone, for <input type="datetime-local">, and back to ISO.
-const toLocalInput = (iso: string | null) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
 
 function Url({ label, value, onChange, help }: { label: string; value: string; onChange: (v: string) => void; help: string }) {
   return (
@@ -112,40 +104,6 @@ export function SiteEditor({ action, initial, standard, locales, navWords, start
         </section>
       ) : null}
 
-      {part === 'announcements' ? (
-        <section className="flex flex-col gap-3" aria-label={L.part_announcements}>
-          <p className="text-sm">{L.announcementsHelp}</p>
-          <ListEditor
-            title={L.announcements!}
-            open
-            items={site.announcements}
-            onChange={(announcements) => set('announcements', announcements)}
-            nameOf={(a: Announcement) => firstName(a.message).slice(0, 40) || a.key}
-            L={L}
-            make={(key): Announcement => ({ key, message: {}, tone: 'info', startsAt: null, endsAt: null, onHome: true, onConsole: true })}
-            render={(a, put) => (
-              <>
-                <Names label={L.message!} value={a.message} locales={locales} multiline max={300} onChange={(message) => put({ ...a, message })} />
-                <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-3">
-                  <Pick label={L.tone!} value={a.tone} options={TONES.map((x) => ({ value: x, label: L[`tone_${x}`]! }))} onChange={(tone) => put({ ...a, tone })} />
-                  <label className="flex flex-col gap-1">
-                    <span className="label">{L.startsAt}</span>
-                    <input className="input" type="datetime-local" value={toLocalInput(a.startsAt)} onChange={(e) => put({ ...a, startsAt: fromLocalInput(e.target.value) })} />
-                  </label>
-                  <label className="flex flex-col gap-1">
-                    <span className="label">{L.endsAt}</span>
-                    <input className="input" type="datetime-local" value={toLocalInput(a.endsAt)} onChange={(e) => put({ ...a, endsAt: fromLocalInput(e.target.value) })} />
-                  </label>
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  <Check label={L.onHome!} value={a.onHome} onChange={(onHome) => put({ ...a, onHome })} />
-                  <Check label={L.onConsole!} value={a.onConsole} onChange={(onConsole) => put({ ...a, onConsole })} />
-                </div>
-              </>
-            )}
-          />
-        </section>
-      ) : null}
 
       {part === 'menu' ? (
         <section className="flex flex-col gap-3" aria-label={L.part_menu}>

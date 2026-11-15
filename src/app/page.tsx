@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import wordmark from '@brand/sessional-wordmark-navy.png';
 import { DEFAULT_LOCALE, translator } from '@/messages';
+import { rootDomain } from '@/platform/env';
 
 export default function HomePage() {
   const t = translator(DEFAULT_LOCALE);
@@ -9,6 +10,8 @@ export default function HomePage() {
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-12 text-center">
       <Image src={wordmark} alt={t('brand.wordmarkAlt')} priority className="h-14 w-auto" />
       <p className="text-lg text-on-surface-muted">{t('home.tagline')}</p>
+      <p className="max-w-2xl text-on-surface-muted">{t('home.about')}</p>
+      <p className="max-w-2xl text-sm text-on-surface-muted">{t('home.signIn', { domain: rootDomain() })}</p>
       <p className="label-text rounded-control bg-accent px-4 py-1 text-on-accent">
         {t('home.status')}
       </p>

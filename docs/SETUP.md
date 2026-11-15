@@ -55,6 +55,14 @@ The first three values are in Supabase → Project Settings → API.
 | `NEXT_PUBLIC_SUPABASE_URL` | the Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the `anon` / publishable key |
 | `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` / secret key. Mark it Sensitive. Never share it |
+| `LEGAL_OPERATOR` | who runs Sessional, as shown in the privacy policy and terms: your name or company |
+| `LEGAL_CONTACT_EMAIL` | the address people write to about privacy |
+| `LEGAL_COUNTRY` | whose law governs the terms, e.g. `Mexico` |
+
+The privacy policy and terms are at `https://<ROOT_DOMAIN>/privacy` and `/terms` (add `?lang=es`
+for Spanish). Until the three `LEGAL_` values are set, they show a "Draft" note. They are a sound
+starting point written from what Sessional actually does, not legal advice: have them reviewed
+before schools rely on them, especially for students under 18.
 
 Then redeploy (Deployments → the latest → Redeploy) so the values take effect.
 

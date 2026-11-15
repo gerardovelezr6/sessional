@@ -7,10 +7,10 @@ import { translator } from '@/messages';
 const t = translator('en');
 
 describe('website settings', () => {
-  it('the classic layout is valid and shows committees, dashboard and administration in the menu', () => {
+  it('the classic layout is valid and shows committees, dashboard, High Command and Owner in the menu', () => {
     const site = standardSite();
     expect(siteSchema.safeParse(site).success).toBe(true);
-    expect(site.nav.filter((n) => n.visible).map((n) => n.key)).toEqual(['home', 'dashboard', 'admin']);
+    expect(site.nav.filter((n) => n.visible).map((n) => n.key)).toEqual(['home', 'dashboard', 'admin', 'owner']);
     expect(site.home.map((b) => b.kind)).toEqual(['banner', 'announcements', 'welcome', 'myCommittees', 'committees']);
   });
 
@@ -34,9 +34,12 @@ describe('website settings', () => {
       { key: 'over', message: { en: 'c' }, tone: 'info', startsAt: null, endsAt: '2026-11-14T00:00:00Z', onHome: true, onConsole: true },
     ];
     const now = Date.parse('2026-11-15T12:00:00Z');
-    expect(currentAnnouncements(site, now, 'home').map((a) => a.key)).toEqual(['always']);
-    expect(currentAnnouncements(site, now, 'console').map((a) => a.key)).toEqual([]);
-    expect(currentAnnouncements(site, Date.parse('2026-11-17T00:00:00Z'), 'console').map((a) => a.key)).toEqual(['later']);
+    const config = { announcements: { items: null }, site: { page: site } };
+    expect(currentAnnouncements(config, now, 'home').map((a) => a.key)).toEqual(['always']);
+    expect(currentAnnouncements(config, now, 'console').map((a) => a.key)).toEqual([]);
+    expect(currentAnnouncements(config, Date.parse('2026-11-17T00:00:00Z'), 'console').map((a) => a.key)).toEqual(['later']);
+    // Once announcements are posted on their own page, those replace the website ones.
+    expect(currentAnnouncements({ ...config, announcements: { items: [] } }, now, 'home')).toEqual([]);
   });
 
   it('makes initials from the school name', () => {
@@ -54,6 +57,15 @@ describe('website settings', () => {
     const chair = navLinks(site, '', (p) => p === 'committee.run', 'en', t);
     expect(chair.map((l) => l.label)).toEqual(['Start', 'Dashboard', 'Our site']);
     const owner = navLinks(site, '/t/x', () => true, 'en', t);
-    expect(owner.map((l) => l.href)).toEqual(['/t/x/', '/t/x/dashboard', '/t/x/committees', '/t/x/people', '/t/x/grades', '/t/x/admin', '/t/x/settings', 'https://example.org']);
+    expect(owner.map((l) => l.href)).toEqual(['/t/x/', '/t/x/dashboard', '/t/x/committees', '/t/x/people', '/t/x/grades', '/t/x/admin', '/t/x/owner', '/t/x/settings', 'https://example.org']);
+    // High Command (students) runs the conference but does not see the Owner area.
+    const hc = navLinks(site, '', (p) => ['committee.manage', 'users.view', 'users.manage', 'grades.view', 'announcements.manage'].includes(p), 'en', t);
+    expect(hc.map((l) => l.label)).toEqual(['Start', 'Dashboard', 'Committees', 'People', 'Gradebook', 'High Command', 'Our site']);
+  });
+
+  it('a menu saved before the Owner area existed still offers it, at the end', () => {
+    const site = standardSite();
+    site.nav = site.nav.filter((n) => n.key !== 'owner');
+    expect(navLinks(site, '', () => true, 'en', t).map((l) => l.label)).toEqual(['Committees', 'Dashboard', 'High Command', 'Owner']);
   });
 });

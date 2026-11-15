@@ -9,14 +9,18 @@ export interface Permission {
   scope: 'tenant' | 'committee';
   // Holding this permission also grants these (you cannot manage what you cannot see).
   includes?: string[];
+  // For staff (Owner, Advisors): the school's settings, roles and audit log. High Command members
+  // are usually students and do not get these from the starter roles.
+  staff?: boolean;
 }
 
 export const PERMISSIONS: Permission[] = [
   { key: 'users.view', group: 'people', scope: 'tenant' },
   { key: 'users.manage', group: 'people', scope: 'tenant', includes: ['users.view'] },
-  { key: 'roles.manage', group: 'people', scope: 'tenant' },
-  { key: 'audit.view', group: 'people', scope: 'tenant' },
-  { key: 'tenant.manage', group: 'conference', scope: 'tenant' },
+  { key: 'roles.manage', group: 'people', scope: 'tenant', staff: true },
+  { key: 'audit.view', group: 'people', scope: 'tenant', staff: true },
+  { key: 'tenant.manage', group: 'conference', scope: 'tenant', staff: true, includes: ['announcements.manage'] },
+  { key: 'announcements.manage', group: 'conference', scope: 'tenant' },
   { key: 'conference.manage', group: 'conference', scope: 'tenant' },
   { key: 'committee.manage', group: 'committees', scope: 'tenant', includes: ['crisis.view', 'delegates.manage'] },
   { key: 'crisis.view', group: 'committees', scope: 'tenant' },

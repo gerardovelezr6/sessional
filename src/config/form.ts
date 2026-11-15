@@ -51,6 +51,7 @@ export function readForm(section: SectionName, form: FormData, locales: string[]
       case 'translations':
       case 'structure':
       case 'protocol':
+      case 'announcements':
       case 'access':
       case 'site':
       case 'grading':

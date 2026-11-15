@@ -38,13 +38,20 @@ export default async function Dashboard({ params }: { params: Promise<{ tenant: 
             <h1 className="page-title text-2xl">{t('dashboard.welcome', { name: ctx.user.fullName || ctx.user.email })}</h1>
             <p className="mt-3 text-sm">{manages ? t('dashboard.all') : t('dashboard.mine')}</p>
           </div>
-          {admin ? (
-            <Link href={`${base}/admin`} className="btn btn-primary">
-              {t('dashboard.openAdmin', { name: adminTitle })}
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {admin ? (
+              <Link href={`${base}/admin`} className="btn btn-primary">
+                {t('dashboard.openAdmin', { name: adminTitle })}
+              </Link>
+            ) : null}
+            {ctx.can('tenant.manage') ? (
+              <Link href={`${base}/owner`} className="btn btn-secondary">
+                {t('dashboard.openOwner')}
+              </Link>
+            ) : null}
+          </div>
         </div>
-        <AnnouncementList items={currentAnnouncements(site, Date.parse(new Date().toISOString()), 'home')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />
+        <AnnouncementList items={currentAnnouncements(config, Date.parse(new Date().toISOString()), 'home')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />
         {committees.length ? <CommitteeGrid groups={groups} L={gridLabels(t)} /> : <p className="placeholder text-sm">{t('dashboard.none')}</p>}
       </div>
       <PoweredBy locale={locale} />

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { SectionPicker } from '@/components/SectionPicker';
 import { Shell } from '@/components/Shell';
-import { AdminTabs } from '@/site/AdminTabs';
+import { OwnerTabs } from '@/site/AdminTabs';
 import { SECTION_HELP, SECTION_LABELS, SECTION_MENU } from '@/config/registry';
 import { resolveSection } from '@/config/resolve';
 import { SECTION_NAMES, type SectionName } from '@/config/schema';
@@ -92,7 +92,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
 
   return (
     <Shell title={t('settings.title')} size="full" locale={locale}>
-      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={section === 'theme' ? 'branding' : 'settings'} />
+      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current={section === 'theme' ? 'branding' : 'settings'} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <div className="lg:hidden">
           <SectionPicker
@@ -168,6 +168,15 @@ export default async function SettingsPage({ params, searchParams }: { params: P
               <p>
                 <Link className="btn btn-primary" href={`${base}/settings/protocol`}>
                   {t('settings.protocol.open')}
+                </Link>
+              </p>
+            </div>
+          ) : null}
+          {section === 'announcements' ? (
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <p>
+                <Link className="btn btn-primary" href={`${base}/announcements`}>
+                  {t('settings.announcements.open')}
                 </Link>
               </p>
             </div>

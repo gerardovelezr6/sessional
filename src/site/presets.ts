@@ -1,4 +1,4 @@
-import { NAV_ITEMS, type Block, type Site } from './schema';
+import { NAV_ITEMS, type Announcement, type Block, type Site } from './schema';
 
 // The website a school starts with: the classic conference layout. Every word left empty here
 // is the product's own, in each of the school's languages.
@@ -9,7 +9,7 @@ export function standardSite(): Site {
     header: { mark: 'initials', initials: '', tagline: true, userName: true },
     // Like the classic conference site: committees, dashboard, administration. The other places
     // are tabs of the administration page; a school can show them in the menu too.
-    nav: NAV_ITEMS.map((key) => ({ key, visible: ['home', 'dashboard', 'admin'].includes(key), label: {} })),
+    nav: NAV_ITEMS.map((key) => ({ key, visible: ['home', 'dashboard', 'admin', 'owner'].includes(key), label: {} })),
     links: [],
     home: [block('banner', 'banner'), block('announcements', 'announcements'), block('welcome', 'welcome'), block('mine', 'myCommittees'), block('committees', 'committees')],
     announcements: [],
@@ -24,9 +24,11 @@ export function initialsOf(name: string): string {
   return letters.join('').toUpperCase() || '·';
 }
 
-// The announcements showing at a moment, in the order the school listed them.
-export function currentAnnouncements(site: Site, now: number, where: 'home' | 'console') {
-  return site.announcements.filter(
+// The announcements showing at a moment, in the order they were listed. They live in their own
+// section; until something is posted there, those written in the website settings show.
+export function currentAnnouncements(config: { announcements: { items: Announcement[] | null }; site: { page: Site | null } }, now: number, where: 'home' | 'console') {
+  const list = config.announcements.items ?? config.site.page?.announcements ?? [];
+  return list.filter(
     (a) => (where === 'home' ? a.onHome : a.onConsole) && (!a.startsAt || Date.parse(a.startsAt) <= now) && (!a.endsAt || Date.parse(a.endsAt) > now),
   );
 }

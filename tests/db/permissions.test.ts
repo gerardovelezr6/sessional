@@ -42,6 +42,7 @@ const PROBES: Record<string, (q: Parameters<Parameters<typeof as>[1]>[0]) => Pro
   'committee.run': async (q) => (await q(`select committee_can_run($1) r`, [mine])).rows[0]!.r === true,
   'delegates.manage': async (q) => ((await q(`insert into delegates (tenant_id, committee_id, label) values ($1, $2, 'Probe')`, [T, mine])).rowCount ?? 0) === 1,
   'crisis.view': async (q) => Number((await q(`select count(*) n from committee_secrets where committee_id = $1`, [theirs])).rows[0]!.n) > 0,
+  'announcements.manage': async (q) => !!(await q(`select announcements_publish($1, '[]'::jsonb) r`, [T])).rows[0]!.r,
   'grades.view': async (q) => (await q(`select grading_data($1) r`, [theirs])).rows[0]!.r !== null,
   'grades.manage': async (q) =>
     !!(await q(`select grade_add($1, $2::jsonb) r`, [mine, JSON.stringify({ delegate_id: delegate, category: 'speech', level: 'good', points: 1 })])).rows[0]!.r,
@@ -110,14 +111,26 @@ describe('the permission matrix', () => {
     expect(result).toEqual(Object.fromEntries(Object.keys(PROBES).map((probe) => [probe, allowed.has(probe)])));
   });
 
-  it('only managing people and managing committees include anything', () => {
-    expect(PERMISSIONS.filter((p) => p.includes?.length).map((p) => p.key)).toEqual(['users.manage', 'committee.manage']);
+  it('only managing people, settings and committees include anything', () => {
+    expect(PERMISSIONS.filter((p) => p.includes?.length).map((p) => p.key)).toEqual(['users.manage', 'tenant.manage', 'committee.manage']);
   });
 
   it('a role with no permission passes no probe', async () => {
     const nobody = (await db.query(`insert into auth.users (email) values ($1) returning id`, [`perm-none-${run}@example.test`])).rows[0].id;
     await db.query(`insert into memberships (tenant_id, user_id, role_key, status) values ($1, $2, 'nobody', 'active')`, [T, nobody]);
     for (const probe of Object.keys(PROBES)) expect([probe, await tryProbe(nobody, probe)]).toEqual([probe, false]);
+  });
+});
+
+describe('existing schools', () => {
+  it('the migration took settings, roles and the audit log away from High Command, and gave it announcements', async () => {
+    // Replays the migration's change on a High Command role made the old way.
+    await db.query(`insert into roles (tenant_id, key, rank) values ($1, 'high_command', 20) on conflict do nothing`, [T]);
+    await db.query(`insert into role_permissions (tenant_id, role_key, permission) values ($1, 'high_command', 'tenant.manage'), ($1, 'high_command', 'roles.manage'), ($1, 'high_command', 'audit.view'), ($1, 'high_command', 'users.manage')`, [T]);
+    const sql = (await import('node:fs')).readFileSync('supabase/migrations/20261122000000_owner_area.sql', 'utf8');
+    await db.query(sql.slice(sql.indexOf('delete from public.role_permissions')));
+    const left = (await db.query(`select permission from role_permissions where tenant_id = $1 and role_key = 'high_command' order by 1`, [T])).rows.map((r) => r.permission);
+    expect(left).toEqual(['announcements.manage', 'users.manage']);
   });
 });
 

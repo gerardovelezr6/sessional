@@ -6,6 +6,7 @@ import { editorState, tenantTranslator } from '@/config/store';
 import { directionOf, languageName } from '@/i18n/locales';
 import { catalogs, type MessageKey } from '@/messages';
 import { PROTOCOL_PRESETS } from '@/protocol/presets';
+import { OwnerTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { saveRulesAction } from './actions';
 import { RulesEditor } from './RulesEditor';
@@ -31,7 +32,8 @@ export default async function RulesPage({ params, searchParams }: { params: Prom
   );
 
   return (
-    <Shell title={t('rules.title')} size="wide" locale={locale}>
+    <Shell title={t('rules.title')} size="full" locale={locale}>
+      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="rules" />
       <div className="flex flex-col gap-6">
         {done === 'draft' || done === 'published' ? (
           <p role="status" className="card font-semibold text-on-surface">

@@ -29,6 +29,8 @@ export type Control =
   | { kind: 'site' }
   // The conference access code: edited on its own page, which stores only a hash.
   | { kind: 'access' }
+  // Announcements: posted on their own page, by High Command too.
+  | { kind: 'announcements' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -61,7 +63,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'site', 'theme', 'structure', 'protocol', 'grading'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'site', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people', 'access'] },
 ];
@@ -78,6 +80,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   theme: 'settings.theme.description',
   people: 'settings.people.description',
   access: 'settings.access.description',
+  announcements: 'settings.announcements.description',
 };
 
 export const SECTION_LABELS: Record<SectionName, MessageKey> = {
@@ -92,6 +95,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   theme: 'settings.theme',
   people: 'settings.people',
   access: 'settings.access',
+  announcements: 'settings.announcements',
 };
 
 export const registry: Setting[] = [
@@ -307,5 +311,10 @@ export const registry: Setting[] = [
     section: 'access', key: 'gate', permission: 'tenant.manage',
     labelKey: 'settings.access.gate', helpKey: 'settings.access.gate.help',
     control: { kind: 'access' },
+  },
+  {
+    section: 'announcements', key: 'items', permission: 'announcements.manage',
+    labelKey: 'settings.announcements.items', helpKey: 'settings.announcements.items.help',
+    control: { kind: 'announcements' },
   },
 ];

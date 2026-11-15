@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
-import { AdminTabs } from '@/site/AdminTabs';
+import { OwnerTabs } from '@/site/AdminTabs';
 import { resolveSection } from '@/config/resolve';
 import { editorState, tenantTranslator } from '@/config/store';
 import { standardGrading } from '@/grading/presets';
@@ -34,7 +34,7 @@ export default async function GradingSettingsPage({ params, searchParams }: { pa
 
   return (
     <Shell title={t('gradingRules.title')} size="full" locale={locale} crumbs={[{ href: `${base}/settings?section=grading`, label: t('nav.settings') }, { label: t('gradingRules.title') }]}>
-      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'rubric'} />
+      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current={'rubric'} />
       <div className="flex flex-col gap-6">
         {done === 'draft' || done === 'published' ? (
           <p role="status" className="card font-semibold text-on-surface">

@@ -21,14 +21,16 @@ const blocks = (page: Page) => page.getByRole('list', { name: 'Blocks' });
 test('the classic layout: initials beside the name, a short menu, the administration tabs', async ({ page }) => {
   await signIn(page, 'owner@site.test');
   await expect(page.locator('header .brand-mark')).toHaveText('SS');
-  await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'Dashboard', 'High Command']);
+  await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'Dashboard', 'High Command', 'Owner']);
   await menu(page).getByRole('link', { name: 'High Command' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('High Command');
   const tabs = page.getByRole('navigation', { name: 'Administration' });
   await expect(tabs.getByRole('link', { name: 'Live analytics' })).toHaveAttribute('aria-current', 'page');
   await tabs.getByRole('link', { name: 'Global documents' }).click();
   await expect(page.getByText('Coming soon')).toBeVisible();
-  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Website' }).click();
+  await menu(page).getByRole('link', { name: 'Owner' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner');
+  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Website' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Website');
 });
 
@@ -63,16 +65,19 @@ test('the menu is renamed and reordered; header initials and an urgent announcem
   await items.getByRole('checkbox', { name: 'Settings' }).check();
   await page.getByRole('tab', { name: 'Header' }).click();
   await page.getByRole('textbox', { name: 'Initials' }).fill('WEB');
-  await page.getByRole('tab', { name: 'Announcements' }).click();
+  await page.getByRole('button', { name: 'Save and publish' }).click();
+  await page.waitForURL(/done=published&part=header/);
+  // Announcements have their own page, under High Command.
+  await page.goto(at('/announcements'));
   await page.getByRole('button', { name: 'Add' }).click();
   const a = page.getByRole('list', { name: 'Announcements' }).getByRole('listitem').last();
   await a.getByLabel('Message, English').fill('Room change: the council meets in hall B.');
   await a.getByLabel('Kind').selectOption({ label: 'Urgent' });
-  await page.getByRole('button', { name: 'Save and publish' }).click();
-  await page.waitForURL(/done=published&part=announcements/);
+  await page.getByRole('button', { name: 'Publish announcements' }).click();
+  await expect(page.getByText('Published. They show now.')).toBeVisible();
 
   await page.goto(at('/'));
-  await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'My desk', 'High Command', 'Settings']);
+  await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'My desk', 'High Command', 'Owner', 'Settings']);
   await expect(page.locator('header .brand-mark')).toHaveText('WEB');
   await expect(page.getByRole('alert').filter({ hasText: 'Room change' })).toContainText('Urgent');
 });
@@ -97,5 +102,5 @@ test('an unsafe link is refused with a reason, and nothing is saved', async ({ p
   await page.getByRole('button', { name: 'Save draft' }).click();
   await expect(page.getByText(/^Some website settings need fixing. Check: .*links/)).toBeVisible();
   await page.goto(at('/'));
-  await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'My desk', 'High Command', 'Settings']);
+  await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'My desk', 'High Command', 'Owner', 'Settings']);
 });

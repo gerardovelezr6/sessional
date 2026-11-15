@@ -125,6 +125,14 @@ Spanish: Personas e inicio de sesión
 | Sign in with Google | `people.googleSignIn` | `off` | `on` (On), `off` (Off) | `tenant.manage` | Shows “Continue with Google” on the sign-in page. Only people you invited get in; Google must be set up in the authentication service. |
 | Sign in with Microsoft | `people.microsoftSignIn` | `off` | `on` (On), `off` (Off) | `tenant.manage` | Shows “Continue with Microsoft” (school and work accounts). Only people you invited get in; Microsoft must be set up in the authentication service. |
 
+## Announcements (`announcements`)
+
+Spanish: Anuncios
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Announcements | `announcements.items` | as the preset has it | posted on the announcements page and published at once; empty means those of the website settings | `announcements.manage` | Posted on the announcements page and published at once. |
+
 ## Access code (`access`)
 
 Spanish: Código de acceso

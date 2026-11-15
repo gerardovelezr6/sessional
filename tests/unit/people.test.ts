@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { passwordProblems, type PasswordPolicy } from '@/people/password';
 import { effectivePermissions, PERMISSIONS } from '@/people/permissions';
 import { messageFor, type MessageKey } from '@/messages';
+import { starterRoles } from '@/presets/roles';
 
 const policy = (over: Partial<PasswordPolicy> = {}): PasswordPolicy => ({ passwordMinLength: 8, passwordRequire: 'length', passwordBlockCommon: 'on', ...over });
 
@@ -37,5 +38,16 @@ describe('permissions', () => {
     expect([...effectivePermissions(['users.manage'])].sort()).toEqual(['users.manage', 'users.view']);
     expect([...effectivePermissions(['committee.manage'])].sort()).toEqual(['committee.manage', 'crisis.view', 'delegates.manage']);
     expect([...effectivePermissions(['grades.manage'])]).toEqual(['grades.manage']);
+  });
+});
+
+describe('starter roles', () => {
+  it('High Command (usually students) runs the conference without staff permissions; Advisors have them', () => {
+    const roles = starterRoles({ pack: 'un', overrides: {} }, ['en']);
+    const staff = PERMISSIONS.filter((p) => p.staff).map((p) => p.key);
+    const hc = roles.find((r) => r.key === 'high_command')!;
+    expect(staff.filter((p) => hc.permissions.includes(p))).toEqual([]);
+    expect(hc.permissions).toEqual(expect.arrayContaining(['committee.manage', 'users.manage', 'grades.view', 'announcements.manage']));
+    expect(roles.find((r) => r.key === 'advisor')!.permissions).toEqual(expect.arrayContaining(PERMISSIONS.map((p) => p.key)));
   });
 });

@@ -23,7 +23,7 @@ export const blockSchema = z.object({
   links: z.array(z.object({ label: text(60), url: linkUrl })).max(12).default([]),
 });
 
-export const NAV_ITEMS = ['home', 'dashboard', 'committees', 'people', 'grades', 'admin', 'settings'] as const;
+export const NAV_ITEMS = ['home', 'dashboard', 'committees', 'people', 'grades', 'admin', 'owner', 'settings'] as const;
 export const navItemSchema = z.object({
   key: z.enum(NAV_ITEMS),
   visible: z.boolean().default(true),
@@ -83,5 +83,5 @@ export type Announcement = z.infer<typeof announcementSchema>;
 export type NavKey = (typeof NAV_ITEMS)[number];
 
 // The parts of the website editor.
-export const SITE_PARTS = ['home', 'announcements', 'menu', 'header', 'admin'] as const;
+export const SITE_PARTS = ['home', 'menu', 'header', 'admin'] as const;
 export type SitePart = (typeof SITE_PARTS)[number];

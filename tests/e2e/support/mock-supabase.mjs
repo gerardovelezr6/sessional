@@ -36,7 +36,7 @@ const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
 const ROLES = [
   { key: 'owner', name: { en: 'Owner', es: 'Propietario' }, rank: 0, all: true, permissions: [] },
-  { key: 'high_command', name: { en: 'High Command' }, rank: 20, all: false, permissions: ['users.view', 'users.manage'] },
+  { key: 'high_command', name: { en: 'High Command' }, rank: 20, all: false, permissions: ['users.view', 'users.manage', 'announcements.manage'] },
   { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, scope: 'assigned', permissions: ['committee.run', 'delegates.manage', 'grades.manage'] },
 ];
 // A brand-new school has only the Owner role until its owner adds more.
@@ -105,7 +105,7 @@ const CONFIG = {
       data: {
         page: {
           header: { mark: 'initials', initials: '', tagline: true, userName: true },
-          nav: ['home', 'dashboard', 'committees', 'people', 'grades', 'admin', 'settings'].map((key) => ({ key, visible: ['home', 'dashboard', 'admin'].includes(key), label: {} })),
+          nav: ['home', 'dashboard', 'committees', 'people', 'grades', 'admin', 'owner', 'settings'].map((key) => ({ key, visible: ['home', 'dashboard', 'admin', 'owner'].includes(key), label: {} })),
           links: [],
           home: ['banner', 'announcements', 'welcome', 'myCommittees', 'committees'].map((kind) => ({ key: kind.toLowerCase(), kind, visible: true, title: {}, body: {}, links: [] })),
           announcements: [{ key: 'opening', message: { en: 'Opening ceremony starts at 9:00 in the main hall.' }, tone: 'info', startsAt: null, endsAt: null, onHome: true, onConsole: true }],
@@ -812,6 +812,11 @@ Object.assign(rpcs, {
         actions: [...new Set(mine.map((a) => a.action.split('.')[0]))],
       },
     };
+  },
+  announcements_publish: ({ p_tenant, p_items }, userId) => {
+    if (!can(userId, p_tenant, 'announcements.manage') && !can(userId, p_tenant, 'tenant.manage')) return { status: 403, body: { code: '42501', message: 'You cannot post announcements here' } };
+    if (!Array.isArray(p_items) || p_items.length > 20) return { status: 400, body: { code: '22023', message: 'invalid announcements' } };
+    return { body: append(sectionOf(p_tenant, 'announcements'), { data: { items: p_items }, schema_version: 1 }, 'announcements', null, userId) };
   },
   activate_invitations: ({ p_user }) => {
     const u = users.get(p_user);

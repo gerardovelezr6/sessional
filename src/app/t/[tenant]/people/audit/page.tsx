@@ -4,7 +4,7 @@ import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import { catalogs, type MessageKey } from '@/messages';
-import { AdminTabs } from '@/site/AdminTabs';
+import { OwnerTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 
 // The school's audit log: who changed what, and when. Newest first, fifty at a time, filtered by
@@ -49,7 +49,7 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
 
   return (
     <Shell title={t('audit.title')} size="full" locale={locale}>
-      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current="audit" />
+      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="audit" />
       <div className="flex flex-col gap-4">
         <p className="text-sm">{t('audit.help')}</p>
         <nav aria-label={t('audit.filter')} className="flex flex-wrap gap-1">

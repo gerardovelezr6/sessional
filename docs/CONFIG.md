@@ -105,6 +105,14 @@ Spanish: Calificación y premios
 |---|---|---|---|---|---|
 | Grading rules | `grading.rules` | as the preset has it | edited on the grading page; empty means the standard rubric | `tenant.manage` | Empty means Sessional's standard rubric. |
 
+## Website (`site`)
+
+Spanish: Sitio web
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Website | `site.page` | as the preset has it | edited on the website page; empty means the classic layout | `tenant.manage` | Empty means the classic layout. |
+
 ## People and sign-in (`people`)
 
 Spanish: Personas e inicio de sesión

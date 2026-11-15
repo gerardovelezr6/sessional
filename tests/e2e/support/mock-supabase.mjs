@@ -30,6 +30,7 @@ const TENANTS = {
   grid: { kind: 'tenant', id: tid(17), slug: 'grid', name: 'Grid School', status: 'active' },
   screens: { kind: 'tenant', id: tid(18), slug: 'screens', name: 'Screen School', status: 'active' },
   grades: { kind: 'tenant', id: tid(19), slug: 'grades', name: 'Grade School', status: 'active' },
+  site: { kind: 'tenant', id: tid(20), slug: 'site', name: 'Site School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
@@ -84,6 +85,8 @@ seed('chair@rules.test', 'Ray Rules', tid(16), 'chair');
 seed('owner@grid.test', 'Gil Grid', tid(17), 'owner');
 seed('chair@screens.test', 'Sam Screens', tid(18), 'chair');
 seed('owner@grades.test', 'Gwen Grades', tid(19), 'owner');
+seed('owner@site.test', 'Wes Website', tid(20), 'owner');
+seed('chair@site.test', 'Cat Chair', tid(20), 'chair');
 seed('chair@grades.test', 'Gil Grader', tid(19), 'chair');
 seed('chair2@grades.test', 'Gus Grader', tid(19), 'chair');
 
@@ -93,6 +96,21 @@ const CONFIG = {
   // The home page: a banner with dates and venue, committees under categories.
   [tid(17)]: {
     identity: { version: 1, schema_version: 1, data: { tagline: { en: 'Diplomacy in action' }, dates: { en: 'March 12–14, 2027' }, venue: { en: 'City Hall' } } },
+    // The classic layout, with one announcement.
+    site: {
+      version: 1,
+      schema_version: 1,
+      data: {
+        page: {
+          header: { mark: 'initials', initials: '', tagline: true, userName: true },
+          nav: ['home', 'dashboard', 'committees', 'people', 'grades', 'admin', 'settings'].map((key) => ({ key, visible: ['home', 'dashboard', 'admin'].includes(key), label: {} })),
+          links: [],
+          home: ['banner', 'announcements', 'welcome', 'myCommittees', 'committees'].map((kind) => ({ key: kind.toLowerCase(), kind, visible: true, title: {}, body: {}, links: [] })),
+          announcements: [{ key: 'opening', message: { en: 'Opening ceremony starts at 9:00 in the main hall.' }, tone: 'info', startsAt: null, endsAt: null, onHome: true, onConsole: true }],
+          admin: { title: {}, subtitle: {} },
+        },
+      },
+    },
     structure: {
       version: 1,
       schema_version: 1,
@@ -691,6 +709,16 @@ Object.assign(rpcs, {
     return { body: { id: f.id, secrets_unlock_rule: p_rule } };
   },
 });
+
+// Site School: one committee, for the website editor.
+{
+  const conf = { id: randomUUID(), tenant_id: tid(20), name: 'Site MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9300-000000000001', tenant_id: tid(20), conference_id: conf.id, name: 'Human Rights Council', abbreviation: 'HRC', topic: 'Digital privacy', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@site.test').id });
+  for (const label of ['Brazil', 'China']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+}
 
 // --- Grading and awards (Phase 8). ---
 // Grade School: two committees, each with its own chair; a closed session with grades already given.

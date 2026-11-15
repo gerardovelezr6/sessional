@@ -9,7 +9,7 @@ const WIDTH = { narrow: 'max-w-md', wide: 'max-w-3xl', full: 'max-w-7xl' } as co
 // `crumbs`: where this page sits, from the home page down; the last one is this page.
 export function Shell({ title, subtitle, children, wide = false, size, centered = false, locale, quietTitle = false, crumbs }: { title: string; subtitle?: string; children: React.ReactNode; wide?: boolean; size?: keyof typeof WIDTH; centered?: boolean; locale?: Locale; quietTitle?: boolean; crumbs?: { href?: string; label: string }[] }) {
   return (
-    <main className={`flex flex-1 flex-col items-center p-6 ${centered ? 'justify-center' : 'pt-8'}`}>
+    <main className={`flex flex-1 flex-col items-center px-4 py-6 ${centered ? 'justify-center' : 'pt-8'}`}>
       <div className={`w-full ${WIDTH[size ?? (wide ? 'wide' : 'narrow')]}`}>
         {crumbs?.length ? (
           <nav aria-label={translator(locale ?? DEFAULT_LOCALE)('nav.breadcrumb')} className="mb-3 text-sm">

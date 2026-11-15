@@ -25,7 +25,7 @@ test('an Arabic school is written right to left, with its own texts and English 
 
   // The layout mirrors: the school's name starts on the right.
   const width = page.viewportSize()!.width;
-  const name = await page.locator('header.app-header a > span').boundingBox();
+  const name = await page.locator('header.app-header .app-identity-name').boundingBox();
   expect(name!.x).toBeGreaterThan(width / 2);
 
   // Switching to English turns the page left to right; the choice is remembered in this browser.

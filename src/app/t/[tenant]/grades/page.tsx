@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
+import { AdminTabs } from '@/site/AdminTabs';
 import { tenantTranslator } from '@/config/store';
 import { availableColumns } from '@/grading/export';
 import { gradingRulesOf } from '@/grading/rules';
@@ -47,7 +48,8 @@ export default async function GradebookPage({ params, searchParams }: { params: 
   const doneKey = done && done in DONE ? DONE[done as keyof typeof DONE] : null;
 
   return (
-    <Shell title={t('grades.title')} size="wide" locale={locale}>
+    <Shell title={t('grades.title')} size="full" locale={locale}>
+      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'grades'} />
       <div className="flex flex-col gap-6">
         {doneKey ? (
           <p role="status" className="card font-semibold text-on-surface">

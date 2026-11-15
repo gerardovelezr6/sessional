@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
+import { AdminTabs } from '@/site/AdminTabs';
 import { resolveSection } from '@/config/resolve';
 import { editorState, tenantTranslator } from '@/config/store';
 import { assetUrl } from '@/data/storage';
@@ -51,6 +52,7 @@ export default async function StructurePage({ params, searchParams }: { params: 
 
   return (
     <Shell title={t('structure.title')} size="full" locale={locale}>
+      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'types'} />
       <div className="flex flex-col gap-6">
         {done === 'draft' || done === 'published' ? (
           <p role="status" className="card font-semibold text-on-surface">

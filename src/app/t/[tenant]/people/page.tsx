@@ -3,6 +3,7 @@ import { ActionForm } from '@/components/ActionForm';
 import { Field } from '@/components/Field';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
+import { AdminTabs } from '@/site/AdminTabs';
 import { tenantTranslator } from '@/config/store';
 import { localize, type MessageKey } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
@@ -32,7 +33,8 @@ export default async function PeoplePage({ params }: { params: Promise<{ tenant:
   const resultLabels = { link: t('people.invite.link'), copy: t('people.invite.copy'), copied: t('people.invite.copied') };
 
   return (
-    <Shell title={t('people.title')} wide locale={locale}>
+    <Shell title={t('people.title')} size="full" locale={locale}>
+      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'people'} />
       <div className="flex flex-col gap-6">
         {onlyOwnerRole ? (
           <section className="card flex flex-col gap-4">

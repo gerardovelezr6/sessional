@@ -19,14 +19,19 @@ export const move = <T,>(list: T[], i: number, by: number): T[] => {
 export const int = (v: string, fallback: number) => (Number.isFinite(Number(v)) && v !== '' ? Math.round(Number(v)) : fallback);
 
 
-export function Names({ label, value, onChange, locales }: { label: string; value: Text; onChange: (v: Text) => void; locales: Locale[] }) {
+// `multiline` for paragraphs; `max` characters per language (80 by default).
+export function Names({ label, value, onChange, locales, multiline = false, max = 80 }: { label: string; value: Text; onChange: (v: Text) => void; locales: Locale[]; multiline?: boolean; max?: number }) {
   return (
     <fieldset className="flex flex-col gap-1">
       <legend className="label">{label}</legend>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {locales.map((l) => (
-          <input key={l.code} className="input" lang={l.code} dir={l.dir} maxLength={80} value={value[l.code] ?? ''} placeholder={l.label} aria-label={`${label}, ${l.label}`} onChange={(e) => onChange({ ...value, [l.code]: e.target.value })} />
-        ))}
+      <div className={`grid grid-cols-1 gap-2 ${multiline ? '' : 'sm:grid-cols-2'}`}>
+        {locales.map((l) =>
+          multiline ? (
+            <textarea key={l.code} className="input min-h-20" lang={l.code} dir={l.dir} maxLength={max} value={value[l.code] ?? ''} placeholder={l.label} aria-label={`${label}, ${l.label}`} onChange={(e) => onChange({ ...value, [l.code]: e.target.value })} />
+          ) : (
+            <input key={l.code} className="input" lang={l.code} dir={l.dir} maxLength={max} value={value[l.code] ?? ''} placeholder={l.label} aria-label={`${label}, ${l.label}`} onChange={(e) => onChange({ ...value, [l.code]: e.target.value })} />
+          ),
+        )}
       </div>
     </fieldset>
   );
@@ -81,6 +86,7 @@ export function ListEditor<T extends { key: string }>({
   nameOf,
   L,
   min = 0,
+  open = false,
 }: {
   title: string;
   help?: string;
@@ -91,9 +97,11 @@ export function ListEditor<T extends { key: string }>({
   nameOf: (item: T) => string;
   L: L;
   min?: number;
+  // Shown unfolded at first.
+  open?: boolean;
 }) {
   return (
-    <details className="rounded-control border border-border p-3">
+    <details className="rounded-control border border-border p-3" open={open}>
       <summary className="cursor-pointer font-semibold text-on-surface">
         {title} <span className="font-normal text-on-surface-muted">({items.length})</span>
       </summary>

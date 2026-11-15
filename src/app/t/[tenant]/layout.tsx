@@ -18,6 +18,10 @@ import { buildTheme, themeCss } from '@/theme/engine';
 import { setLanguageAction, signOutAction } from './actions';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
+import { BrandMark } from '@/components/BrandMark';
+import { initialsOf } from '@/site/presets';
+import { siteOf } from '@/site/rules';
+import { navLinks } from '@/site/nav';
 
 type Props = { params: Promise<{ tenant: string }>; children: React.ReactNode };
 
@@ -101,33 +105,22 @@ export default async function TenantLayout({ params, children }: Props) {
   const languages = enabledLocales(own.config);
   const base = await basePath();
   const ctx = await tenantContext(found.tenant.id).catch(() => null);
-  // Only the places this person can use.
-  const links = ctx?.membership
-    ? [
-        { href: `${base}/`, label: own.t('nav.home'), exact: true },
-        // Everyone sees committees on the home page; the list for managing them is for managers.
-        ...(ctx.can('committee.manage') ? [{ href: `${base}/committees`, label: own.t('nav.committees') }] : []),
-        ...(ctx.can('users.view') ? [{ href: `${base}/people`, label: own.t('nav.people') }] : []),
-        ...(ctx.can('grades.view') ? [{ href: `${base}/grades`, label: own.t('nav.grades') }] : []),
-        ...(ctx.can('tenant.manage') ? [{ href: `${base}/settings`, label: own.t('nav.settings') }] : []),
-      ]
-    : [];
-  const tagline = localize(own.config.identity.tagline, own.locale);
+  // The menu, as the school arranged it: only the places this person can use.
+  const site = siteOf(own.config);
+  const links = ctx?.membership ? navLinks(site, base, (p) => ctx.can(p), own.locale, own.t) : [];
+  const tagline = site.header.tagline ? localize(own.config.identity.tagline, own.locale) : '';
+  const initials = site.header.mark === 'initials' ? site.header.initials || initialsOf(found.tenant.name) : null;
   const header = (
     <header className="app-header sticky top-0 z-20 flex-wrap">
       <a href={`${base}/`} className="app-identity">
-        {logo ? (
-          // The name is written beside it, so the image needs no text of its own.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt="" />
-        ) : null}
+        <BrandMark logo={logo} initials={initials} />
         <span className="min-w-0">
           <span className="app-identity-name">{found.tenant.name}</span>
           {tagline ? <span className="app-identity-tagline">{tagline}</span> : null}
         </span>
       </a>
       <div className="ms-auto flex flex-wrap items-center gap-2">
-        {links.length > 1 ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
+        {links.length ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
         {languages.length > 1 ? (
           <LanguageSwitch
             action={setLanguageAction.bind(null, key)}
@@ -138,9 +131,9 @@ export default async function TenantLayout({ params, children }: Props) {
           />
         ) : null}
         {ctx ? (
-          <div className="flex items-center gap-2 text-sm font-normal">
-            <span className="hidden sm:inline">{ctx.user.fullName || ctx.user.email}</span>
-            <ActionButton action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
+          <div className="flex items-center gap-2 text-xs font-normal">
+            {site.header.userName ? <span className="hidden opacity-75 sm:inline">{ctx.user.fullName || ctx.user.email}</span> : null}
+            <ActionButton small action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
           </div>
         ) : null}
       </div>

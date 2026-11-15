@@ -60,6 +60,8 @@ function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): T
   let muted: string;
   let border: string;
   let danger: string;
+  // Status tones: green for "in session", amber for notices; soft fills with readable text.
+  let success: string, successSoft: string, onSuccessSoft: string, warningSoft: string, onWarningSoft: string;
   if (scheme === 'light') {
     // The page background stays light enough to carry dark text.
     const bg = toOklch(p.background);
@@ -69,6 +71,11 @@ function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): T
     muted = ensureContrast(tint(0.5, 0.04), surface, high ? 7 : 4.5);
     border = fromOklch({ l: toOklch(surface).l - (high ? 0.3 : 0.07), c: Math.min(brand.c, 0.02), h: hue });
     danger = ensureContrast('#B3261E', surface, high ? 7 : 4.5);
+    success = ensureContrast('#047857', surface, high ? 7 : 4.5);
+    successSoft = '#D1FAE5';
+    onSuccessSoft = ensureContrast('#047857', successSoft, high ? 7 : 4.5);
+    warningSoft = '#FEF7DC';
+    onWarningSoft = ensureContrast('#92400E', warningSoft, high ? 7 : 4.5);
   } else {
     surface = tint(0.17, 0.035);
     raised = tint(0.22, 0.04);
@@ -76,6 +83,11 @@ function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): T
     muted = ensureContrast(tint(0.78, 0.02), raised, high ? 7 : 4.5);
     border = tint(high ? 0.6 : 0.32, 0.03);
     danger = ensureContrast('#F2857C', raised, high ? 7 : 4.5);
+    success = ensureContrast('#34D399', raised, high ? 7 : 4.5);
+    successSoft = '#064E3B';
+    onSuccessSoft = ensureContrast('#A7F3D0', successSoft, high ? 7 : 4.5);
+    warningSoft = '#4A3410';
+    onWarningSoft = ensureContrast('#FDE68A', warningSoft, high ? 7 : 4.5);
   }
 
   // The harder of the two surfaces to stand out from is the one closer in lightness.
@@ -108,6 +120,11 @@ function colours(p: Primitives, scheme: 'light' | 'dark', adjusted: string[]): T
     '--s-color-border-strong': muted,
     '--s-color-danger': danger,
     '--s-color-on-danger': readableOn(danger, darkInk),
+    '--s-color-success': success,
+    '--s-color-success-soft': successSoft,
+    '--s-color-on-success-soft': onSuccessSoft,
+    '--s-color-warning-soft': warningSoft,
+    '--s-color-on-warning-soft': onWarningSoft,
   };
 }
 

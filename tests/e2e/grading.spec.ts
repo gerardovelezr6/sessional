@@ -91,7 +91,8 @@ test("another committee's chair cannot read these grades", async ({ page }) => {
 
 test('the school downloads its gradebook, and a saved set of columns downloads the same file again', async ({ page }) => {
   await signIn(page, 'owner@grades.test');
-  await page.getByRole('link', { name: 'Gradebook' }).first().click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'High Command' }).click();
+  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Participation & grades' }).click();
   await page.waitForURL(/\/grades$/);
   const summary = page.getByRole('table', { name: 'Committees' });
   await expect(summary.getByRole('row', { name: /General Assembly/ })).toContainText('Brazil');

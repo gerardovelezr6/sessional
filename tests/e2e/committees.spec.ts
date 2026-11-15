@@ -48,7 +48,8 @@ test('the standard Model UN types are added from data and published', async ({ p
 
 test('a conference is started and committees are added under their categories', async ({ page }) => {
   await signIn(page, 'owner@mu.test');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Committees' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'High Command' }).click();
+  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Committees & chairs' }).click();
   await expect(page.getByRole('heading', { name: 'Start your conference' })).toBeVisible();
   await page.getByLabel('Conference name').fill('Mu MUN 2027');
   await page.getByRole('button', { name: 'Start conference' }).click();

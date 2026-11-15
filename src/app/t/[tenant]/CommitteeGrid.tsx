@@ -18,6 +18,8 @@ export interface GridCard {
   detail: string;
   href: string;
   consoleHref: string | null;
+  // Projection screens for this committee: for the people who run it.
+  screenHref: string | null;
 }
 
 export interface GridGroup {
@@ -30,10 +32,10 @@ export interface GridGroup {
 const FILTERS: ('all' | Status)[] = ['all', 'in_session', 'between_sessions', 'not_started'];
 
 export function StatusBadge({ status, label }: { status: Status; label: string }) {
-  const tone = status === 'in_session' ? 'bg-primary text-on-primary' : status === 'between_sessions' ? 'border border-border-strong text-on-surface' : 'border border-border text-on-surface-muted';
+  const tone = status === 'in_session' ? 'tone-live' : status === 'between_sessions' ? 'tone-paused' : 'tone-idle';
   return (
     <span className={`badge ${tone}`}>
-      {status === 'in_session' ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current" aria-hidden="true" /> : null}
+      {status === 'in_session' ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" /> : null}
       {label}
     </span>
   );
@@ -57,7 +59,7 @@ export function CommitteeGrid({ groups, L }: { groups: GridGroup[]; L: Record<st
       <div className="flex flex-wrap items-center gap-2">
         <div role="group" aria-label={L.filter} className="flex flex-wrap gap-1">
           {FILTERS.map((f) => (
-            <button key={f} type="button" aria-pressed={filter === f} className={`btn ${filter === f ? 'btn-primary' : 'btn-secondary'} text-xs`} onClick={() => setFilter(f)}>
+            <button key={f} type="button" aria-pressed={filter === f} className="chip" onClick={() => setFilter(f)}>
               {L[`filter_${f}`]}
             </button>
           ))}
@@ -82,13 +84,18 @@ export function CommitteeGrid({ groups, L }: { groups: GridGroup[]; L: Record<st
                   <StatusBadge status={c.status} label={L[`status_${c.status}`]!} />
                 </div>
                 <p className="flex-1 text-sm">{c.confidential ? `🔒 ${L.confidential}` : c.topic}</p>
-                {c.detail ? <p className="text-xs font-semibold text-on-surface">{c.detail}</p> : null}
+                {c.detail ? <p className="text-xs font-semibold text-success">{c.detail}</p> : null}
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Link href={c.href} className="btn btn-secondary text-xs">
+                  <Link href={c.href} className="btn btn-secondary btn-sm">
                     {L.open}
                   </Link>
+                  {c.screenHref ? (
+                    <Link href={c.screenHref} className="btn btn-secondary btn-sm">
+                      {L.screen}
+                    </Link>
+                  ) : null}
                   {c.consoleHref ? (
-                    <Link href={c.consoleHref} className="btn btn-primary text-xs">
+                    <Link href={c.consoleHref} className="btn btn-primary btn-sm">
                       {L.run}
                     </Link>
                   ) : null}

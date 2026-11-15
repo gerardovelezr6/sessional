@@ -110,7 +110,7 @@ describe('people_list', () => {
     expect(list.members.map((m: { user_id: string }) => m.user_id)).toEqual([people.chair]);
   });
   it.each(['outsider', 'other'] as Person[])('shows %s nothing of tenant A', async (who) => {
-    expect(await call(who, 'people_list($1)', [A])).toEqual({ members: [], roles: [] });
+    expect(await call(who, 'people_list($1)', [A])).toEqual({ members: [], roles: [], my_rank: null });
   });
 });
 

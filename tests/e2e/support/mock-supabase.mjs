@@ -1,7 +1,7 @@
 // A small in-memory stand-in for the Supabase endpoints the server uses (tenant lookup, sign-in,
 // invitations, people), so browser tests run without a database. The real SQL behind these
 // functions is tested separately in tests/db. It also checks which key the server sends where.
-import { randomUUID, randomBytes } from 'node:crypto';
+import { createHash, randomUUID, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const PORT = Number(process.env.MOCK_SUPABASE_PORT ?? 3199);
@@ -37,12 +37,14 @@ const HOSTS = { 'mun.example.test': TENANTS.alpha };
 const ROLES = [
   { key: 'owner', name: { en: 'Owner', es: 'Propietario' }, rank: 0, all: true, permissions: [] },
   { key: 'high_command', name: { en: 'High Command' }, rank: 20, all: false, permissions: ['users.view', 'users.manage'] },
-  { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, permissions: ['committee.run', 'delegates.manage', 'grades.manage'] },
+  { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, scope: 'assigned', permissions: ['committee.run', 'delegates.manage', 'grades.manage'] },
 ];
 // A brand-new school has only the Owner role until its owner adds more.
 const EXTRA_ROLES = { [tid(4)]: [] };
-const rolesIn = (tenant) => (EXTRA_ROLES[tenant] ? [ROLES[0], ...EXTRA_ROLES[tenant]] : ROLES);
-const roleOf = (key) => [...ROLES, ...Object.values(EXTRA_ROLES).flat()].find((r) => r.key === key);
+// Roles a school created itself (roles page), per school.
+const CUSTOM_ROLES = {};
+const rolesIn = (tenant) => [...(EXTRA_ROLES[tenant] ? [ROLES[0], ...EXTRA_ROLES[tenant]] : ROLES), ...(CUSTOM_ROLES[tenant] ?? [])];
+const roleOf = (key) => [...ROLES, ...Object.values(EXTRA_ROLES).flat(), ...Object.values(CUSTOM_ROLES).flat()].find((r) => r.key === key);
 
 const users = new Map(); // id -> { id, email, password, full_name, password_set }
 const memberships = []; // { tenant_id, user_id, role_key, status }
@@ -184,10 +186,10 @@ const rpcs = {
     if (!mine) return { body: { members: [], roles: [] } };
     const visible = memberships.filter((m) => m.tenant_id === p_tenant && (can(userId, p_tenant, 'users.view') || m.user_id === userId));
     const members = visible
-      .map((m) => ({ user_id: m.user_id, email: users.get(m.user_id).email, full_name: users.get(m.user_id).full_name, role_key: m.role_key, role_name: roleOf(m.role_key).name, rank: roleOf(m.role_key).rank, status: m.status, password_set: users.get(m.user_id).password_set }))
+      .map((m) => ({ user_id: m.user_id, email: users.get(m.user_id).email, full_name: users.get(m.user_id).full_name, role_key: m.role_key, role_name: roleOf(m.role_key).name, rank: roleOf(m.role_key).rank, status: m.status, password_set: users.get(m.user_id).password_set, me: m.user_id === userId }))
       .sort((a, b) => a.rank - b.rank || a.email.localeCompare(b.email));
     const roles = rolesIn(p_tenant).filter((r) => r.rank >= roleOf(mine.role_key).rank).map((r) => ({ key: r.key, name: r.name, rank: r.rank }));
-    return { body: { members, roles } };
+    return { body: { members, roles, my_rank: roleOf(mine.role_key).rank } };
   },
   add_member: ({ p_tenant, p_user, p_role, p_status }, userId) => {
     if (!can(userId, p_tenant, 'users.manage')) return { status: 403, body: { code: '42501', message: 'new row violates row-level security policy' } };
@@ -305,7 +307,7 @@ const activeConference = (tenant) => conferences.filter((f) => f.tenant_id === t
 const committeeById = (id) => committees.find((c) => c.id === id);
 const isChairOf = (userId, id) => chairs.some((c) => c.committee_id === id && c.user_id === userId);
 const manages = (userId, tenant) => can(userId, tenant, 'committee.manage');
-const seesDelegates = (userId, c) => manages(userId, c.tenant_id) || (isChairOf(userId, c.id) && (can(userId, c.tenant_id, 'committee.run') || can(userId, c.tenant_id, 'delegates.manage')));
+const seesDelegates = (userId, c) => manages(userId, c.tenant_id) || (isChairOf(userId, c.id) && (can(userId, c.tenant_id, 'committee.run') || can(userId, c.tenant_id, 'delegates.manage') || can(userId, c.tenant_id, 'grades.manage')));
 const editsDelegates = (userId, c) => manages(userId, c.tenant_id) || (isChairOf(userId, c.id) && can(userId, c.tenant_id, 'delegates.manage'));
 const nameOf = (id) => {
   const u = users.get(id);
@@ -720,6 +722,111 @@ Object.assign(rpcs, {
   for (const label of ['Brazil', 'China']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
 }
 
+// --- People (Phase 9): roles, members, audit log, provider sign-in. ---
+// People School: an owner, High Command, a chair of one committee, and two people waiting on
+// their invitation (one will sign in with Google).
+TENANTS.people = { kind: 'tenant', id: tid(21), slug: 'people', name: 'People School', status: 'active' };
+seed('owner@people.test', 'Pat People', tid(21), 'owner');
+seed('hc@people.test', 'Hal Command', tid(21), 'high_command');
+seed('helper@people.test', 'Hana Helper', tid(21), 'chair');
+seed('leaver@people.test', 'Lee Leaver', tid(21), 'chair');
+{
+  const gina = addUser('gina@people.test', null, 'Gina Google', false);
+  memberships.push({ tenant_id: tid(21), user_id: gina.id, role_key: 'chair', status: 'invited' });
+  addUser('mike@people.test', null, 'Mike Microsoft', false);
+  const conf = { id: randomUUID(), tenant_id: tid(21), name: 'People MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9400-000000000001', tenant_id: tid(21), conference_id: conf.id, name: 'Legal Committee', abbreviation: 'LEGAL', topic: 'Space law', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('helper@people.test').id });
+  for (const label of ['Brazil', 'China']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+}
+const auditLog = []; // { id, tenant_id, actor_id, action, target, meta, created_at }
+const audit = (tenant, actor, action, target, meta = {}) => auditLog.push({ id: auditLog.length + 1, tenant_id: tenant, actor_id: actor, action, target, meta, created_at: new Date().toISOString() });
+const myRole = (userId, tenant) => roleOf(memberOf(userId, tenant)?.role_key);
+Object.assign(rpcs, {
+  roles_matrix: ({ p_tenant }, userId) => {
+    const me = myRole(userId, p_tenant);
+    if (!me) return { body: null };
+    return {
+      body: {
+        my_rank: me.rank,
+        roles: rolesIn(p_tenant)
+          .sort((a, b) => a.rank - b.rank)
+          .map((r) => ({ key: r.key, name: r.name, rank: r.rank, scope: r.scope ?? 'tenant', all_permissions: r.all, permissions: r.permissions, members: can(userId, p_tenant, 'users.view') ? memberships.filter((m) => m.tenant_id === p_tenant && m.role_key === r.key).length : null })),
+      },
+    };
+  },
+  role_save: ({ p_tenant, p_data }, userId) => {
+    const me = myRole(userId, p_tenant);
+    if (!me || !can(userId, p_tenant, 'roles.manage')) return DENIED;
+    if (p_data.key === 'owner') return { status: 403, body: { code: '42501', message: 'The owner role cannot be changed or removed' } };
+    if (p_data.rank < me.rank) return { status: 403, body: { code: '42501', message: 'You cannot create or raise a role above your own' } };
+    if (!me.all && p_data.permissions.some((x) => !me.permissions.includes(x))) return { status: 403, body: { code: '42501', message: 'You cannot grant a permission you do not hold' } };
+    const list = (CUSTOM_ROLES[p_tenant] ??= []);
+    let r = list.find((x) => x.key === p_data.key);
+    if (!r) list.push((r = { key: p_data.key, all: false }));
+    Object.assign(r, { name: p_data.name, rank: p_data.rank, scope: p_data.scope, permissions: [...p_data.permissions] });
+    audit(p_tenant, userId, 'roles.insert', r.key, { rank: r.rank, scope: r.scope });
+    return { body: { key: r.key, rank: r.rank, scope: r.scope, permissions: r.permissions } };
+  },
+  role_delete: ({ p_tenant, p_key }, userId) => {
+    if (!can(userId, p_tenant, 'roles.manage')) return DENIED;
+    if (memberships.some((m) => m.tenant_id === p_tenant && m.role_key === p_key)) return { body: false };
+    const list = CUSTOM_ROLES[p_tenant] ?? [];
+    const i = list.findIndex((x) => x.key === p_key);
+    if (i < 0) return { body: false };
+    list.splice(i, 1);
+    audit(p_tenant, userId, 'roles.delete', p_key);
+    return { body: true };
+  },
+  member_update: ({ p_tenant, p_user, p_role, p_status }, userId) => {
+    const me = myRole(userId, p_tenant);
+    if (!me || !can(userId, p_tenant, 'users.manage')) return DENIED;
+    if (p_user === userId) return { status: 403, body: { code: '42501', message: 'You cannot change your own membership' } };
+    const m = memberships.find((x) => x.tenant_id === p_tenant && x.user_id === p_user);
+    if (!m) return { body: null };
+    if (roleOf(m.role_key).rank < me.rank) return { status: 403, body: { code: '42501', message: 'You cannot change someone senior to you' } };
+    if (p_role && roleOf(p_role).rank < me.rank) return { status: 403, body: { code: '42501', message: 'You cannot grant a role senior to your own' } };
+    if (p_role) m.role_key = p_role;
+    if (p_status) m.status = p_status === 'active' && !users.get(p_user).password_set && !users.get(p_user).provider ? 'invited' : p_status;
+    audit(p_tenant, userId, 'memberships.update', p_user, { role_key: m.role_key, status: m.status });
+    return { body: { user_id: m.user_id, role_key: m.role_key, status: m.status } };
+  },
+  member_remove: ({ p_tenant, p_user }, userId) => {
+    const me = myRole(userId, p_tenant);
+    if (!me || !can(userId, p_tenant, 'users.manage') || p_user === userId) return DENIED;
+    const i = memberships.findIndex((x) => x.tenant_id === p_tenant && x.user_id === p_user);
+    if (i < 0 || roleOf(memberships[i].role_key).rank < me.rank) return { body: false };
+    memberships.splice(i, 1);
+    audit(p_tenant, userId, 'memberships.delete', p_user);
+    return { body: true };
+  },
+  audit_list: ({ p_tenant, p_action }, userId) => {
+    if (!can(userId, p_tenant, 'audit.view')) return { body: null };
+    const mine = auditLog.filter((a) => a.tenant_id === p_tenant);
+    const name = (id) => (id && users.get(id) && memberships.some((m) => m.tenant_id === p_tenant && m.user_id === id) ? nameOf(id) : null);
+    return {
+      body: {
+        entries: mine.filter((a) => !p_action || a.action.startsWith(p_action)).reverse().slice(0, 50).map((a) => ({ ...a, actor_name: name(a.actor_id), target_name: name(a.target), impersonated: false })),
+        actions: [...new Set(mine.map((a) => a.action.split('.')[0]))],
+      },
+    };
+  },
+  activate_invitations: ({ p_user }) => {
+    const u = users.get(p_user);
+    if (!u) return { body: null };
+    u.provider = true;
+    const pending = memberships.filter((m) => m.user_id === p_user && m.status === 'invited');
+    pending.forEach((m) => (m.status = 'active'));
+    return { body: { user_id: p_user, activated: pending.length } };
+  },
+});
+// The provider sign-in: "Google" signs in as Gina, "Microsoft" (azure) as Mike, who was never
+// invited. Codes are bound to the PKCE challenge, as the real service does.
+const oauthCodes = new Map(); // code -> { userId, challenge, provider }
+const OAUTH_USERS = { google: 'gina@people.test', azure: 'mike@people.test' };
+
 // --- Grading and awards (Phase 8). ---
 // Grade School: two committees, each with its own chair; a closed session with grades already given.
 {
@@ -740,7 +847,7 @@ const awardRows = []; // { committee_id, award, award_name, delegate_id, label }
 const mappings = []; // export_mappings rows
 const gradeManager = (userId, c) => {
   const role = c && roleOf(memberOf(userId, c.tenant_id)?.role_key);
-  return !!role && (role.all || (role.permissions.includes('grades.manage') && (isChairOf(userId, c.id) || role.key !== 'chair')));
+  return !!role && (role.all || (role.permissions.includes('grades.manage') && (isChairOf(userId, c.id) || role.scope !== 'assigned')));
 };
 const gradesReadable = (userId, c) => !!c && (can(userId, c.tenant_id, 'grades.view') || gradeManager(userId, c));
 Object.assign(rpcs, {
@@ -810,7 +917,7 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel']);
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -912,6 +1019,23 @@ createServer((req, res) => {
       return send(rpcs[rpc[1]](body, userId));
     }
 
+    // Provider sign-in: the browser comes here, and goes straight back with a code.
+    if (req.method === 'GET' && (req.url ?? '').startsWith('/auth/v1/authorize?')) {
+      const q = new URL(req.url, 'http://mock').searchParams;
+      const who = byEmail(OAUTH_USERS[q.get('provider')] ?? '');
+      if (!who || q.get('code_challenge_method') !== 's256') return send({ status: 400, body: { msg: 'bad request' } });
+      const code = randomBytes(16).toString('hex');
+      oauthCodes.set(code, { userId: who.id, challenge: q.get('code_challenge'), provider: q.get('provider') });
+      res.writeHead(302, { location: `${q.get('redirect_to')}?code=${code}` });
+      return res.end();
+    }
+    if (req.method === 'POST' && req.url === '/auth/v1/token?grant_type=pkce') {
+      const found = oauthCodes.get(body.auth_code);
+      oauthCodes.delete(body.auth_code);
+      if (!found || createHash('sha256').update(String(body.code_verifier)).digest('base64url') !== found.challenge) return send({ status: 400, body: { error_code: 'flow_state_not_found' } });
+      const u = users.get(found.userId);
+      return send({ body: { ...issue(u.id), user: { id: u.id, email: u.email, email_confirmed_at: new Date().toISOString(), app_metadata: { provider: found.provider } } } });
+    }
     const handler = auth[`${req.method} ${req.url}`];
     if (handler) {
       if (key !== ANON && key !== SERVICE) return send({ status: 401, body: {} });

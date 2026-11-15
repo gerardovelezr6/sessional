@@ -17,7 +17,7 @@ export default async function NewPasswordPage({ params }: { params: Promise<{ te
     <Shell centered title={t('setPassword.title')} locale={locale}>
       <div className="card">
         <ActionForm action={savePasswordAction.bind(null, key)} submitLabel={t('setPassword.save')}>
-          <Field label={t('setPassword.new')} name="password" type="password" autoComplete="new-password" minLength={config.people.passwordMinLength} hint={t('setPassword.hint', { min: config.people.passwordMinLength })} />
+          <Field label={t('setPassword.new')} name="password" type="password" autoComplete="new-password" minLength={config.people.passwordMinLength} hint={[t('setPassword.hint', { min: config.people.passwordMinLength }), config.people.passwordRequire !== 'length' ? t(`setPassword.hint.${config.people.passwordRequire}`) : ''].filter(Boolean).join(' ')} />
           <Field label={t('setPassword.repeat')} name="repeat" type="password" autoComplete="new-password" />
         </ActionForm>
       </div>

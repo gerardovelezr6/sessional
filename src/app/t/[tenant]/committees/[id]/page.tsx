@@ -15,7 +15,9 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadPeople } from '../../people/data';
 import { addDelegatesAction, deleteCommitteeAction, deleteDelegateAction, saveCommitteeAction, setChairsAction, setSecretAction, updateDelegateAction } from '../actions';
 import { CommitteeFields } from '../CommitteeFields';
-import { choicesFor, loadCommittee } from '../data';
+import { choicesFor, loadCommittee, loadOverview } from '../data';
+import { gradingPanelProps } from '../../grades/panel';
+import { GradingPanel } from './console/grading';
 import { Delegates } from './Delegates';
 import { GradesTab } from './GradesTab';
 import { gradingRulesOf } from '@/grading/rules';
@@ -40,7 +42,7 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const type = typeOf(structure, committee.type_key);
   const manage = ctx.can('committee.manage');
   const isChair = detail.chairs.includes(ctx.user.id);
-  const seesDelegates = manage || (isChair && (ctx.can('committee.run') || ctx.can('delegates.manage')));
+  const seesDelegates = manage || (isChair && (ctx.can('committee.run') || ctx.can('delegates.manage') || ctx.can('grades.manage')));
   const editsDelegates = manage || (isChair && ctx.can('delegates.manage'));
   const languages = enabledLocales(config);
   const committeeLocale = committee.language ?? config.locale.defaultLocale;
@@ -53,6 +55,11 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const rules = gradingRulesOf(config);
   const grading = rules.enabled ? await loadGrading(committee.id, ctx.token).catch(() => null) : null;
   const mappings = grading ? await loadMappings(tenant.id, ctx.token).catch(() => []) : [];
+  // People who grade here without running the room give their grades on this tab; grades go to
+  // the session that is open, if any.
+  const gradeHere = !!grading && ctx.can('grades.manage') && (manage || isChair) && !canRun;
+  const live = gradeHere ? (await loadOverview(tenant.id, ctx.token).catch(() => null))?.committees.find((c) => c.id === committee.id)?.live : null;
+  const openSession = live?.status === 'in_session' ? (grading?.sessions.find((x) => x.number === live.session_number)?.id ?? null) : null;
   const tabs = ['overview', ...(manage ? ['chairs'] : []), 'delegates', ...(grading ? ['grades'] : [])] as const;
   const fromDone = query.done === 'award' || query.done === 'grade' ? 'grades' : query.done === 'chairs' ? 'chairs' : ['added', 'delegate', 'removed'].includes(query.done ?? '') ? 'delegates' : null;
   const tab = (tabs as readonly string[]).includes(query.tab ?? '') ? query.tab! : (fromDone ?? 'overview');
@@ -201,7 +208,24 @@ export default async function CommitteePage({ params, searchParams }: { params: 
           </section>
         ) : null}
         {tab === 'grades' && grading ? (
-          <GradesTab tenantKey={key} base={base} data={grading} rules={rules} mappings={mappings} canGrade={ctx.can('grades.manage')} locale={locale} timeZone={config.identity.timeZone} t={t} />
+          <div className="flex flex-col gap-6">
+            {gradeHere ? (
+              <GradingPanel
+                {...gradingPanelProps({
+                  tenantKey: key,
+                  committeeId: committee.id,
+                  rules,
+                  delegates: detail.delegates.map((d) => ({ id: d.id, label: d.label, flag: flagFor(type, d, [committeeLocale, ...languages]), logoUrl: d.group_key ? assetUrl(tenant.id, type.groups.find((g) => g.key === d.group_key)?.logo) : null })),
+                  config,
+                  locale,
+                  t,
+                })}
+                speaker={null}
+                session={openSession}
+              />
+            ) : null}
+            <GradesTab tenantKey={key} base={base} data={grading} rules={rules} mappings={mappings} canGrade={ctx.can('grades.manage')} locale={locale} timeZone={config.identity.timeZone} t={t} />
+          </div>
         ) : null}
         {tab === 'delegates' ? (
         <section id="delegates" className="card flex flex-col gap-3" aria-labelledby="delegates-title">

@@ -122,3 +122,39 @@ export async function addStarterRolesAction(tenantKey: string): Promise<FormStat
   }
   return { redirectTo: `${await basePath()}/people` };
 }
+
+export type MemberResult = { ok: true; redirectTo: string } | { ok: false; error: string };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Changes someone's role or status. The database refuses anyone senior to the caller, roles above
+// the caller's own, and the caller's own membership.
+export async function memberUpdateAction(tenantKey: string, userId: string, change: { role?: string; status?: 'active' | 'disabled' }): Promise<MemberResult> {
+  const tenant = await requireTenant(tenantKey);
+  const { t } = await tenantTranslator(tenant.id);
+  const ctx = await tenantContext(tenant.id);
+  if (!ctx?.can('users.manage') || !UUID.test(userId)) return { ok: false, error: t('people.invite.error.forbidden') };
+  if (change.role !== undefined && !/^[a-z][a-z0-9_]{0,39}$/.test(change.role)) return { ok: false, error: t('people.invite.error.role') };
+  if (change.status !== undefined && !['active', 'disabled'].includes(change.status)) return { ok: false, error: t('people.invite.error.failed') };
+  try {
+    const row = await rpc('member_update', { p_tenant: tenant.id, p_user: userId, p_role: change.role ?? null, p_status: change.status ?? null }, { token: ctx.token });
+    if (!row) return { ok: false, error: t('people.invite.error.failed') };
+  } catch (e) {
+    if (e instanceof RpcError) return { ok: false, error: t(/owner/.test(e.message) ? 'people.error.lastOwner' : e.forbidden ? 'people.invite.error.forbidden' : 'people.invite.error.failed') };
+    throw e;
+  }
+  return { ok: true, redirectTo: `${await basePath()}/people?done=${change.status ?? 'role'}` };
+}
+
+export async function memberRemoveAction(tenantKey: string, userId: string): Promise<MemberResult> {
+  const tenant = await requireTenant(tenantKey);
+  const { t } = await tenantTranslator(tenant.id);
+  const ctx = await tenantContext(tenant.id);
+  if (!ctx?.can('users.manage') || !UUID.test(userId)) return { ok: false, error: t('people.invite.error.forbidden') };
+  try {
+    if (!(await rpc<boolean>('member_remove', { p_tenant: tenant.id, p_user: userId }, { token: ctx.token }))) return { ok: false, error: t('people.invite.error.failed') };
+  } catch (e) {
+    if (e instanceof RpcError) return { ok: false, error: t(/owner/.test(e.message) ? 'people.error.lastOwner' : e.forbidden ? 'people.invite.error.forbidden' : 'people.invite.error.failed') };
+    throw e;
+  }
+  return { ok: true, redirectTo: `${await basePath()}/people?done=removed` };
+}

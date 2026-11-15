@@ -14,7 +14,7 @@ const PLACES: Record<NavKey, { path: string; word: MessageKey; may: (can: (p: st
 };
 
 // Anyone who manages part of the conference sees the administration page.
-export const ADMIN_PERMISSIONS = ['committee.manage', 'users.view', 'tenant.manage', 'grades.view'];
+export const ADMIN_PERMISSIONS = ['committee.manage', 'users.view', 'tenant.manage', 'grades.view', 'roles.manage', 'audit.view'];
 
 export function navLinks(site: Site, base: string, can: (p: string) => boolean, locale: string, t: Translate) {
   const items = site.nav

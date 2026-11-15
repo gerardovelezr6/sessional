@@ -4,6 +4,8 @@ import { setSession } from '@/auth/session';
 import type { FormState } from '@/components/ActionForm';
 import { rpc, verifiedWrite } from '@/data/rpc';
 import { tenantTranslator } from '@/config/store';
+import type { MessageKey } from '@/messages';
+import { passwordProblems } from '@/people/password';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 
 // The one-time token is spent here, when the person presses Continue, and nowhere else. Opening
@@ -25,7 +27,8 @@ export async function savePasswordAction(tenantKey: string, _state: FormState, d
 
   const password = String(data.get('password') ?? '');
   const min = config.people.passwordMinLength;
-  if (password.length < min) return { error: t('setPassword.error.short', { min }) };
+  const problems = passwordProblems(password, config.people, { email: ctx.user.email, school: tenant.name });
+  if (problems.length) return { error: problems.map((p) => t(`setPassword.error.${p}` as MessageKey, { min })).join(' ') };
   if (password !== String(data.get('repeat') ?? '')) return { error: t('setPassword.error.mismatch') };
 
   const changed = await updatePassword(ctx.token, password);

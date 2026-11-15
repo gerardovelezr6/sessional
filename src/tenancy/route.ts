@@ -15,6 +15,8 @@ export const BASE_PATH_HEADER = 'x-sessional-base';
 export const SAFE_MODE_HEADER = 'x-sessional-safe-mode';
 // Set by the proxy on school pages: the school's key, so the root layout can set lang and dir.
 export const TENANT_KEY_HEADER = 'x-sessional-tenant';
+// The page asked for, inside the tenant ("/login", "/committees/…"), set by the proxy only.
+export const TENANT_PATH_HEADER = 'x-sessional-path';
 
 export type RouteDecision =
   // basePath is set when the request is a tenant page reached by path (previews).

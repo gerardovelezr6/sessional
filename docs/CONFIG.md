@@ -120,3 +120,15 @@ Spanish: Personas e inicio de sesión
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
 | Minimum password length | `people.passwordMinLength` | `8` | whole number, 8 to 128 | `tenant.manage` | The fewest characters a password may have (8 to 128). |
+| Password must also have | `people.passwordRequire` | `length` | `length` (Nothing more), `letters_numbers` (Letters and numbers), `mixed` (Upper and lower case, a number and a symbol) | `tenant.manage` | Besides the minimum length. |
+| Refuse common passwords | `people.passwordBlockCommon` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Also refuses passwords made of the person's address or the school's name. |
+| Sign in with Google | `people.googleSignIn` | `off` | `on` (On), `off` (Off) | `tenant.manage` | Shows “Continue with Google” on the sign-in page. Only people you invited get in; Google must be set up in the authentication service. |
+| Sign in with Microsoft | `people.microsoftSignIn` | `off` | `on` (On), `off` (Off) | `tenant.manage` | Shows “Continue with Microsoft” (school and work accounts). Only people you invited get in; Microsoft must be set up in the authentication service. |
+
+## Access code (`access`)
+
+Spanish: Código de acceso
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Access code | `access.gate` | as the preset has it | edited on the access code page; stores only a hash of the code; empty means no code | `tenant.manage` | Only a hash of the code is stored. |

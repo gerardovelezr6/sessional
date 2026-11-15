@@ -18,7 +18,8 @@ describe('defaults', () => {
       protocol: { preset: 'un_style', pack: null },
       grading: { rules: null },
       site: { page: null },
-      people: { passwordMinLength: 8 },
+      people: { passwordMinLength: 8, passwordRequire: 'length', passwordBlockCommon: 'on', googleSignIn: 'off', microsoftSignIn: 'off' },
+      access: { gate: null },
       theme: {
         preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,
@@ -141,14 +142,14 @@ describe('forgiving resolution (rendering)', () => {
     expect(r).toEqual({ data: { tagline: { es: 'Hola' }, dates: {}, venue: {}, timeZone: 'UTC' }, repaired: ['identity.timeZone'] });
   });
   it.each([null, 'text', [1, 2], 42])('falls back to defaults for stored %j', (data) => {
-    expect(resolveSection('people', { data, schema_version: 1 })).toEqual({ data: { passwordMinLength: 8 }, repaired: ['people'] });
+    expect(resolveSection('people', { data, schema_version: 1 })).toEqual({ data: { passwordMinLength: 8, passwordRequire: 'length', passwordBlockCommon: 'on', googleSignIn: 'off', microsoftSignIn: 'off' }, repaired: ['people'] });
   });
   it('does not trust data written by a newer schema than this code understands', () => {
     const r = resolveSection('people', { data: { passwordMinLength: 20 }, schema_version: CONFIG_SCHEMA_VERSION + 1 });
-    expect(r.data).toEqual({ passwordMinLength: 8 });
+    expect(r.data).toEqual({ passwordMinLength: 8, passwordRequire: 'length', passwordBlockCommon: 'on', googleSignIn: 'off', microsoftSignIn: 'off' });
   });
   it('ignores unknown stored fields', () => {
-    expect(resolveSection('people', { data: { passwordMinLength: 11, legacy: true }, schema_version: 1 }).data).toEqual({ passwordMinLength: 11 });
+    expect(resolveSection('people', { data: { passwordMinLength: 11, legacy: true }, schema_version: 1 }).data).toEqual({ passwordMinLength: 11, passwordRequire: 'length', passwordBlockCommon: 'on', googleSignIn: 'off', microsoftSignIn: 'off' });
   });
 });
 

@@ -15,10 +15,9 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadCommittee, serverTime } from '../../data';
 import { liveViewAction, runCommandAction } from './actions';
 import { Console } from './Console';
-import { addGradeAction, consoleGradesAction, deleteGradeAction } from '../../../grades/actions';
+import { gradingPanelProps } from '../../../grades/panel';
 import { gradingRulesOf } from '@/grading/rules';
 
-const GRADING_WORDS = ['title', 'who', 'speaking', 'category', 'level', 'note', 'notePlaceholder', 'pickFirst', 'saving', 'leaders', 'recent', 'noneYet', 'remove', 'removeConfirm', 'removed', 'keep', 'noRubric', 'error_forbidden', 'error_invalid', 'error_failed'] as const;
 import { ScreensPanel } from './screens';
 import { listScreensAction, pairScreenAction, unpairScreenAction, updateScreenAction, type ScreenRow } from './actions';
 import { realtimeConfig } from '@/live/broadcast';
@@ -99,23 +98,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
           initialTab={CONSOLE_TABS.find((x) => x === tab) ?? 'roll'}
           realtime={realtimeConfig(channel)}
           grading={
-            rules.enabled && ctx.can('grades.manage')
-              ? {
-                  rubric: rules.categories.map((c) => ({
-                    key: c.key,
-                    name: localize(c.name, locale, c.key),
-                    short: c.short,
-                    hint: localize(c.hint, locale, ''),
-                    levels: c.levels.map((l) => ({ key: l.key, label: localize(l.label, locale, l.key), description: localize(l.description, locale, ''), points: l.points * c.weight })),
-                  })),
-                  delegates: consoleDelegates,
-                  add: addGradeAction.bind(null, key, committee.id),
-                  remove: deleteGradeAction.bind(null, key),
-                  load: consoleGradesAction.bind(null, key, committee.id),
-                  locale,
-                  L: { points: pattern('grading.points'), given: pattern('grading.given'), giveLevel: pattern('grading.giveLevel'), removeOne: pattern('grading.removeOne'), ...Object.fromEntries(GRADING_WORDS.map((k) => [k, t(`grading.${k}` as MessageKey)])) },
-                }
-              : null
+            rules.enabled && ctx.can('grades.manage') ? gradingPanelProps({ tenantKey: key, committeeId: committee.id, rules, delegates: consoleDelegates, config, locale, t }) : null
           }
           notices={<AnnouncementList items={currentAnnouncements(siteOf(config), Date.parse(new Date().toISOString()), 'console')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />}
           screens={

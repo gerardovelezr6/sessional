@@ -70,14 +70,16 @@ test('a chair cannot open the people page', async ({ page }) => {
 
 test('High Command can only grant roles at or below its own', async ({ page }) => {
   await signIn(page, 'alpha.localhost', 'hc@alpha.test');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'People', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'High Command' }).click();
+  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Users & roles' }).click();
   await expect(page.getByLabel('Role').locator('option')).toHaveText(['High Command', 'Chair']);
 });
 
 test('invitation: link previews do not use it up, it works once, and the person ends up active', async ({ page, browser }) => {
   const email = `new-${unique()}@alpha.test`;
   await signIn(page, 'alpha.localhost', 'owner@alpha.test');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'People', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'High Command' }).click();
+  await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Users & roles' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('People');
 
   await page.getByLabel('Name').fill('Nadia New');

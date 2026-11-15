@@ -427,3 +427,24 @@ committees), editable email texts (email phase), flags (Phase 5).
   column mappings store keys and headings only.
 - Pages: the console's Grading tab, the committee's Grades tab (standings, awards, log, download)
   and `/grades` (every committee, download all, saved columns).
+
+## The website editor and the classic conference site (after Phase 8)
+
+- Settings section `site` (`site.page`; empty means `standardSite()` in `src/site/presets.ts`),
+  edited at Settings → Website (`/settings/site`) by people with `tenant.manage`, with drafts,
+  publishing and a live preview of the home page (a same-site frame; other sites may not frame the
+  app: `frame-ancestors 'self'`).
+- What it holds (`src/site/schema.ts`): the header (initials square when there is no logo,
+  tagline, signed-in name); the menu (order, shown or not, a name per language; people only see
+  places they may use) and extra links; the home page as ordered blocks (banner, announcements,
+  welcome line, your committees, committee cards, text, buttons with links, "coming soon"
+  placeholder); announcements (info or urgent, optional start and end, home and/or console); the
+  administration page's title and subtitle. Links accept only pages of the site (`/…`) or
+  `https://` addresses.
+- `/dashboard`: a person's own committees (every committee for managers) and announcements.
+- `/admin` (named with the school's word for High Command): counters and one row of tabs leading to
+  committees, types, grades, rubric, people, announcements, website, branding and settings. The same
+  tabs show on those pages. Global documents and archive are placeholders (`/admin/documents`,
+  `/admin/archive`); live analytics show what is counted today.
+- The classic look gains status tones (`--s-color-success*`, `--s-color-warning-soft`), filter
+  chips, small buttons, counters (`.stat`) and segmented choices (`.seg`) for the roll call.

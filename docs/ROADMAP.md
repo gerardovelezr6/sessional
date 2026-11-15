@@ -1,8 +1,9 @@
 # Roadmap
 
-Status: Phases 0 to 7, the classic conference look and the interface tidy-up are merged. Phase 8
-(grading and awards) is up for review. The degraded-mode load test from Phase 7 still needs staging
-(see `docs/LOAD-TEST.md`).
+Status: Phases 0 to 8 are merged. The classic conference site and the website editor (Settings →
+Website) are up for review; live analytics, global documents and archiving show placeholders until
+Phases 10 and 11. The degraded-mode load test from Phase 7 still needs staging (see
+`docs/LOAD-TEST.md`).
 
 Editable email texts move to the email phase.
 

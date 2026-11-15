@@ -27,7 +27,7 @@ async function saveAndPublish(page: Page) {
 
 test('every school page has a header with the school name until a logo is uploaded', async ({ page }) => {
   await page.goto(at('/login'));
-  await expect(page.locator('header.app-header a > span')).toHaveText('Logo School');
+  await expect(page.locator('header.app-header .app-identity-name')).toHaveText('Logo School');
 });
 
 test('the live preview follows the form before anything is saved', async ({ page }) => {
@@ -110,8 +110,10 @@ test('a logo and a browser icon are uploaded, previewed, published and shown on 
   expect(icon).toMatch(/public-assets\/00000000-0000-4000-8000-000000000008\/favicon-[0-9a-f]{16}\.png$/);
   // Brand-coloured header and a title bar.
   expect(await style(visitor, 'header.app-header', 'color')).toBe('rgb(255, 255, 255)');
-  expect(await visitor.locator('h1.page-title').evaluate((el) => getComputedStyle(el, '::after').display)).toBe('block');
   await visitor.context().close();
+  // The sign-in card has a plain heading; other pages carry the title bar.
+  await page.reload();
+  expect(await page.locator('h1.page-title').evaluate((el) => getComputedStyle(el, '::after').display)).toBe('block');
 
   // Saving the form again without choosing a file keeps the images.
   await choose(page.locator('section#theme'), 'Spacing', 'Compact');
@@ -124,7 +126,7 @@ test('an image can be removed', async ({ page }) => {
   await design.getByLabel('Logo: Remove').check();
   await expect(page.getByTestId('theme-preview').locator('.app-header')).toHaveText('Logo School');
   await saveAndPublish(page);
-  await expect(page.locator('header.app-header a > span')).toHaveText('Logo School');
+  await expect(page.locator('header.app-header .app-identity-name')).toHaveText('Logo School');
   await expect(page.locator('header.app-header img')).toHaveCount(0);
   // The icon was not touched.
   await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /favicon-/);

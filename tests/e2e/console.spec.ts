@@ -4,6 +4,9 @@ import { choose, openSection, saveAndPublish } from './support/settings';
 // One committee run through a session, step by step, so these run in order.
 test.describe.configure({ mode: 'serial' });
 
+// The counters above the roll call.
+const stat = (page: Page, which: 'present' | 'debate' | 'vote') => page.getByRole('region', { name: 'Quorum' }).locator(`[data-stat="${which}"] .stat-value`);
+const present = (page: Page, n: number) => expect(stat(page, 'present')).toHaveText(`${n} / 5`);
 const PORT = 3100;
 const MOCK = 'http://localhost:3199';
 const COMMITTEE = '00000000-0000-4000-9000-000000000001';
@@ -34,21 +37,22 @@ test('a chair opens a session and takes the roll call', async ({ page }) => {
   // Tabs, opening on the roll call.
   await expect(page.getByRole('tab', { name: /^Roll call/ })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByText(/In progress\. Mark each Delegate as they answer\. 5 have not answered yet\./)).toBeVisible();
-  await expect(page.getByText('0 of 5 present')).toBeVisible();
+  await present(page, 0);
 
   await mark(page, 'Brazil', 'Present');
   await mark(page, 'China', 'Present and voting');
   await mark(page, 'France', 'Absent');
   await saved(page);
-  await expect(page.getByText('2 of 5 present')).toBeVisible();
-  await expect(page.getByText('Debate needs 2: reached')).toBeVisible();
-  await expect(page.getByText('Voting needs 3: not reached')).toBeVisible();
+  await present(page, 2);
+  await expect(stat(page, 'debate')).toHaveText('Met');
+  await expect(page.getByRole('region', { name: 'Quorum' }).getByText('Debate quorum (2)')).toBeVisible();
+  await expect(stat(page, 'vote')).toHaveText('Not met');
   await expect(row(page, 'China').getByRole('button', { name: 'Present and voting' })).toHaveAttribute('aria-pressed', 'true');
 
   // Saved on the server, not only on screen.
   await page.reload();
   await expect(row(page, 'Brazil').getByRole('button', { name: 'Present', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('2 of 5 present')).toBeVisible();
+  await present(page, 2);
 });
 
 test('a second chair sees the first chair\'s changes without reloading', async ({ page, browser }) => {
@@ -57,11 +61,11 @@ test('a second chair sees the first chair\'s changes without reloading', async (
   const other = await browser.newPage();
   await signIn(other, 'chair2@console.test');
   await other.goto(at(`/committees/${COMMITTEE}/console`));
-  await expect(other.getByText('2 of 5 present')).toBeVisible();
+  await present(other, 2);
 
   await mark(page, 'Kenya', 'Present');
   await saved(page);
-  await expect(other.getByText('3 of 5 present')).toBeVisible({ timeout: 12_000 });
+  await expect(stat(other, 'present')).toHaveText('3 / 5', { timeout: 12_000 });
   await expect(row(other, 'Kenya').getByRole('button', { name: 'Present', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await other.close();
 });
@@ -76,14 +80,14 @@ test('a change whose answer is lost is sent again and applied once', async ({ pa
   await expect(page.getByRole('listitem').filter({ has: row(page, 'Mexico') }).getByText('Saving…')).toBeVisible();
   // The server waits five seconds for the lost answer, then the console sends it again.
   await expect(page.getByText('All changes saved.')).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText('4 of 5 present')).toBeVisible();
+  await present(page, 4);
   await page.reload();
-  await expect(page.getByText('4 of 5 present')).toBeVisible();
+  await present(page, 4);
   // Tapping the same answer again clears it: had the first command been applied twice, it would
   // have stayed as it was.
   await mark(page, 'Mexico', 'Present');
   await saved(page);
-  await expect(page.getByText('3 of 5 present')).toBeVisible();
+  await present(page, 3);
 });
 
 test('the roll call is finished and recorded, then the session is closed', async ({ page }) => {
@@ -122,7 +126,7 @@ test('a new rule set applies from the next session', async ({ page }) => {
   await expect(page.getByText('Session 2', { exact: true })).toBeVisible();
   await expect(row(page, 'Brazil').getByRole('button')).toHaveCount(2);
   await expect(row(page, 'Brazil').getByRole('button', { name: 'Present and voting' })).toHaveCount(0);
-  await expect(page.getByText('Voting needs 3: not reached')).toBeVisible();
+  await expect(stat(page, 'vote')).toHaveText('Not met');
 });
 
 test('people who do not run the committee cannot open its console', async ({ page }) => {

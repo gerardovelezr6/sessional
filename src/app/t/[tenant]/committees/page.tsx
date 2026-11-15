@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { Shell } from '@/components/Shell';
+import { AdminTabs } from '@/site/AdminTabs';
 import { enabledLocales, tenantTranslator } from '@/config/store';
 import { languageName } from '@/i18n/locales';
 import { localize } from '@/messages';
@@ -32,6 +33,7 @@ export default async function CommitteesPage({ params, searchParams }: { params:
   if (!overview.conference) {
     return (
       <Shell title={t('committees.title')} size="full" locale={locale}>
+      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'committees'} />
         {manage ? (
           <section className="card flex flex-col gap-3" aria-labelledby="start-title">
             <h2 id="start-title" className="text-lg font-bold text-on-surface">
@@ -76,6 +78,7 @@ export default async function CommitteesPage({ params, searchParams }: { params:
 
   return (
     <Shell title={t('committees.title')} size="full" locale={locale}>
+      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'committees'} />
       <div className="flex flex-col gap-6">
         <p className="text-sm text-on-surface-muted">{conference.name}</p>
         {message ? (

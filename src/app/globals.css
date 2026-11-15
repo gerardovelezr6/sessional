@@ -17,6 +17,11 @@
   --color-border-strong: var(--s-color-border-strong);
   --color-danger: var(--s-color-danger);
   --color-on-danger: var(--s-color-on-danger);
+  --color-success: var(--s-color-success);
+  --color-success-soft: var(--s-color-success-soft);
+  --color-on-success-soft: var(--s-color-on-success-soft);
+  --color-warning-soft: var(--s-color-warning-soft);
+  --color-on-warning-soft: var(--s-color-on-warning-soft);
 
   --radius-*: initial;
   --radius-control: var(--s-radius-control);
@@ -131,9 +136,73 @@
     background: var(--s-header-bg);
     color: var(--s-header-fg);
     border-bottom: var(--s-border-width) solid var(--s-header-line);
-    padding: 0.75rem var(--s-space-surface);
+    padding: 0.6rem max(1rem, calc((100% - 80rem) / 2 + 1rem));
   }
   .app-header img { @apply block h-9 w-auto; max-width: 12rem; }
+  /* The school's initials in a square of its colour, when it has no logo. */
+  .brand-mark {
+    @apply inline-flex shrink-0 items-center justify-center bg-primary font-bold text-on-primary;
+    border-radius: var(--s-radius-control);
+    letter-spacing: 0.02em;
+  }
+  /* Announcements: a soft amber strip, or a red one when urgent. */
+  .announcement {
+    @apply flex items-start gap-3 text-sm;
+    background: var(--s-color-warning-soft);
+    color: var(--s-color-on-warning-soft);
+    border: var(--s-border-width) solid color-mix(in srgb, var(--s-color-on-warning-soft) 25%, transparent);
+    border-radius: var(--s-radius-control);
+    padding: 0.6rem 1rem;
+  }
+  .announcement .label-text { color: inherit; padding-top: 0.1rem; }
+  .announcement-urgent {
+    background: color-mix(in srgb, var(--s-color-danger) 9%, var(--s-color-surface-raised));
+    color: var(--s-color-on-surface);
+    border-color: color-mix(in srgb, var(--s-color-danger) 45%, transparent);
+  }
+  .announcement-urgent .label-text { color: var(--s-color-danger); }
+  /* Status words: green while in session, amber between sessions, quiet before the start. */
+  .tone-live { background: var(--s-color-success-soft); color: var(--s-color-on-success-soft); }
+  .tone-paused { background: var(--s-color-warning-soft); color: var(--s-color-on-warning-soft); }
+  .tone-idle { background: var(--s-color-surface); color: var(--s-color-on-surface-muted); }
+  /* Small filter buttons (status filters above a list). */
+  .chip {
+    @apply text-xs font-semibold text-on-surface-muted;
+    background: var(--s-color-surface-raised);
+    box-shadow: inset 0 0 0 1px var(--s-color-border);
+    border-radius: var(--s-radius-control);
+    padding: 0.25rem 0.75rem;
+  }
+  .chip:hover { background: var(--s-color-surface); }
+  .chip[aria-pressed="true"] { background: var(--s-color-primary); color: var(--s-color-on-primary); box-shadow: none; }
+  /* Small buttons (cards, the header). */
+  .btn-sm { @apply text-xs; padding: 0.3rem 0.65rem; }
+  /* Counters in a row of cards (attendance, live analytics). */
+  .stat {
+    @apply flex flex-col gap-1 rounded-surface border-border bg-surface-raised;
+    border-style: solid;
+    border-width: var(--s-border-width);
+    padding: 1rem;
+  }
+  .stat-value { @apply text-2xl font-bold text-on-surface; }
+  .stat-good { color: var(--s-color-success); }
+  /* Segmented choice: buttons joined in one strip. */
+  .seg { @apply inline-flex overflow-hidden text-xs font-medium; border: var(--s-border-width) solid var(--s-color-border-strong); border-radius: var(--s-radius-control); background: var(--s-color-surface-raised); }
+  .seg > button { padding: 0.35rem 0.75rem; color: var(--s-color-on-surface-muted); }
+  .seg > button + button { border-inline-start: var(--s-border-width) solid var(--s-color-border-strong); }
+  .seg > button:hover { background: var(--s-color-surface); }
+  .seg > button[aria-pressed="true"] { background: var(--s-color-primary); color: var(--s-color-on-primary); }
+  .seg > button[aria-pressed="true"].seg-good { background: var(--s-color-success); color: var(--s-color-surface-raised); }
+  .seg > button[aria-pressed="true"].seg-off { background: var(--s-color-on-surface); color: var(--s-color-surface-raised); }
+
+  /* A part of the site that is still to come. */
+  .placeholder {
+    @apply flex flex-col gap-1 text-center;
+    border: var(--s-border-width) dashed var(--s-color-border-strong);
+    border-radius: var(--s-radius-surface);
+    padding: 1.5rem;
+  }
+
   /* Small status labels on cards. */
   .badge {
     @apply inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 text-[10px] font-bold;
@@ -153,16 +222,12 @@
   .app-identity-name { @apply block truncate text-sm font-bold; }
   .app-identity-tagline { @apply block truncate text-xs font-normal; opacity: 0.75; }
   .app-nav a {
-    @apply text-sm font-semibold;
-    padding: 0.35rem 0.6rem;
+    @apply text-xs font-semibold;
+    padding: 0.35rem 0.75rem;
     border-radius: var(--s-radius-control);
-    opacity: 0.85;
   }
-  .app-nav a:hover { opacity: 1; }
-  .app-nav a[aria-current] {
-    opacity: 1;
-    box-shadow: inset 0 -2px 0 currentColor;
-  }
+  .app-nav a:hover { background: color-mix(in srgb, currentColor 7%, transparent); }
+  .app-nav a[aria-current] { background: color-mix(in srgb, currentColor 9%, transparent); }
 
   /* Page titles, optionally with a brand bar and an accent mark underneath. */
   .page-title { @apply relative font-bold text-on-surface; padding-bottom: 0.75rem; }

@@ -57,6 +57,8 @@ interface Props {
   realtime: RealtimeConfig | null;
   // The projection screens panel, made by the page.
   screens: React.ReactNode;
+  // The school's announcements for consoles, already chosen on the server.
+  notices?: React.ReactNode;
   // Grading, for people who grade in this committee; the speaker and session come from the floor.
   grading: Omit<React.ComponentProps<typeof GradingPanel>, 'speaker' | 'session'> | null;
   L: Record<string, string>;
@@ -323,6 +325,32 @@ export function Console(p: Props) {
             </ul>
           </section>
   );
+  // Counters above the roll call: everyone present, those who may not abstain (present and
+  // voting), and whether each quorum is reached.
+  const rollStats = (
+    <section aria-label={L.quorumTitle} className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="stat" data-stat="present">
+        <span className="label-text">{fmt(L.statPresent, locale, {})}</span>
+        <span className="stat-value">{`${counts.present} / ${counts.members}`}</span>
+      </div>
+      {pack.attendance
+        .filter((a) => a.countsForQuorum && !a.mayAbstain)
+        .map((a) => (
+          <div key={a.key} className="stat" data-stat={a.key}>
+            <span className="label-text">{nameOf(a.name, locale)}</span>
+            <span className="stat-value">{ids.filter((id) => shown.attendance[id] === a.key).length}</span>
+          </div>
+        ))}
+      <div className="stat" data-stat="debate">
+        <span className="label-text">{fmt(L.statDebate, locale, { needed: quorum.debate.needed })}</span>
+        <span className={`stat-value ${quorum.debate.met ? 'stat-good' : ''}`}>{quorum.debate.met ? L.statMet : L.statNotMet}</span>
+      </div>
+      <div className="stat" data-stat="vote">
+        <span className="label-text">{fmt(L.statVote, locale, { needed: quorum.vote.needed })}</span>
+        <span className={`stat-value ${quorum.vote.met ? 'stat-good' : ''}`}>{quorum.vote.met ? L.statMet : L.statNotMet}</span>
+      </div>
+    </section>
+  );
   const rollCallCard = (
     <section className="card flex flex-col gap-3" aria-labelledby="rollcall-title">
               <h2 id="rollcall-title" className="text-lg font-bold text-on-surface">
@@ -375,26 +403,31 @@ export function Console(p: Props) {
                       <Flag choice={d.flag} logoUrl={d.logoUrl} />
                       <span className="min-w-40 flex-1 font-semibold text-on-surface">{d.label}</span>
                       {pendingFor.has(d.id) ? <span className="text-xs text-on-surface-muted">{L.pendingOne}</span> : null}
-                      <div role="group" aria-label={d.label} className="flex flex-wrap gap-1">
-                        {pack.attendance.map((a) => (
-                          <button
-                            key={a.key}
-                            type="button"
-                            aria-pressed={current === a.key}
-                            title={nameOf(a.name, locale)}
-                            className={`btn ${current === a.key ? 'btn-primary' : 'btn-secondary'} min-w-12`}
-                            onClick={() =>
-                              send({
-                                type: 'attendance.set',
-                                delegate: d.id,
-                                state: current === a.key ? null : a.key,
-                              })
-                            }
-                          >
-                            <span aria-hidden="true">{a.short}</span>
-                            <span className="sr-only">{nameOf(a.name, locale)}</span>
-                          </button>
-                        ))}
+                      <div role="group" aria-label={d.label} className="seg">
+                        {pack.attendance.map((a) => {
+                          const full = nameOf(a.name, locale);
+                          // Short words show in full; long ones by their abbreviation.
+                          const shownName = full.length <= 10 ? full : a.short;
+                          return (
+                            <button
+                              key={a.key}
+                              type="button"
+                              aria-pressed={current === a.key}
+                              title={full}
+                              className={!a.countsForQuorum ? 'seg-off' : a.mayAbstain ? 'seg-good' : ''}
+                              onClick={() =>
+                                send({
+                                  type: 'attendance.set',
+                                  delegate: d.id,
+                                  state: current === a.key ? null : a.key,
+                                })
+                              }
+                            >
+                              <span aria-hidden="true">{shownName}</span>
+                              <span className="sr-only">{full}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </li>
                   );
@@ -436,11 +469,19 @@ export function Console(p: Props) {
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className={`badge ${session ? 'bg-primary text-on-primary' : 'border border-border-strong text-on-surface'}`}>{session ? L.inSession : L.notInSession}</span>
-              {session ? <span className="badge border border-border-strong text-on-surface">{fmt(L.sessionBadge, locale, { number: session.number })}</span> : null}
-              {session ? <span className="badge border border-border text-on-surface">{shown.vote ? L.tabVoting : shown.caucus ? nameOf(pack.caucuses.find((c) => c.key === shown.caucus!.key)?.name ?? {}, locale) || shown.caucus.key : L.general}</span> : null}
+              <span className={`badge ${session ? 'tone-live' : 'tone-idle'}`}>
+                {session ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" /> : null}
+                {session ? L.inSession : L.notInSession}
+              </span>
+              {session ? <span className="badge tone-idle text-primary">{fmt(L.sessionBadge, locale, { number: session.number })}</span> : null}
+              {session ? <span className="badge tone-idle">{shown.vote ? L.tabVoting : shown.caucus ? nameOf(pack.caucuses.find((c) => c.key === shown.caucus!.key)?.name ?? {}, locale) || shown.caucus.key : L.general}</span> : null}
             </div>
             <div className="flex flex-wrap justify-end gap-2">
+              {session && tab !== 'screens' ? (
+                <button type="button" className="btn btn-primary btn-sm order-last" onClick={() => chooseTab('screens')}>
+                  {L.openScreen} <span aria-hidden="true">↗</span>
+                </button>
+              ) : null}
               {session ? (
                 confirmClose ? (
                   <>
@@ -464,6 +505,7 @@ export function Console(p: Props) {
             </div>
           </div>
         </section>
+        {p.notices}
         {status}
         {session ? (
           <>
@@ -476,9 +518,9 @@ export function Console(p: Props) {
             </div>
             <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="flex flex-col gap-6">
               {tab === 'roll' ? (
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+                <div className="flex flex-col gap-4">
+                  {rollStats}
                   {rollCallCard}
-                  {quorumCard}
                 </div>
               ) : null}
               {tab === 'floor' ? <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} /> : null}
@@ -517,6 +559,7 @@ export function Console(p: Props) {
 
   return (
     <div className="flex flex-col gap-6 pb-28 xl:pb-0">
+      {p.notices}
       {status}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">

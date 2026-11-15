@@ -9,10 +9,10 @@ export type { FieldView };
 
 type Action = (state: SettingsState, data: FormData) => Promise<SettingsState>;
 
-function Submit({ label, variant = 'primary' }: { label: string; variant?: 'primary' | 'secondary' }) {
+function Submit({ label, variant = 'primary', small = false }: { label: string; variant?: 'primary' | 'secondary'; small?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={`btn ${variant === 'primary' ? 'btn-primary' : 'btn-secondary'}`} disabled={pending} aria-busy={pending}>
+    <button type="submit" className={`btn ${variant === 'primary' ? 'btn-primary' : 'btn-secondary'}${small ? ' btn-sm' : ''}`} disabled={pending} aria-busy={pending}>
       {label}
     </button>
   );
@@ -139,13 +139,13 @@ export function SectionForm({
 }
 
 // A single-button form (publish, discard, restore, preview) that reports its error in place.
-export function ActionButton({ action, label, variant = 'secondary', children }: { action: Action; label: string; variant?: 'primary' | 'secondary'; children?: React.ReactNode }) {
+export function ActionButton({ action, label, variant = 'secondary', small = false, children }: { action: Action; label: string; variant?: 'primary' | 'secondary'; small?: boolean; children?: React.ReactNode }) {
   const [state, formAction] = useActionState(action, {});
   useNavigateWhenDone(state);
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       {children}
-      <Submit label={label} variant={variant} />
+      <Submit label={label} variant={variant} small={small} />
       {state.error ? (
         <p role="alert" className="error-text w-full whitespace-pre-line">
           {state.error}

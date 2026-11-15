@@ -25,6 +25,8 @@ export type Control =
   | { kind: 'protocol' }
   // The grading rubric, bonuses, scale and awards: edited on their own page.
   | { kind: 'grading' }
+  // The website (header, menu, home page, announcements): edited on its own page.
+  | { kind: 'site' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -57,7 +59,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'theme', 'structure', 'protocol', 'grading'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'site', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people'] },
 ];
@@ -70,6 +72,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   structure: 'settings.structure.description',
   protocol: 'settings.protocol.description',
   grading: 'settings.grading.description',
+  site: 'settings.site.description',
   theme: 'settings.theme.description',
   people: 'settings.people.description',
 };
@@ -82,6 +85,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   structure: 'settings.structure',
   protocol: 'settings.protocol',
   grading: 'settings.grading',
+  site: 'settings.site',
   theme: 'settings.theme',
   people: 'settings.people',
 };
@@ -159,6 +163,11 @@ export const registry: Setting[] = [
     section: 'grading', key: 'rules', permission: 'tenant.manage',
     labelKey: 'settings.grading.rules', helpKey: 'settings.grading.rules.help',
     control: { kind: 'grading' },
+  },
+  {
+    section: 'site', key: 'page', permission: 'tenant.manage',
+    labelKey: 'settings.site.page', helpKey: 'settings.site.page.help',
+    control: { kind: 'site' },
   },
   {
     section: 'translations', key: 'messages', permission: 'tenant.manage',

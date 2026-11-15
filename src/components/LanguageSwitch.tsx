@@ -24,7 +24,7 @@ export function LanguageSwitch({
         id="language"
         name="language"
         defaultValue={current}
-        className="input w-auto"
+        className="input w-auto py-1 text-xs"
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
       >
         {options.map((o) => (

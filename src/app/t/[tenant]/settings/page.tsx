@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { SectionPicker } from '@/components/SectionPicker';
 import { Shell } from '@/components/Shell';
+import { AdminTabs } from '@/site/AdminTabs';
 import { SECTION_HELP, SECTION_LABELS, SECTION_MENU } from '@/config/registry';
 import { resolveSection } from '@/config/resolve';
 import { SECTION_NAMES, type SectionName } from '@/config/schema';
@@ -50,6 +51,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   // The school's languages as being edited (a draft may add one before it is published).
   const editingLocales = resolveSection('locale', state.locale?.draft ?? state.locale?.published).data.enabledLocales;
   const protocolPack = resolveSection('protocol', state.protocol?.draft ?? state.protocol?.published).data.pack;
+  const sitePage = resolveSection('site', state.site?.draft ?? state.site?.published).data.page;
   const gradingRules = resolveSection('grading', state.grading?.draft ?? state.grading?.published).data.rules;
   const structure = resolveSection('structure', state.structure?.draft ?? state.structure?.published).data;
   const overrides = resolveSection('translations', state.translations?.draft ?? state.translations?.published).data.messages;
@@ -89,6 +91,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
 
   return (
     <Shell title={t('settings.title')} size="full" locale={locale}>
+      <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={section === 'theme' ? 'branding' : 'settings'} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <div className="lg:hidden">
           <SectionPicker
@@ -164,6 +167,16 @@ export default async function SettingsPage({ params, searchParams }: { params: P
               <p>
                 <Link className="btn btn-primary" href={`${base}/settings/protocol`}>
                   {t('settings.protocol.open')}
+                </Link>
+              </p>
+            </div>
+          ) : null}
+          {section === 'site' ? (
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <p className="text-sm">{t(sitePage ? 'settings.site.custom' : 'settings.site.standard')}</p>
+              <p>
+                <Link className="btn btn-primary" href={`${base}/settings/site`}>
+                  {t('settings.site.open')}
                 </Link>
               </p>
             </div>

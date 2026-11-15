@@ -10,6 +10,7 @@ import { PRESET_KEYS } from '@/theme/presets';
 import { DEFAULT_PROTOCOL, PROTOCOL_PRESET_KEYS } from '@/protocol/presets';
 import { packSchema } from '@/protocol/schema';
 import { gradingSchema } from '@/grading/schema';
+import { siteSchema } from '@/site/schema';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
 // with its validation and its default; nothing tenant-specific lives in code as a constant.
@@ -107,6 +108,11 @@ export const sections = {
   // Grading: the school's own rules (rubric, bonuses, scale, awards); null: the standard rubric.
   grading: z.object({
     rules: gradingSchema.nullable().default(null),
+  }),
+  // The website: header, menu, home page blocks, announcements (edited on their own page); null:
+  // the classic layout.
+  site: z.object({
+    page: siteSchema.nullable().default(null),
   }),
   people: z.object({
     passwordMinLength: z.number().int().min(8).max(128).default(8),

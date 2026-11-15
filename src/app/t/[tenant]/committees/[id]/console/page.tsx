@@ -23,6 +23,9 @@ import { ScreensPanel } from './screens';
 import { listScreensAction, pairScreenAction, unpairScreenAction, updateScreenAction, type ScreenRow } from './actions';
 import { realtimeConfig } from '@/live/broadcast';
 import { CONSOLE_TABS } from './tabs';
+import { AnnouncementList } from '@/site/AnnouncementList';
+import { currentAnnouncements } from '@/site/presets';
+import { siteOf } from '@/site/rules';
 
 interface SessionRow {
   id: string;
@@ -114,6 +117,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
                 }
               : null
           }
+          notices={<AnnouncementList items={currentAnnouncements(siteOf(config), Date.parse(new Date().toISOString()), 'console')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />}
           screens={
             <ScreensPanel
               initial={screens}
@@ -148,6 +152,12 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
             closeConfirm: pattern('console.session.close.confirm'),
             closeCancel: t('console.session.close.cancel'),
             quorumTitle: t('console.quorum.title'),
+            statPresent: pattern('console.stat.present'),
+            statDebate: pattern('console.stat.debate'),
+            statVote: pattern('console.stat.vote'),
+            statMet: t('console.stat.met'),
+            statNotMet: t('console.stat.notMet'),
+            openScreen: t('console.openScreen'),
             present: pattern('console.quorum.present'),
             quorumDebate: pattern('console.quorum.debate'),
             quorumVote: pattern('console.quorum.vote'),

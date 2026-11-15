@@ -404,3 +404,26 @@ committees), editable email texts (email phase), flags (Phase 5).
 - The Committees menu item is for people who manage committees; everyone finds committees on the
   home page.
 - The console gains a Screens tab and a live-updates indicator.
+
+## Grading and awards (Phase 8)
+
+- Rules live in settings section `grading` (`grading.rules`; empty means `standardGrading()` in
+  `src/grading/presets.ts`, Sessional's own rubric). Schema: `src/grading/schema.ts`. Edited at
+  Settings → Grading and awards (`/settings/grading`).
+- Tables `grades`, `awards`, `export_mappings` (in the isolation matrix). A grade is a snapshot of the
+  rubric at the time (names, points, weight, the delegation's label), so later rule changes and
+  renames do not rewrite history.
+- Privacy: `grades.manage` is held per committee (a chair grades only the committees they chair);
+  `grades.view` reads every committee. `grading_data(committee)` answers null to anyone else, so
+  another committee's chair cannot tell whether grades exist.
+- Automatic points come from the floor: speeches, explanations of vote (the console's "Explained vote"
+  toggle on roll-call ballots, command `vote.explain`) and roll calls answered with a state that the
+  session's own rules count as present.
+- `src/grading/standings.ts` totals (in tenths, so sums are exact), ranks with ties, applies the
+  scale and suggests awards; it is pure and unit-tested against a reference rubric.
+- Exports (`/grades/export`, `src/grading/export.ts`): CSV (byte-order mark, formula guard), XLSX
+  (Gradebook, Grading log and Rubric sheets) and PDF (embedded Noto Sans, the school's colours). The
+  file's dates come from the newest grade, so the same data and mapping give the same bytes. Saved
+  column mappings store keys and headings only.
+- Pages: the console's Grading tab, the committee's Grades tab (standings, awards, log, download)
+  and `/grades` (every committee, download all, saved columns).

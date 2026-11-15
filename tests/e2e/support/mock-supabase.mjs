@@ -29,13 +29,14 @@ const TENANTS = {
   rules: { kind: 'tenant', id: tid(16), slug: 'rules', name: 'Rules School', status: 'active' },
   grid: { kind: 'tenant', id: tid(17), slug: 'grid', name: 'Grid School', status: 'active' },
   screens: { kind: 'tenant', id: tid(18), slug: 'screens', name: 'Screen School', status: 'active' },
+  grades: { kind: 'tenant', id: tid(19), slug: 'grades', name: 'Grade School', status: 'active' },
 };
 const HOSTS = { 'mun.example.test': TENANTS.alpha };
 
 const ROLES = [
   { key: 'owner', name: { en: 'Owner', es: 'Propietario' }, rank: 0, all: true, permissions: [] },
   { key: 'high_command', name: { en: 'High Command' }, rank: 20, all: false, permissions: ['users.view', 'users.manage'] },
-  { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, permissions: ['committee.run', 'delegates.manage'] },
+  { key: 'chair', name: { en: 'Chair', es: 'Mesa' }, rank: 30, all: false, permissions: ['committee.run', 'delegates.manage', 'grades.manage'] },
 ];
 // A brand-new school has only the Owner role until its owner adds more.
 const EXTRA_ROLES = { [tid(4)]: [] };
@@ -82,6 +83,9 @@ seed('owner@rules.test', 'Rita Rules', tid(16), 'owner');
 seed('chair@rules.test', 'Ray Rules', tid(16), 'chair');
 seed('owner@grid.test', 'Gil Grid', tid(17), 'owner');
 seed('chair@screens.test', 'Sam Screens', tid(18), 'chair');
+seed('owner@grades.test', 'Gwen Grades', tid(19), 'owner');
+seed('chair@grades.test', 'Gil Grader', tid(19), 'chair');
+seed('chair2@grades.test', 'Gus Grader', tid(19), 'chair');
 
 // Published settings per tenant. Delta is a Spanish-language school with a stricter password rule
 // and one broken stored value, which must fall back to its default instead of breaking the page.
@@ -566,7 +570,7 @@ Object.assign(rpcs, {
         }
       }
       if (e.type === 'warning.recorded') warningLog.push({ committee_id: c.id, ...e });
-      if (e.type === 'speech.recorded') speechLog.push({ session_id: e.session, label: e.label, list: e.list, seconds: e.seconds, started_at: e.startedAt });
+      if (e.type === 'speech.recorded') speechLog.push({ session_id: e.session, delegate_id: e.delegate, label: e.label, list: e.list, seconds: e.seconds, started_at: e.startedAt });
       if (e.type === 'rollcall.recorded') rollCalls.push({ id: randomUUID(), session_id: e.session, taken_at: new Date().toISOString(), entries: e.entries });
     }
     // The answer is lost after the change was stored, as on a dropped connection.
@@ -685,6 +689,96 @@ Object.assign(rpcs, {
     if (!f || !manages(userId, f.tenant_id)) return { body: null };
     f.secrets_unlock_rule = p_rule;
     return { body: { id: f.id, secrets_unlock_rule: p_rule } };
+  },
+});
+
+// --- Grading and awards (Phase 8). ---
+// Grade School: two committees, each with its own chair; a closed session with grades already given.
+{
+  const conf = { id: randomUUID(), tenant_id: tid(19), name: 'Grade MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+  conferences.push(conf);
+  const add = (n, name, abbreviation, chair) => {
+    const c = { id: `00000000-0000-4000-9200-00000000000${n}`, tenant_id: tid(19), conference_id: conf.id, name, abbreviation, topic: '', description: '', category_key: null, type_key: 'standard', language: null, sort_order: n, created_at: conf.created_at };
+    committees.push(c);
+    chairs.push({ committee_id: c.id, user_id: byEmail(chair).id });
+    for (const label of ['Brazil', 'China', 'France', 'Kenya']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: label === 'Brazil' ? 'Bea Student' : '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+    return c;
+  };
+  add(1, 'General Assembly', 'GA', 'chair@grades.test');
+  add(2, 'Economic Council', 'ECOSOC', 'chair2@grades.test');
+}
+const grades = []; // grades rows
+const awardRows = []; // { committee_id, award, award_name, delegate_id, label }
+const mappings = []; // export_mappings rows
+const gradeManager = (userId, c) => {
+  const role = c && roleOf(memberOf(userId, c.tenant_id)?.role_key);
+  return !!role && (role.all || (role.permissions.includes('grades.manage') && (isChairOf(userId, c.id) || role.key !== 'chair')));
+};
+const gradesReadable = (userId, c) => !!c && (can(userId, c.tenant_id, 'grades.view') || gradeManager(userId, c));
+Object.assign(rpcs, {
+  grading_data: ({ p_committee }, userId) => {
+    const c = committeeById(p_committee);
+    if (!gradesReadable(userId, c)) return { body: null };
+    const ds = delegates.filter((d) => d.committee_id === c.id);
+    const mine = new Set(ds.map((d) => d.id));
+    const sessionIds = new Set(liveSessions.filter((x) => x.committee_id === c.id).map((x) => x.id));
+    const counts = new Map();
+    for (const sp of speechLog.filter((x) => sessionIds.has(x.session_id) && mine.has(x.delegate_id))) {
+      const k = `${sp.delegate_id}|${sp.session_id}`;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    return {
+      body: {
+        committee: { id: c.id, name: c.name, abbreviation: c.abbreviation, type_key: c.type_key },
+        delegates: ds.sort((a, b) => a.label.localeCompare(b.label)).map((d) => ({ id: d.id, label: d.label, name: d.name })),
+        sessions: liveSessions.filter((x) => x.committee_id === c.id).sort((a, b) => a.number - b.number).map((x) => ({ id: x.id, number: x.number })),
+        grades: grades.filter((g) => g.committee_id === c.id).map((g) => ({ ...g, graded_by: users.get(g.graded_by)?.full_name ?? '' })),
+        speeches: [...counts].map(([k, count]) => ({ delegate_id: k.split('|')[0], session_id: k.split('|')[1], count })),
+        explanations: voteLog.filter((v) => sessionIds.has(v.session_id) && Array.isArray(v.ballots)).flatMap((v) => v.ballots.filter((b) => b.explained).map((b) => ({ delegate_id: b.delegate_id, session_id: v.session_id }))),
+        present: [],
+        awards: awardRows.filter((a) => a.committee_id === c.id),
+      },
+    };
+  },
+  grade_add: ({ p_committee, p_data }, userId) => {
+    const c = committeeById(p_committee);
+    const d = delegates.find((x) => x.id === p_data.delegate_id && x.committee_id === p_committee);
+    if (!d || !gradesReadable(userId, c)) return { body: null };
+    if (!gradeManager(userId, c)) return DENIED;
+    const g = { id: randomUUID(), committee_id: c.id, session_id: p_data.session_id || null, delegate_id: d.id, label: d.label, category: p_data.category, category_name: p_data.category_name, level: p_data.level, level_label: p_data.level_label, points: p_data.points, weight: p_data.weight, note: p_data.note ?? '', graded_at: new Date().toISOString(), graded_by: userId };
+    grades.push(g);
+    return { body: { id: g.id } };
+  },
+  grade_delete: ({ p_grade }, userId) => {
+    const g = grades.find((x) => x.id === p_grade);
+    if (!g || !gradeManager(userId, committeeById(g.committee_id))) return { body: false };
+    grades.splice(grades.indexOf(g), 1);
+    return { body: true };
+  },
+  award_set: ({ p_committee, p_award, p_name, p_delegates }, userId) => {
+    const c = committeeById(p_committee);
+    if (!gradeManager(userId, c)) return DENIED;
+    const ds = p_delegates.map((id) => delegates.find((x) => x.id === id && x.committee_id === c.id));
+    if (ds.some((x) => !x) || new Set(p_delegates).size !== p_delegates.length) return { status: 400, body: { code: '22023', message: 'unknown delegate' } };
+    for (let i = awardRows.length - 1; i >= 0; i--) if (awardRows[i].committee_id === c.id && awardRows[i].award === p_award) awardRows.splice(i, 1);
+    for (const d of ds) awardRows.push({ committee_id: c.id, award: p_award, award_name: p_name, delegate_id: d.id, label: d.label });
+    return { body: ds.map((d) => d.id) };
+  },
+  export_mappings_list: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? mappings.filter((m) => m.tenant_id === p_tenant).sort((a, b) => a.name.localeCompare(b.name)) : [] }),
+  export_mapping_save: ({ p_tenant, p_data }, userId) => {
+    if (!can(userId, p_tenant, 'grades.view')) return DENIED;
+    if (mappings.some((m) => m.tenant_id === p_tenant && m.name === p_data.name && m.id !== p_data.id)) return { status: 409, body: { code: '23505', message: 'duplicate key' } };
+    let m = p_data.id ? mappings.find((x) => x.id === p_data.id && x.tenant_id === p_tenant) : null;
+    if (p_data.id && !m) return { body: null };
+    if (!m) mappings.push((m = { id: randomUUID(), tenant_id: p_tenant }));
+    Object.assign(m, { name: p_data.name, format: p_data.format, columns: p_data.columns, updated_at: new Date().toISOString() });
+    return { body: m };
+  },
+  export_mapping_delete: ({ p_mapping }, userId) => {
+    const m = mappings.find((x) => x.id === p_mapping);
+    if (!m || !can(userId, m.tenant_id, 'grades.view')) return { body: false };
+    mappings.splice(mappings.indexOf(m), 1);
+    return { body: true };
   },
 });
 

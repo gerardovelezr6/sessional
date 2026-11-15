@@ -9,6 +9,7 @@ import type { Pack } from '@/protocol/schema';
 import type { FlagChoice } from '@/structure/flags';
 import { useLive, type RealtimeConfig } from '@/live/useLive';
 import { drop, keep, loadOutbox } from './outbox';
+import { GradingPanel } from './grading';
 import type { ConsoleTab } from './tabs';
 import { Floor, PhoneBar, Shortcuts, useServerNow, useShortcuts } from './floor';
 import { DisciplinePanel, MotionsPanel, PointsPanel, VotePanel, type VotableDocument } from './procedure';
@@ -56,6 +57,8 @@ interface Props {
   realtime: RealtimeConfig | null;
   // The projection screens panel, made by the page.
   screens: React.ReactNode;
+  // Grading, for people who grade in this committee; the speaker and session come from the floor.
+  grading: Omit<React.ComponentProps<typeof GradingPanel>, 'speaker' | 'session'> | null;
   L: Record<string, string>;
 }
 
@@ -225,6 +228,8 @@ export function Console(p: Props) {
   const rollCall = shown.rollCall;
 
   useShortcuts(!!session, shown, send);
+  const speakerNow = (shown.caucus?.list ?? shown.speakers).current?.delegate ?? null;
+  const gradingPanel = p.grading ? <GradingPanel {...p.grading} speaker={speakerNow} session={shown.session?.id ?? null} /> : null;
   const shared = {
     state: shown,
     pack,
@@ -417,6 +422,7 @@ export function Console(p: Props) {
       { id: 'motions', label: fmt(L.tabMotions, locale, { count: shown.motions.length + shown.points.length }) },
       { id: 'voting', label: shown.vote ? `${L.tabVoting} •` : L.tabVoting! },
       { id: 'discipline', label: L.tabDiscipline! },
+      ...(p.grading ? [{ id: 'grading' as const, label: L.tabGrading! }] : []),
       { id: 'screens', label: L.tabScreens! },
     ];
     return (
@@ -489,6 +495,7 @@ export function Console(p: Props) {
                 </div>
               ) : null}
               {tab === 'screens' ? p.screens : null}
+              {tab === 'grading' && gradingPanel ? gradingPanel : null}
               {tab === 'discipline' ? (
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
                   <DisciplinePanel {...shared} />
@@ -520,6 +527,7 @@ export function Console(p: Props) {
               <Floor state={shown} pack={pack} delegates={p.delegates} now={now} locale={locale} send={send} L={L} />
               <VotePanel key={shown.vote?.id ?? 'none'} {...shared} />
               <MotionsPanel {...shared} />
+              {gradingPanel}
             </>
           ) : null}
         </div>

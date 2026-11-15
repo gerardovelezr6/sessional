@@ -1,8 +1,8 @@
 # Roadmap
 
-Status: Phases 0 to 6 and the classic conference look are merged. Phase 7 (projection screens and
-live updates) and a tidy-up of the interface are up for review. The realtime load test at full
-conference size passed locally; the degraded-mode test needs staging (see `docs/LOAD-TEST.md`).
+Status: Phases 0 to 7, the classic conference look and the interface tidy-up are merged. Phase 8
+(grading and awards) is up for review. The degraded-mode load test from Phase 7 still needs staging
+(see `docs/LOAD-TEST.md`).
 
 Editable email texts move to the email phase.
 

@@ -371,6 +371,17 @@ export function VotePanel(p: Props) {
                         </button>
                       ))}
                   </div>
+                  {current === 'yes' || current === 'no' ? (
+                    <button
+                      type="button"
+                      aria-pressed={!!vote.explained?.includes(id)}
+                      aria-label={`${L.explained}: ${d?.label ?? id}`}
+                      className={`btn ${vote.explained?.includes(id) ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => send({ type: 'vote.explain', delegate: id, given: !vote.explained?.includes(id) })}
+                    >
+                      {L.explained}
+                    </button>
+                  ) : null}
                 </li>
               );
             })}

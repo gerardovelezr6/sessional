@@ -17,8 +17,11 @@ import { addDelegatesAction, deleteCommitteeAction, deleteDelegateAction, saveCo
 import { CommitteeFields } from '../CommitteeFields';
 import { choicesFor, loadCommittee } from '../data';
 import { Delegates } from './Delegates';
+import { GradesTab } from './GradesTab';
+import { gradingRulesOf } from '@/grading/rules';
+import { loadGrading, loadMappings } from '@/grading/server';
 
-const DONE: Record<string, MessageKey> = { saved: 'committee.saved', chairs: 'committee.saved', secret: 'committee.saved', delegate: 'delegates.saved', removed: 'delegates.deleted' };
+const DONE: Record<string, MessageKey> = { award: 'grades.awards.saved', grade: 'grades.removed', saved: 'committee.saved', chairs: 'committee.saved', secret: 'committee.saved', delegate: 'delegates.saved', removed: 'delegates.deleted' };
 
 export default async function CommitteePage({ params, searchParams }: { params: Promise<{ tenant: string; id: string }>; searchParams: Promise<{ done?: string; count?: string; tab?: string }> }) {
   const { tenant: key, id } = await params;
@@ -47,11 +50,14 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const candidates = (people?.members ?? []).filter((m) => m.status !== 'disabled');
 
   // The page's parts as tabs. A save comes back to the tab it was made on.
-  const tabs = ['overview', ...(manage ? ['chairs'] : []), 'delegates'] as const;
-  const fromDone = query.done === 'chairs' ? 'chairs' : ['added', 'delegate', 'removed'].includes(query.done ?? '') ? 'delegates' : null;
+  const rules = gradingRulesOf(config);
+  const grading = rules.enabled ? await loadGrading(committee.id, ctx.token).catch(() => null) : null;
+  const mappings = grading ? await loadMappings(tenant.id, ctx.token).catch(() => []) : [];
+  const tabs = ['overview', ...(manage ? ['chairs'] : []), 'delegates', ...(grading ? ['grades'] : [])] as const;
+  const fromDone = query.done === 'award' || query.done === 'grade' ? 'grades' : query.done === 'chairs' ? 'chairs' : ['added', 'delegate', 'removed'].includes(query.done ?? '') ? 'delegates' : null;
   const tab = (tabs as readonly string[]).includes(query.tab ?? '') ? query.tab! : (fromDone ?? 'overview');
   const tabHref = (x: string) => `${base}/committees/${committee.id}?tab=${x}`;
-  const tabLabel: Record<string, string> = { overview: t('committee.tab.overview'), chairs: t('committee.chairs.title'), delegates: `${t('delegates.title')} (${detail.delegates.length})` };
+  const tabLabel: Record<string, string> = { overview: t('committee.tab.overview'), chairs: t('committee.chairs.title'), delegates: `${t('delegates.title')} (${detail.delegates.length})`, grades: t('committee.tab.grades') };
 
   const done = query.done === 'added' ? t('delegates.added', { count: Number(query.count) || 0 }) : query.done && DONE[query.done] ? t(DONE[query.done]!) : null;
 
@@ -193,6 +199,9 @@ export default async function CommitteePage({ params, searchParams }: { params: 
               <p className="text-sm">{t('committee.chairs.none')}</p>
             )}
           </section>
+        ) : null}
+        {tab === 'grades' && grading ? (
+          <GradesTab tenantKey={key} base={base} data={grading} rules={rules} mappings={mappings} canGrade={ctx.can('grades.manage')} locale={locale} timeZone={config.identity.timeZone} t={t} />
         ) : null}
         {tab === 'delegates' ? (
         <section id="delegates" className="card flex flex-col gap-3" aria-labelledby="delegates-title">

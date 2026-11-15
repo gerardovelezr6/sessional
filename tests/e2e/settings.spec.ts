@@ -29,7 +29,7 @@ test('settings open from the header, one section at a time, with a grouped menu'
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
   const menu = page.getByRole('navigation', { name: 'Sections' });
-  await expect(menu.getByRole('link')).toHaveText(['Identity', 'Design', 'Committee types', 'Rules of procedure', 'Language', 'Words', 'Translations', 'People and sign-in']);
+  await expect(menu.getByRole('link')).toHaveText(['Identity', 'Design', 'Committee types', 'Rules of procedure', 'Grading and awards', 'Language', 'Words', 'Translations', 'People and sign-in']);
   await expect(menu.getByRole('link', { name: 'Identity' })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('section#identity')).toBeVisible();
   await expect(page.locator('section#theme')).toHaveCount(0);

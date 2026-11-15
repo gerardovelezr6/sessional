@@ -174,7 +174,7 @@
     padding: 0.25rem 0.75rem;
   }
   .chip:hover { background: var(--s-color-surface); }
-  .chip[aria-pressed="true"] { background: var(--s-color-primary); color: var(--s-color-on-primary); box-shadow: none; }
+  .chip[aria-pressed="true"], .chip[aria-current] { background: var(--s-color-primary); color: var(--s-color-on-primary); box-shadow: none; }
   /* Small buttons (cards, the header). */
   .btn-sm { @apply text-xs; padding: 0.3rem 0.65rem; }
   /* Counters in a row of cards (attendance, live analytics). */
@@ -202,6 +202,9 @@
     border-radius: var(--s-radius-surface);
     padding: 1.5rem;
   }
+
+  /* The access-code page: the brand colour, deepening across the window. */
+  .gate { background: linear-gradient(135deg, var(--s-color-primary), var(--s-color-banner-end)); }
 
   /* Small status labels on cards. */
   .badge {

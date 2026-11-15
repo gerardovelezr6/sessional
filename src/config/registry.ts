@@ -27,6 +27,8 @@ export type Control =
   | { kind: 'grading' }
   // The website (header, menu, home page, announcements): edited on its own page.
   | { kind: 'site' }
+  // The conference access code: edited on its own page, which stores only a hash.
+  | { kind: 'access' }
   | { kind: 'localizedText'; maxLength: number }
   | { kind: 'timeZone' };
 
@@ -61,7 +63,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
   { label: 'settings.menu.conference', sections: ['identity', 'site', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
-  { label: 'settings.menu.people', sections: ['people'] },
+  { label: 'settings.menu.people', sections: ['people', 'access'] },
 ];
 
 export const SECTION_HELP: Record<SectionName, MessageKey> = {
@@ -75,6 +77,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   site: 'settings.site.description',
   theme: 'settings.theme.description',
   people: 'settings.people.description',
+  access: 'settings.access.description',
 };
 
 export const SECTION_LABELS: Record<SectionName, MessageKey> = {
@@ -88,6 +91,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   site: 'settings.site',
   theme: 'settings.theme',
   people: 'settings.people',
+  access: 'settings.access',
 };
 
 export const registry: Setting[] = [
@@ -278,5 +282,30 @@ export const registry: Setting[] = [
     section: 'people', key: 'passwordMinLength', permission: 'tenant.manage',
     labelKey: 'settings.people.passwordMinLength', helpKey: 'settings.people.passwordMinLength.help',
     control: { kind: 'number', min: 8, max: 128 },
+  },
+  {
+    section: 'people', key: 'passwordRequire', permission: 'tenant.manage', presentation: 'cards',
+    labelKey: 'settings.people.passwordRequire', helpKey: 'settings.people.passwordRequire.help',
+    control: { kind: 'select', options: [{ value: 'length', labelKey: 'settings.people.passwordRequire.length' }, { value: 'letters_numbers', labelKey: 'settings.people.passwordRequire.letters_numbers' }, { value: 'mixed', labelKey: 'settings.people.passwordRequire.mixed' }] },
+  },
+  {
+    section: 'people', key: 'passwordBlockCommon', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.people.passwordBlockCommon', helpKey: 'settings.people.passwordBlockCommon.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'people', key: 'googleSignIn', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.people.googleSignIn', helpKey: 'settings.people.googleSignIn.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'people', key: 'microsoftSignIn', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.people.microsoftSignIn', helpKey: 'settings.people.microsoftSignIn.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'access', key: 'gate', permission: 'tenant.manage',
+    labelKey: 'settings.access.gate', helpKey: 'settings.access.gate.help',
+    control: { kind: 'access' },
   },
 ];

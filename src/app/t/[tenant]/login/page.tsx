@@ -11,13 +11,16 @@ import { localize } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { signInAction } from '../actions';
 
-export default async function LoginPage({ params }: { params: Promise<{ tenant: string }> }) {
+export default async function LoginPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ error?: string }> }) {
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
   const { t, locale, config } = await tenantTranslator(tenant.id);
   if (await tenantContext(tenant.id)) redirect(`${await basePath()}/`);
 
   const site = siteOf(config);
+  const base = await basePath();
+  const { error } = await searchParams;
+  const providers = (['google', 'microsoft'] as const).filter((p) => config.people[`${p}SignIn`] === 'on');
   const logo = assetUrl(tenant.id, config.theme.logo);
   const tagline = localize(config.identity.tagline, locale);
   return (
@@ -32,6 +35,20 @@ export default async function LoginPage({ params }: { params: Promise<{ tenant: 
           <Field label={t('auth.email')} name="email" type="email" autoComplete="username" />
           <Field label={t('auth.password')} name="password" type="password" autoComplete="current-password" />
         </ActionForm>
+        {error === 'provider' || error === 'unavailable' ? (
+          <p role="alert" className="error-text mt-3">
+            {t(error === 'provider' ? 'auth.provider.failed' : 'auth.error.unavailable')}
+          </p>
+        ) : null}
+        {providers.length ? (
+          <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5">
+            {providers.map((p) => (
+              <a key={p} href={`${base}/auth/${p}`} className="btn btn-secondary w-full">
+                {t(`auth.provider.${p}`)}
+              </a>
+            ))}
+          </div>
+        ) : null}
         <p className="mt-4 text-center text-xs">{t('auth.signIn.accounts')}</p>
       </div>
       <PoweredBy locale={locale} />

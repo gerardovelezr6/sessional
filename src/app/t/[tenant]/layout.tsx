@@ -1,17 +1,19 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { NavLinks } from '@/components/NavLinks';
 import { localize } from '@/messages';
-import { enabledLocales, tenantTranslator } from '@/config/store';
+import { enabledLocales, tenantConfig, tenantTranslator } from '@/config/store';
 import { languageName } from '@/i18n/locales';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
 import { basePath, tenantContext } from '@/tenancy/context';
-import { parseTenantKey, SAFE_MODE_HEADER } from '@/tenancy/route';
+import { parseTenantKey, SAFE_MODE_HEADER, TENANT_PATH_HEADER } from '@/tenancy/route';
+import { AccessGate } from '@/access/AccessGate';
+import { ACCESS_CODE_COOKIE, passValid } from '@/access/code';
 import { sanitizeCustomCss } from '@/theme/custom-css';
 import { assetUrl } from '@/data/storage';
 import { buildTheme, themeCss } from '@/theme/engine';
@@ -139,6 +141,31 @@ export default async function TenantLayout({ params, children }: Props) {
       </div>
     </header>
   );
+  // The conference access code: everything waits behind it, except invitation links and
+  // projection screens. Signed-in members pass unless the school asks them too.
+  const gate = (await tenantConfig(found.tenant.id)).access.gate;
+  if (gate) {
+    const h = await headers();
+    const path = h.get(TENANT_PATH_HEADER) ?? '/';
+    const exempt = /^\/(set-password|display)(\/|$)/.test(path);
+    const passed = passValid((await cookies()).get(ACCESS_CODE_COOKIE)?.value, found.tenant.id, gate.codeHash);
+    if (!exempt && !passed && !(ctx?.membership && !gate.members)) {
+      return (
+        <>
+          {theme}
+          <AccessGate
+            tenantKey={key}
+            name={found.tenant.name}
+            logo={logo}
+            initials={initials}
+            hint={localize(gate.hint, own.locale)}
+            next={`${base}${path}`}
+            L={{ intro: own.t('gate.intro'), code: own.t('gate.code'), enter: own.t('gate.enter'), provided: own.t('gate.provided') }}
+          />
+        </>
+      );
+    }
+  }
   if (!own.preview) {
     return (
       <>

@@ -45,6 +45,7 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
       case 'translations':
       case 'structure':
       case 'protocol':
+      case 'access':
       case 'site':
       case 'grading':
       case 'locale':

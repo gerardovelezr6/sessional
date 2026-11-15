@@ -72,7 +72,7 @@ test('High Command can only grant roles at or below its own', async ({ page }) =
   await signIn(page, 'alpha.localhost', 'hc@alpha.test');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'High Command' }).click();
   await page.getByRole('navigation', { name: 'Administration' }).getByRole('link', { name: 'Users & roles' }).click();
-  await expect(page.getByLabel('Role').locator('option')).toHaveText(['High Command', 'Chair']);
+  await expect(page.getByLabel('Role', { exact: true }).locator('option')).toHaveText(['High Command', 'Chair']);
 });
 
 test('invitation: link previews do not use it up, it works once, and the person ends up active', async ({ page, browser }) => {
@@ -84,7 +84,7 @@ test('invitation: link previews do not use it up, it works once, and the person 
 
   await page.getByLabel('Name').fill('Nadia New');
   await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Role').selectOption('chair');
+  await page.getByLabel('Role', { exact: true }).selectOption('chair');
   await page.getByRole('button', { name: 'Create invitation' }).click();
   await expect(page.getByRole('status')).toContainText(`Copy this link and send it to ${email}`);
   const link = await page.getByLabel('Invitation link').inputValue();
@@ -183,7 +183,7 @@ test('bad invitation input is refused before anything is created', async ({ page
   await page.goto(at('alpha.localhost', '/people'));
   // A role above the caller's own, forced past the form.
   await page.getByLabel('Email').fill(`sneaky-${unique()}@alpha.test`);
-  await page.getByLabel('Role').evaluate((el: HTMLSelectElement) => {
+  await page.getByLabel('Role', { exact: true }).evaluate((el: HTMLSelectElement) => {
     el.add(new Option('Owner', 'owner'));
     el.value = 'owner';
   });
@@ -218,13 +218,13 @@ test('an expiring session is renewed without signing the person out', async ({ p
 test('a new school with only the Owner role can add the standard roles in one click', async ({ page }) => {
   await signIn(page, 'gamma.localhost', 'owner@gamma.test');
   await page.goto(at('gamma.localhost', '/people'));
-  await expect(page.getByLabel('Role').locator('option')).toHaveText(['Owner']);
+  await expect(page.getByLabel('Role', { exact: true }).locator('option')).toHaveText(['Owner']);
   await expect(page.getByRole('heading', { name: 'Add roles for your team' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Add standard roles' }).click();
-  await expect(page.getByLabel('Role').locator('option')).toHaveText(['Owner', 'Advisor', 'High Command', 'Chair']);
+  await expect(page.getByLabel('Role', { exact: true }).locator('option')).toHaveText(['Owner', 'Advisor', 'High Command', 'Chair']);
   // Chair, the least senior, is preselected, and the prompt is gone.
-  await expect(page.getByLabel('Role')).toHaveValue('chair');
+  await expect(page.getByLabel('Role', { exact: true })).toHaveValue('chair');
   await expect(page.getByRole('heading', { name: 'Add roles for your team' })).toHaveCount(0);
 });
 

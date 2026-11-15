@@ -11,6 +11,7 @@ import { DEFAULT_PROTOCOL, PROTOCOL_PRESET_KEYS } from '@/protocol/presets';
 import { packSchema } from '@/protocol/schema';
 import { gradingSchema } from '@/grading/schema';
 import { siteSchema } from '@/site/schema';
+import { gateSchema } from '@/access/schema';
 
 // The tenant configuration, as data. Every customisable value of the product is declared here
 // with its validation and its default; nothing tenant-specific lives in code as a constant.
@@ -116,6 +117,19 @@ export const sections = {
   }),
   people: z.object({
     passwordMinLength: z.number().int().min(8).max(128).default(8),
+    // What else a password needs: nothing more, letters and numbers, or upper and lower case
+    // letters, numbers and a symbol.
+    passwordRequire: z.enum(['length', 'letters_numbers', 'mixed']).default('length'),
+    // Refuse common passwords and ones made of the person's address or the school's name.
+    passwordBlockCommon: z.enum(['on', 'off']).default('on'),
+    // Sign-in with Google or Microsoft accounts, besides email and password. The providers are
+    // set up in the authentication service; these choose whether this school offers them.
+    googleSignIn: z.enum(['on', 'off']).default('off'),
+    microsoftSignIn: z.enum(['on', 'off']).default('off'),
+  }),
+  // The conference access code (edited on its own page); null: no code is asked.
+  access: z.object({
+    gate: gateSchema.nullable().default(null),
   }),
 } as const;
 

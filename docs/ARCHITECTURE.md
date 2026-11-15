@@ -448,3 +448,33 @@ committees), editable email texts (email phase), flags (Phase 5).
   `/admin/archive`); live analytics show what is counted today.
 - The classic look gains status tones (`--s-color-success*`, `--s-color-warning-soft`), filter
   chips, small buttons, counters (`.stat`) and segmented choices (`.seg`) for the roll call.
+
+## People: roles, members, audit, sign-in, access code (Phase 9)
+
+- Permissions are listed once in `src/people/permissions.ts` (group, tenant or committee scope,
+  and what each includes: managing people includes seeing them; managing committees includes
+  delegates and confidential topics). The roles page (`/people/roles`) is a matrix of roles by
+  permissions; `role_save` writes a role and exactly its permissions in one transaction, and the
+  rank guards refuse ranks above the caller and permissions the caller does not hold.
+- `tests/db/permissions.test.ts` is the proof: for each permission a role holding only it passes
+  that permission's probe (plus what it includes) and fails every other one. A role that only
+  grades now sees the delegates of its own committees (needed to grade them) and grades on the
+  committee's Grades tab, without the console.
+- People page: change role, disable, enable, remove (`member_update`, `member_remove`), filter by
+  status. Re-enabling someone who never finished their invitation puts them back to "invited".
+- Audit log (`/people/audit`, `audit.view`): `audit_list` pages the log with actor names; the
+  changed row of grades, awards, delegates and documents shows only to people who may read those.
+- Password rules (Settings → People and sign-in): minimum length, letters and numbers or every kind
+  of character, and refusing common or personal passwords (`src/people/password.ts`), checked on
+  the server.
+- Google and Microsoft sign-in (off by default per school): `/auth/google|microsoft` starts the
+  PKCE flow with the authentication service; `/auth/callback` swaps the code with the secret kept
+  in a short-lived cookie. A provider-verified address activates waiting invitations
+  (`activate_invitations`, server only); nobody joins a school they were not invited to. The
+  providers and the redirect address (`https://*.<root domain>/auth/callback`) are configured in
+  Supabase Auth.
+- Access code (Settings → Access code): only a scrypt hash is stored (`access.gate`). The tenant
+  layout shows the code page before anything else (sign-in included) unless the browser holds the
+  cookie for the current code, or the person is a signed-in member (unless the school asks members
+  too). Invitation links and projection screens are not asked. Ten tries per address per ten
+  minutes.

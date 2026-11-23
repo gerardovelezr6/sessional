@@ -1128,7 +1128,100 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel']);
+// --- Phase 11: imports (undo removes exactly what they added) and the public read. ---
+// Pub School: one committee with two delegations (one with a student's name), a passed
+// resolution, a confidential crisis committee and a schedule item.
+TENANTS.pub = { kind: 'tenant', id: tid(25), slug: 'pub', name: 'Pub School', status: 'active' };
+// A crisis committee type whose topic is confidential.
+CONFIG[tid(25)] = {
+  structure: { version: 1, schema_version: 1, data: { categories: [], types: [
+    { key: 'standard', name: { en: 'Standard' }, labelField: { en: 'Country' }, defaultCategory: null, flag: 'country', groupLabel: {}, groups: [], groupRequired: false, confidentialTopic: false, veto: false, fields: [], bulk: ['label', 'name'] },
+    { key: 'crisis', name: { en: 'Crisis' }, labelField: { en: 'Role' }, defaultCategory: null, flag: 'none', groupLabel: {}, groups: [], groupRequired: false, confidentialTopic: true, veto: false, fields: [], bulk: ['label', 'name'] },
+  ] } },
+};
+seed('owner@pub.test', 'Pia Pub', tid(25), 'owner');
+seed('hc@pub.test', 'Hal Pub', tid(25), 'high_command');
+seed('chair@pub.test', 'Cy Pub', tid(25), 'chair');
+{
+  const conf = { id: randomUUID(), tenant_id: tid(25), name: 'Pub MUN 2026', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date(Date.now() - 86400000).toISOString() };
+  conferences.push(conf);
+  const sc = { id: '00000000-0000-4000-9600-000000000001', tenant_id: tid(25), conference_id: conf.id, name: 'Security Council', abbreviation: 'SC', topic: 'Space debris', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  const cr = { id: '00000000-0000-4000-9600-000000000002', tenant_id: tid(25), conference_id: conf.id, name: 'Crisis Cabinet', abbreviation: 'CC', topic: 'Secret plot', description: '', category_key: null, type_key: 'crisis', language: null, sort_order: 1, created_at: conf.created_at };
+  committees.push(sc, cr);
+  chairs.push({ committee_id: sc.id, user_id: byEmail('chair@pub.test').id });
+  delegates.push({ id: '00000000-0000-4000-9600-0000000000d1', committee_id: sc.id, label: 'Brazil', name: 'Bea Student', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+  delegates.push({ id: '00000000-0000-4000-9600-0000000000d2', committee_id: sc.id, label: 'Kenya', name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+  documents.push({ id: randomUUID(), committee_id: sc.id, kind: 'resolution', code: 'SC/1', title: 'On orbital clean-up', body: 'Operative clause one.', parent_id: null, sponsors: [], signatories: [], status: 'passed', created_at: conf.created_at });
+  documents.push({ id: randomUUID(), committee_id: sc.id, kind: 'resolution', code: 'SC/2', title: 'Unfinished draft', body: '', parent_id: null, sponsors: [], signatories: [], status: 'draft', created_at: conf.created_at });
+  const start = new Date(Date.now() + 3600000);
+  scheduleItems.push({ id: randomUUID(), conference_id: conf.id, starts_at: start.toISOString(), ends_at: new Date(start.getTime() + 3600000).toISOString(), title: 'Opening ceremony', kind: 'ceremony', location: 'Main hall', session_number: null });
+}
+const importBatches = []; // { id, tenant_id, conference_id, source, file_name, rows_total, rows_imported, committees_created, created_by, created_at, undone_at }
+Object.assign(rpcs, {
+  import_apply: ({ p_conference, p_rows, p_meta }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f) return { body: null };
+    if (!manages(userId, f.tenant_id)) return DENIED;
+    if (!Array.isArray(p_rows) || p_rows.length > 2000) return { status: 400, body: { code: '22023', message: 'invalid rows' } };
+    if (p_rows.some((r) => !String(r.label ?? '').trim() || (r.committee.id && !committees.some((c) => c.id === r.committee.id && c.conference_id === f.id)))) return { status: 400, body: { code: '22023', message: 'invalid row' } };
+    const batch = { id: randomUUID(), tenant_id: f.tenant_id, conference_id: f.id, source: p_meta.source ?? 'csv', file_name: p_meta.file_name ?? '', rows_total: p_meta.rows_total ?? p_rows.length, rows_imported: 0, committees_created: 0, created_by: userId, created_at: new Date().toISOString(), undone_at: null };
+    importBatches.push(batch);
+    const made = new Map();
+    let order = Math.max(0, ...committeesOf(f.id).map((c) => c.sort_order));
+    for (const r of p_rows) {
+      let cid = r.committee.id;
+      if (!cid) {
+        const k = r.committee.name.trim().toLowerCase();
+        if (!made.has(k)) {
+          const c = { id: randomUUID(), tenant_id: f.tenant_id, conference_id: f.id, name: r.committee.name.trim(), abbreviation: r.committee.abbreviation ?? '', topic: '', description: '', category_key: null, type_key: r.committee.type_key ?? 'standard', language: null, sort_order: ++order, created_at: new Date().toISOString(), import_batch_id: batch.id };
+          committees.push(c);
+          made.set(k, c.id);
+          batch.committees_created++;
+        }
+        cid = made.get(k);
+      }
+      delegates.push({ id: randomUUID(), committee_id: cid, label: r.label.trim(), name: String(r.name ?? '').slice(0, 160), group_key: r.group_key || null, flag: null, extra: {}, created_at: new Date().toISOString(), import_batch_id: batch.id });
+      batch.rows_imported++;
+    }
+    audit(f.tenant_id, userId, 'import_batches.insert', batch.id);
+    return { body: { batch: batch.id, imported: batch.rows_imported, committees_created: batch.committees_created } };
+  },
+  import_undo: ({ p_batch }, userId) => {
+    const b = importBatches.find((x) => x.id === p_batch);
+    if (!b || !manages(userId, b.tenant_id)) return { body: null };
+    if (b.undone_at) return { status: 400, body: { code: '22023', message: 'already undone' } };
+    const gone = delegates.filter((d) => d.import_batch_id === b.id);
+    for (const d of gone) delegates.splice(delegates.indexOf(d), 1);
+    const empty = committees.filter((c) => c.import_batch_id === b.id && !delegates.some((d) => d.committee_id === c.id));
+    for (const c of empty) committees.splice(committees.indexOf(c), 1);
+    b.undone_at = new Date().toISOString();
+    audit(b.tenant_id, userId, 'import_batches.update', b.id);
+    return { body: { delegates: gone.length, committees: empty.length } };
+  },
+  import_batches_list: ({ p_tenant }, userId) => ({
+    body: manages(userId, p_tenant)
+      ? importBatches.filter((b) => b.tenant_id === p_tenant).sort((a, b) => b.created_at.localeCompare(a.created_at)).map((b) => ({ ...without(b, 'tenant_id', 'conference_id', 'created_by'), by: nameOf(b.created_by), remaining: delegates.filter((d) => d.import_batch_id === b.id).length }))
+      : [],
+  }),
+  // Whitelisted fields only, as the database's public_site.
+  public_site: ({ p_tenant }) => {
+    const conf = activeConference(p_tenant);
+    if (!conf) return { body: null };
+    return {
+      body: {
+        conference: { name: conf.name },
+        committees: committeesOf(conf.id).sort((a, b) => a.sort_order - b.sort_order).map((c) => ({
+          id: c.id, name: c.name, abbreviation: c.abbreviation, topic: c.topic, category_key: c.category_key, type_key: c.type_key,
+          delegations: delegates.filter((d) => d.committee_id === c.id).sort((a, b) => a.label.localeCompare(b.label)).map((d) => ({ label: d.label, flag: d.flag, group_key: d.group_key })),
+          resolutions: documents.filter((d) => d.committee_id === c.id && d.status === 'passed' && !d.parent_id).map((d) => ({ code: d.code, title: d.title, kind: d.kind })),
+        })),
+        schedule: scheduleItems.filter((x) => x.conference_id === conf.id).sort((a, b) => a.starts_at.localeCompare(b.starts_at)).map((x) => without(x, 'id', 'conference_id')),
+      },
+    };
+  },
+});
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {

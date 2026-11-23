@@ -146,6 +146,18 @@ Spanish: Módulos
 | Announcements | `modules.announcements` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Notices on the home page, dashboard and console. |
 | Schedule | `modules.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference timetable, shown on the home page, dashboard and console. |
 
+## Public pages (`publicSite`)
+
+Spanish: Páginas públicas
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Public pages | `publicSite.enabled` | `off` | `on` (On), `off` (Off) | `tenant.manage` | Off: the public address shows nothing. On: it shows the parts switched on below. |
+| Delegations | `publicSite.delegations` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Each committee's countries or roles, with flags. Never students' names. |
+| Schedule | `publicSite.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference timetable. |
+| Passed resolutions | `publicSite.resolutions` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Code and title of each resolution a committee passed. |
+| Live view | `publicSite.live` | `off` | `on` (On), `off` (Off) | `tenant.manage` | What each committee's projection screen shows (speaker, timer, list, last vote), on any phone. |
+
 ## Access code (`access`)
 
 Spanish: Código de acceso

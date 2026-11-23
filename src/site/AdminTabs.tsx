@@ -9,7 +9,7 @@ import { parseTenantKey, TENANT_KEY_HEADER } from '@/tenancy/route';
 // the Owner area holds everything that shapes the school's site and who may do what (settings,
 // design, roles, audit log), for staff only: High Command members are usually students. Each row
 // shows on its landing page and on every page it leads to.
-export type AdminTab = 'analytics' | 'conferences' | 'schedule' | 'committees' | 'grades' | 'people' | 'announcements' | 'documents';
+export type AdminTab = 'analytics' | 'conferences' | 'schedule' | 'committees' | 'grades' | 'people' | 'announcements' | 'documents' | 'import' | 'print';
 export type OwnerTab = 'overview' | 'website' | 'branding' | 'settings' | 'types' | 'rules' | 'rubric' | 'roles' | 'access' | 'audit' | 'data' | 'reset';
 
 type Tab<T> = { id: T; path: string; word: MessageKey; permission: string | string[] };
@@ -23,6 +23,8 @@ const ADMIN: Tab<AdminTab>[] = [
   { id: 'people', path: '/people', word: 'admin.tab.people', permission: 'users.view' },
   { id: 'announcements', path: '/announcements', word: 'admin.tab.announcements', permission: ['announcements.manage', 'tenant.manage'] },
   { id: 'documents', path: '/admin/documents', word: 'admin.tab.documents', permission: 'committee.manage' },
+  { id: 'import', path: '/import', word: 'admin.tab.import', permission: 'committee.manage' },
+  { id: 'print', path: '/print', word: 'admin.tab.print', permission: ['committee.manage', 'grades.view'] },
 ];
 
 const OWNER: Tab<OwnerTab>[] = [

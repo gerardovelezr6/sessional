@@ -1,8 +1,7 @@
 # Roadmap
 
-Status: Phases 0 to 9, the website editor, the Owner area, Google and Microsoft sign-in and Phase 10
-part 1 are merged. The rest of Phase 10 (live analytics, schedule and session structure, module
-toggles, year-over-year comparison, reset) is up for review, which completes Phase 10. The
+Status: Phases 0 to 10, the website editor, the Owner area and Google and Microsoft sign-in are
+merged. Phase 11 (import, print and public side) is up for review in one pull request. The
 degraded-mode load test from Phase 7 still needs staging (see `docs/LOAD-TEST.md`).
 
 Editable email texts move to the email phase.

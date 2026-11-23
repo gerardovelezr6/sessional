@@ -31,3 +31,19 @@ test('every school page links to them on the main address', async ({ page }) => 
   await expect(legal.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', `http://localhost:${PORT}/privacy`);
   await expect(legal.getByRole('link', { name: 'Terms of service' })).toHaveAttribute('href', `http://localhost:${PORT}/terms`);
 });
+
+// Sign-in with Google or Microsoft returns to one fixed address on the main domain, which hands
+// the one-time code to the school the sign-in started from, and to nothing else.
+test('the sign-in return address forwards a code only to a real school', async ({ request }) => {
+  const go = (path: string) => request.get(`http://localhost:${PORT}${path}`, { maxRedirects: 0 });
+  const toSchool = await go('/auth/return/people?code=abc&state=x');
+  expect(toSchool.status()).toBe(303);
+  expect(toSchool.headers().location).toBe(`http://people.localhost:${PORT}/auth/callback?code=abc`);
+  const toCustomDomain = await go(`/auth/return/${encodeURIComponent('~mun.example.test')}?code=abc`);
+  expect(toCustomDomain.headers().location).toBe('http://mun.example.test/auth/callback?code=abc');
+  for (const bad of ['/auth/return/no-such-school?code=abc', `/auth/return/${encodeURIComponent('~evil.example.org')}?code=abc`, '/auth/return/%2F%2Fevil?code=abc']) {
+    const res = await go(bad);
+    expect(res.status(), bad).toBe(303);
+    expect(res.headers().location, bad).toBe(`http://localhost:${PORT}/`);
+  }
+});

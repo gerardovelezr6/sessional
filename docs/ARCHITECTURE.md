@@ -516,3 +516,24 @@ committees), editable email texts (email phase), flags (Phase 5).
   summary. `tenant_import` brings an export into a school with no conference yet, replacing every
   id and following every reference (ballots, roll-call entries, sponsors, amendments, vote
   subjects); it returns the new counts, which equal the export's (`tests/db/conferences-history.test.ts`).
+
+## Operations: analytics, schedule, modules, year over year, reset (Phase 10, parts 2 and 3)
+
+- Live analytics (High Command → Live analytics, `/admin`): `conference_analytics` returns, for the
+  current conference, counts only (no names): status, present by the open session's own attendance
+  rules, sessions, speeches and their length, motions and points (from the command log), votes and
+  passed, warnings, documents, last activity; grades only for `grades.view`. The page refreshes
+  every 15 seconds while visible.
+- Schedule (`schedule_items`, in the isolation matrix): sessions (numbered), ceremonies, breaks,
+  social and other items per conference. Every member reads it; `conference.manage` plans it at
+  `/schedule`, typing times in the school's time zone (`src/schedule/time.ts`). It shows as a home
+  page block, on the dashboard, and as a now/next line in the console. A clone can move it 52
+  weeks later (same weekdays); exports and imports carry it.
+- Modules (Settings → Modules: grading, documents, screens, discipline, announcements, schedule):
+  off means hidden from pages, menus and console tabs, and refused by the server (grade, document,
+  screen, schedule and announcement actions; discipline commands; the screen page and its data).
+- Year over year: the Conferences page compares up to five years side by side (committees,
+  delegations, sessions, speeches, average speech, votes, share passed, documents, warnings, grades).
+- Reset (Owner → Reset): `tenant_reset` removes every conference and what is in it; settings, roles
+  and people stay. Only the Owner (the role holding every permission), only by typing the school's
+  name; noted in the audit log with the counts removed.

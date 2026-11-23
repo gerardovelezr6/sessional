@@ -133,6 +133,19 @@ Spanish: Anuncios
 |---|---|---|---|---|---|
 | Announcements | `announcements.items` | as the preset has it | posted on the announcements page and published at once; empty means those of the website settings | `announcements.manage` | Posted on the announcements page and published at once. |
 
+## Modules (`modules`)
+
+Spanish: Módulos
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Grading and awards | `modules.grading` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Rubric, grades in the console and committee pages, the gradebook and awards. |
+| Documents | `modules.documents` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Working papers, draft resolutions and amendments in each committee. |
+| Projection screens | `modules.screens` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Screens paired to a committee, showing the speaker, timer and list. |
+| Discipline | `modules.discipline` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Warnings and pardons in the chair console. |
+| Announcements | `modules.announcements` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Notices on the home page, dashboard and console. |
+| Schedule | `modules.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference timetable, shown on the home page, dashboard and console. |
+
 ## Access code (`access`)
 
 Spanish: Código de acceso

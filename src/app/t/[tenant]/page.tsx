@@ -10,6 +10,9 @@ import { siteOf } from '@/site/rules';
 import type { Block } from '@/site/schema';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { CommitteeGrid } from './CommitteeGrid';
+import { moduleOn } from '@/config/modules';
+import { currentSchedule } from '@/schedule/load';
+import { Today } from '@/schedule/Today';
 import { loadOverview } from './committees/data';
 import { committeeGroups, gridLabels } from './home';
 
@@ -42,6 +45,8 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
   const now = Date.parse(new Date().toISOString());
   const groups = committeeGroups(committees, config, locale, t, base, { manage: manages, run: ctx.can('committee.run') });
   const text = (b: Block, field: 'title' | 'body') => localize(b[field], locale);
+  const schedule = site.home.some((b) => b.visible && b.kind === 'schedule') && moduleOn(config, 'schedule') ? (await currentSchedule(tenant.id, ctx.token)).items : [];
+  const todayWords = { title: t('schedule.today'), all: t('schedule.all'), now: t('schedule.now') };
   const titled = site.home.some((b) => b.visible && b.kind === 'banner');
 
   const render = (b: Block) => {
@@ -65,6 +70,8 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
       }
       case 'announcements':
         return <AnnouncementList items={currentAnnouncements(config, now, 'home')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />;
+      case 'schedule':
+        return moduleOn(config, 'schedule') ? <Today items={schedule} timeZone={config.identity.timeZone} locale={locale} now={now} href={`${base}/schedule`} L={todayWords} /> : null;
       case 'welcome':
         return (
           <p className="text-sm">

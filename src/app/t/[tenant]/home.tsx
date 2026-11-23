@@ -28,7 +28,7 @@ export function committeeGroups(committees: CommitteeSummary[], config: TenantCo
         detail: live.status === 'in_session' ? `${t('home.session', { number: live.session_number ?? 1 })} · ${mode}` : '',
         href: `${base}/committees/${c.id}`,
         consoleHref: runs ? `${base}/committees/${c.id}/console` : null,
-        screenHref: runs ? `${base}/committees/${c.id}/console?tab=screens` : null,
+        screenHref: runs && config.modules.screens !== 'off' ? `${base}/committees/${c.id}/console?tab=screens` : null,
       };
     }),
   }));

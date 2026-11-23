@@ -20,6 +20,7 @@ import { gradingPanelProps } from '../../grades/panel';
 import { GradingPanel } from './console/grading';
 import { Delegates } from './Delegates';
 import { GradesTab } from './GradesTab';
+import { moduleOn } from '@/config/modules';
 import { gradingRulesOf } from '@/grading/rules';
 import { loadGrading, loadMappings } from '@/grading/server';
 
@@ -99,12 +100,16 @@ export default async function CommitteePage({ params, searchParams }: { params: 
               <Link href={`${base}/committees/${committee.id}/console`} className="btn btn-primary">
                 {t('committee.console.open')}
               </Link>
-              <Link href={`${base}/committees/${committee.id}/documents`} className="btn btn-secondary">
-                {t('committee.documents.open')}
-              </Link>
-              <a href={`${base}/display`} target="_blank" rel="noreferrer" className="btn btn-secondary">
-                {t('committee.screen.open')}
-              </a>
+              {moduleOn(config, 'documents') ? (
+                <Link href={`${base}/committees/${committee.id}/documents`} className="btn btn-secondary">
+                  {t('committee.documents.open')}
+                </Link>
+              ) : null}
+              {moduleOn(config, 'screens') ? (
+                <a href={`${base}/display`} target="_blank" rel="noreferrer" className="btn btn-secondary">
+                  {t('committee.screen.open')}
+                </a>
+              ) : null}
             </div>
           ) : null}
         </section>

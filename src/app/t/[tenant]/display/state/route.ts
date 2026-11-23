@@ -5,6 +5,7 @@ import { tenantConfig } from '@/config/store';
 import { registerScreen, screenCookie, screenView } from '@/live/screen';
 import { allow } from '@/live/limit';
 import { requireTenant } from '@/tenancy/context';
+import { moduleOn } from '@/config/modules';
 
 // What a projection screen polls. GET: its current view (or its code while unpaired). POST:
 // register this device, when it has no screen yet. No sign-in: the device's secret is its key.
@@ -15,6 +16,7 @@ const noStore = { 'cache-control': 'no-store' };
 
 export async function GET(_req: Request, { params }: { params: Promise<{ tenant: string }> }) {
   const tenant = await requireTenant((await params).tenant);
+  if (!moduleOn(await tenantConfig(tenant.id), 'screens')) return new NextResponse(null, { status: 404 });
   const secret = (await cookies()).get(screenCookie(tenant.id))?.value;
   const view = await screenView(tenant.id, await tenantConfig(tenant.id), secret);
   return NextResponse.json(view ?? { registered: false }, { headers: noStore });
@@ -22,6 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ tenant:
 
 export async function POST(_req: Request, { params }: { params: Promise<{ tenant: string }> }) {
   const tenant = await requireTenant((await params).tenant);
+  if (!moduleOn(await tenantConfig(tenant.id), 'screens')) return new NextResponse(null, { status: 404 });
   const jar = await cookies();
   const existing = await screenView(tenant.id, await tenantConfig(tenant.id), jar.get(screenCookie(tenant.id))?.value);
   // An expired code is replaced; a working one is kept.

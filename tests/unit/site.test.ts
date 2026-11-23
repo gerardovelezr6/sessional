@@ -11,7 +11,7 @@ describe('website settings', () => {
     const site = standardSite();
     expect(siteSchema.safeParse(site).success).toBe(true);
     expect(site.nav.filter((n) => n.visible).map((n) => n.key)).toEqual(['home', 'dashboard', 'admin', 'owner']);
-    expect(site.home.map((b) => b.kind)).toEqual(['banner', 'announcements', 'welcome', 'myCommittees', 'committees']);
+    expect(site.home.map((b) => b.kind)).toEqual(['banner', 'announcements', 'schedule', 'welcome', 'myCommittees', 'committees']);
   });
 
   it('links go to pages of this site or https addresses only', () => {

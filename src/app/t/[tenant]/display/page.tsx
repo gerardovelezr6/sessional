@@ -6,6 +6,8 @@ import { screenCookie, screenTranslator, screenView } from '@/live/screen';
 import { buildTheme, renderTheme } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
 import { basePath, requireTenant } from '@/tenancy/context';
+import { moduleOn } from '@/config/modules';
+import { notFound } from 'next/navigation';
 import { Screen } from './Screen';
 
 // A projection screen: open this address on the computer connected to the projector. No sign-in.
@@ -23,6 +25,7 @@ export default async function DisplayPage({ params }: { params: Promise<{ tenant
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
   const config = await tenantConfig(tenant.id);
+  if (!moduleOn(config, 'screens')) notFound();
   const view = await screenView(tenant.id, config, (await cookies()).get(screenCookie(tenant.id))?.value).catch(() => null);
   const base = await basePath();
   // The school's colours for the screen: dark unless the school chose light.

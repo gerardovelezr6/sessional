@@ -9,6 +9,9 @@ import { currentAnnouncements } from '@/site/presets';
 import { siteOf } from '@/site/rules';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { CommitteeGrid } from '../CommitteeGrid';
+import { moduleOn } from '@/config/modules';
+import { currentSchedule } from '@/schedule/load';
+import { Today } from '@/schedule/Today';
 import { loadOverview } from '../committees/data';
 import { committeeGroups, gridLabels } from '../home';
 
@@ -28,6 +31,7 @@ export default async function Dashboard({ params }: { params: Promise<{ tenant: 
   const overview = await loadOverview(tenant.id, ctx.token).catch(() => null);
   const committees = (overview?.committees ?? []).filter((c) => manages || c.is_chair);
   const groups = committeeGroups(committees, config, locale, t, base, { manage: manages, run: ctx.can('committee.run') });
+  const schedule = moduleOn(config, 'schedule') ? (await currentSchedule(tenant.id, ctx.token)).items : [];
   const adminTitle = localize(site.admin.title, locale) || t('nav.admin');
 
   return (
@@ -51,6 +55,7 @@ export default async function Dashboard({ params }: { params: Promise<{ tenant: 
             ) : null}
           </div>
         </div>
+        {schedule.length ? <Today items={schedule} timeZone={config.identity.timeZone} locale={locale} now={Date.parse(new Date().toISOString())} href={`${base}/schedule`} L={{ title: t('schedule.today'), all: t('schedule.all'), now: t('schedule.now') }} /> : null}
         <AnnouncementList items={currentAnnouncements(config, Date.parse(new Date().toISOString()), 'home')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />
         {committees.length ? <CommitteeGrid groups={groups} L={gridLabels(t)} /> : <p className="placeholder text-sm">{t('dashboard.none')}</p>}
       </div>

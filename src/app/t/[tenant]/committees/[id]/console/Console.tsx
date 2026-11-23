@@ -56,7 +56,10 @@ interface Props {
   // Where this committee's changes are announced; null: polling only.
   realtime: RealtimeConfig | null;
   // The projection screens panel, made by the page.
-  screens: React.ReactNode;
+  // Null when the school turned projection screens off.
+  screens: React.ReactNode | null;
+  // False when the school turned discipline off.
+  discipline?: boolean;
   // The school's announcements for consoles, already chosen on the server.
   notices?: React.ReactNode;
   // Grading, for people who grade in this committee; the speaker and session come from the floor.
@@ -454,9 +457,9 @@ export function Console(p: Props) {
       { id: 'floor', label: L.tabFloor! },
       { id: 'motions', label: fmt(L.tabMotions, locale, { count: shown.motions.length + shown.points.length }) },
       { id: 'voting', label: shown.vote ? `${L.tabVoting} •` : L.tabVoting! },
-      { id: 'discipline', label: L.tabDiscipline! },
+      ...(p.discipline !== false ? [{ id: 'discipline' as const, label: L.tabDiscipline! }] : []),
       ...(p.grading ? [{ id: 'grading' as const, label: L.tabGrading! }] : []),
-      { id: 'screens', label: L.tabScreens! },
+      ...(p.screens ? [{ id: 'screens' as const, label: L.tabScreens! }] : []),
     ];
     return (
       <div className="flex flex-col gap-4 pb-28 xl:pb-0">
@@ -477,7 +480,7 @@ export function Console(p: Props) {
               {session ? <span className="badge tone-idle">{shown.vote ? L.tabVoting : shown.caucus ? nameOf(pack.caucuses.find((c) => c.key === shown.caucus!.key)?.name ?? {}, locale) || shown.caucus.key : L.general}</span> : null}
             </div>
             <div className="flex flex-wrap justify-end gap-2">
-              {session && tab !== 'screens' ? (
+              {session && p.screens && tab !== 'screens' ? (
                 <button type="button" className="btn btn-primary btn-sm order-last" onClick={() => chooseTab('screens')}>
                   {L.openScreen} <span aria-hidden="true">↗</span>
                 </button>
@@ -538,7 +541,7 @@ export function Console(p: Props) {
               ) : null}
               {tab === 'screens' ? p.screens : null}
               {tab === 'grading' && gradingPanel ? gradingPanel : null}
-              {tab === 'discipline' ? (
+              {tab === 'discipline' && p.discipline !== false ? (
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
                   <DisciplinePanel {...shared} />
                   <Shortcuts L={L} />
@@ -578,7 +581,7 @@ export function Console(p: Props) {
           {quorumCard}
           {session ? <PointsPanel {...shared} /> : null}
           {session ? rollCallCard : null}
-          <DisciplinePanel {...shared} />
+          {p.discipline !== false ? <DisciplinePanel {...shared} /> : null}
           {p.screens}
           <Shortcuts L={L} />
         </div>

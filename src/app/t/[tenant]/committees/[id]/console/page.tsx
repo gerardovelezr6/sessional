@@ -22,6 +22,9 @@ import { ScreensPanel } from './screens';
 import { listScreensAction, pairScreenAction, unpairScreenAction, updateScreenAction, type ScreenRow } from './actions';
 import { realtimeConfig } from '@/live/broadcast';
 import { CONSOLE_TABS } from './tabs';
+import { moduleOn } from '@/config/modules';
+import { currentSchedule } from '@/schedule/load';
+import { nowAndNext, timeIn } from '@/schedule/time';
 import { AnnouncementList } from '@/site/AnnouncementList';
 import { currentAnnouncements } from '@/site/presets';
 
@@ -79,6 +82,13 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
     timeStyle: 'short',
     timeZone: config.identity.timeZone,
   });
+  // What the schedule says is on now and next, in one line.
+  const plan = moduleOn(config, 'schedule') ? nowAndNext((await currentSchedule(tenant.id, ctx.token)).items, Date.parse(new Date().toISOString())) : { now: null, next: null };
+  const tz = config.identity.timeZone;
+  const planNote = [
+    plan.now ? t('schedule.console.now', { title: plan.now.title, time: timeIn(plan.now.ends_at, tz) }) : '',
+    plan.next ? t('schedule.console.next', { title: plan.next.title, time: timeIn(plan.next.starts_at, tz) }) : '',
+  ].filter(Boolean).join(' · ');
   const pattern = (k: MessageKey) => messageFor(k, locale, config.translations.messages).text;
 
   return (
@@ -94,14 +104,20 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
           outboxKey={`${ctx.user.id}:${committee.id}`}
           layout={config.theme.consoleLayout}
           committee={{ name: committee.name, abbreviation: committee.abbreviation, topic: committee.topic }}
-          initialTab={CONSOLE_TABS.find((x) => x === tab) ?? 'roll'}
+          initialTab={CONSOLE_TABS.find((x) => x === tab && !(x === 'screens' && !moduleOn(config, 'screens')) && !(x === 'discipline' && !moduleOn(config, 'discipline'))) ?? 'roll'}
           realtime={realtimeConfig(channel)}
           grading={
             rules.enabled && ctx.can('grades.manage') ? gradingPanelProps({ tenantKey: key, committeeId: committee.id, rules, delegates: consoleDelegates, config, locale, t }) : null
           }
-          notices={<AnnouncementList items={currentAnnouncements(config, Date.parse(new Date().toISOString()), 'console')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />}
+          notices={
+            <>
+              <AnnouncementList items={currentAnnouncements(config, Date.parse(new Date().toISOString()), 'console')} locale={locale} L={{ info: t('site.announcement'), urgent: t('site.urgent'), title: t('site.announcements') }} />
+              {planNote ? <p className="text-sm">{planNote}</p> : null}
+            </>
+          }
+          discipline={moduleOn(config, 'discipline')}
           screens={
-            <ScreensPanel
+            !moduleOn(config, 'screens') ? null : <ScreensPanel
               initial={screens}
               pair={pairScreenAction.bind(null, key, committee.id)}
               update={updateScreenAction.bind(null, key, committee.id)}

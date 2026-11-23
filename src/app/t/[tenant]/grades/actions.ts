@@ -13,8 +13,10 @@ export type GradeResult = { ok: true } | { ok: false; error: 'forbidden' | 'inva
 async function setup(tenantKey: string) {
   const tenant = await requireTenant(tenantKey);
   const { config } = await tenantTranslator(tenant.id);
-  const ctx = await tenantContext(tenant.id);
-  return { tenant, rules: gradingRulesOf(config), ctx };
+  const rules = gradingRulesOf(config);
+  // Grading turned off: every grading write is refused, as if the person could not grade.
+  const ctx = rules.enabled ? await tenantContext(tenant.id) : null;
+  return { tenant, rules, ctx };
 }
 
 const failed = (e: unknown): GradeResult => {

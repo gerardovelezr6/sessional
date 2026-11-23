@@ -11,7 +11,7 @@ export function standardSite(): Site {
     // are tabs of the administration page; a school can show them in the menu too.
     nav: NAV_ITEMS.map((key) => ({ key, visible: ['home', 'dashboard', 'admin', 'owner'].includes(key), label: {} })),
     links: [],
-    home: [block('banner', 'banner'), block('announcements', 'announcements'), block('welcome', 'welcome'), block('mine', 'myCommittees'), block('committees', 'committees')],
+    home: [block('banner', 'banner'), block('announcements', 'announcements'), block('schedule', 'schedule'), block('welcome', 'welcome'), block('mine', 'myCommittees'), block('committees', 'committees')],
     announcements: [],
     admin: { title: {}, subtitle: {} },
   };
@@ -26,7 +26,8 @@ export function initialsOf(name: string): string {
 
 // The announcements showing at a moment, in the order they were listed. They live in their own
 // section; until something is posted there, those written in the website settings show.
-export function currentAnnouncements(config: { announcements: { items: Announcement[] | null }; site: { page: Site | null } }, now: number, where: 'home' | 'console') {
+export function currentAnnouncements(config: { announcements: { items: Announcement[] | null }; site: { page: Site | null }; modules?: { announcements: 'on' | 'off' } }, now: number, where: 'home' | 'console') {
+  if (config.modules?.announcements === 'off') return [];
   const list = config.announcements.items ?? config.site.page?.announcements ?? [];
   return list.filter(
     (a) => (where === 'home' ? a.onHome : a.onConsole) && (!a.startsAt || Date.parse(a.startsAt) <= now) && (!a.endsAt || Date.parse(a.endsAt) > now),

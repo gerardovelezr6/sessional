@@ -12,7 +12,7 @@ export const linkUrl = z
   .max(500)
   .refine((v) => /^\/(?!\/)[^\s]*$/.test(v) || /^https:\/\/[^\s/$.?#][^\s]*$/i.test(v), 'use a page of this site (/…) or an https:// address');
 
-export const BLOCK_KINDS = ['banner', 'announcements', 'welcome', 'myCommittees', 'committees', 'text', 'links', 'placeholder'] as const;
+export const BLOCK_KINDS = ['banner', 'announcements', 'schedule', 'welcome', 'myCommittees', 'committees', 'text', 'links', 'placeholder'] as const;
 export const blockSchema = z.object({
   key,
   kind: z.enum(BLOCK_KINDS),

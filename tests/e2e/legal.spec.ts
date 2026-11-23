@@ -6,10 +6,15 @@ const PORT = 3100;
 
 test('the privacy policy and terms are public, in English and Spanish', async ({ page }) => {
   await page.goto(`http://localhost:${PORT}/`);
+  // The home page says what the app does, as Google requires.
+  await expect(page.getByText(/runs Model United Nations conferences for schools/)).toBeVisible();
   await page.getByRole('navigation', { name: 'Legal' }).getByRole('link', { name: 'Privacy policy' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy policy');
   await expect(page.getByRole('heading', { name: /^\d+\. Cookies$/ })).toBeVisible();
   await expect(page.getByText(/s_at, s_rt/)).toBeVisible();
+  // What Google's reviewers look for: the Google user data section and the Limited Use statement.
+  await expect(page.getByRole('heading', { name: /^\d+\. Google user data$/ })).toBeVisible();
+  await expect(page.getByText(/adheres to the Google API Services User Data Policy, including the Limited Use requirements/)).toBeVisible();
   // The operator's details come from the hosting settings; until then the page says it is a draft.
   await expect(page.getByRole('note')).toContainText('Draft');
   await page.getByRole('link', { name: 'Leer en español' }).click();
@@ -25,4 +30,20 @@ test('every school page links to them on the main address', async ({ page }) => 
   const legal = page.getByRole('navigation', { name: 'Legal' });
   await expect(legal.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', `http://localhost:${PORT}/privacy`);
   await expect(legal.getByRole('link', { name: 'Terms of service' })).toHaveAttribute('href', `http://localhost:${PORT}/terms`);
+});
+
+// Sign-in with Google or Microsoft returns to one fixed address on the main domain, which hands
+// the one-time code to the school the sign-in started from, and to nothing else.
+test('the sign-in return address forwards a code only to a real school', async ({ request }) => {
+  const go = (path: string) => request.get(`http://localhost:${PORT}${path}`, { maxRedirects: 0 });
+  const toSchool = await go('/auth/return/people?code=abc&state=x');
+  expect(toSchool.status()).toBe(303);
+  expect(toSchool.headers().location).toBe(`http://people.localhost:${PORT}/auth/callback?code=abc`);
+  const toCustomDomain = await go(`/auth/return/${encodeURIComponent('~mun.example.test')}?code=abc`);
+  expect(toCustomDomain.headers().location).toBe('http://mun.example.test/auth/callback?code=abc');
+  for (const bad of ['/auth/return/no-such-school?code=abc', `/auth/return/${encodeURIComponent('~evil.example.org')}?code=abc`, '/auth/return/%2F%2Fevil?code=abc']) {
+    const res = await go(bad);
+    expect(res.status(), bad).toBe(303);
+    expect(res.headers().location, bad).toBe(`http://localhost:${PORT}/`);
+  }
 });

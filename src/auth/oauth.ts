@@ -14,6 +14,8 @@ export const isProvider = (v: string): v is Provider => v in PROVIDERS;
 
 export const PKCE_COOKIE = 's_pkce';
 export const PKCE_MAX_AGE = 10 * 60;
+// Which school a sign-in started from, readable on the main domain (see the start route).
+export const RETURN_COOKIE = 's_return';
 
 export function newVerifier(): string {
   return randomBytes(48).toString('base64url');

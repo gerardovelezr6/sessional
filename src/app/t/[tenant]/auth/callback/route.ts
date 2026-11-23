@@ -5,7 +5,8 @@ import { ACCESS_MAX_AGE, cookieOptions, REFRESH_MAX_AGE } from '@/auth/cookies';
 import { exchangeCode, isProvider, PKCE_COOKIE, PROVIDERS } from '@/auth/oauth';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
-import { requireTenant, tenantOrigin } from '@/tenancy/context';
+import { requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
+import { problemOf } from '@/auth/oauth-errors';
 
 // The provider sends the person back here with a one-time code. The code is swapped for a session
 // with the secret kept in the cookie; then, if the provider vouched for the address, invitations
@@ -17,19 +18,35 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
   const tenant = await requireTenant((await params).tenant);
   const { config } = await tenantTranslator(tenant.id);
   const origin = await tenantOrigin();
+  const home = () => {
+    const res = NextResponse.redirect(new URL(`${origin}/`), 303);
+    res.cookies.delete(PKCE_COOKIE);
+    return res;
+  };
   const fail = (why: string) => {
     const res = NextResponse.redirect(new URL(`${origin}/login?error=${why}`), 303);
     res.cookies.delete(PKCE_COOKIE);
     return res;
   };
-  const code = new URL(req.url).searchParams.get('code') ?? '';
+  const q = new URL(req.url).searchParams;
+  const code = q.get('code') ?? '';
+  // Someone who is already signed in here (they pressed Back, or reloaded) simply goes home.
+  const signedIn = async () => !!(await tenantContext(tenant.id).catch(() => null));
+  if (!code) {
+    if (await signedIn()) return home();
+    return fail(problemOf(q.get('error_code'), q.get('error')));
+  }
   const [provider = '', verifier = ''] = ((await cookies()).get(PKCE_COOKIE)?.value ?? '').split('.');
-  if (!code || !verifier || !isProvider(provider)) return fail('provider');
+  if (!verifier || !isProvider(provider)) return (await signedIn()) ? home() : fail('expired');
   const offered = provider === 'google' ? config.people.googleSignIn === 'on' : config.people.microsoftSignIn === 'on';
   if (!offered) return fail('provider');
 
   const result = await exchangeCode(code, verifier);
-  if (!result.ok) return fail(result.reason === 'unavailable' ? 'unavailable' : 'provider');
+  if (!result.ok) {
+    if (result.reason === 'unavailable') return fail('unavailable');
+    // A code is good once; used again, or too late, it is refused.
+    return (await signedIn()) ? home() : fail('expired');
+  }
   const s = result.value;
   if (s.provider !== PROVIDERS[provider]) return fail('provider');
   // Only a verified address may turn an invitation into access.

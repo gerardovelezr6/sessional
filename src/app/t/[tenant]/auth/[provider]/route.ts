@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { authorizeUrl, isProvider, newVerifier, PKCE_COOKIE, PKCE_MAX_AGE, RETURN_COOKIE } from '@/auth/oauth';
+import { authorizeUrl, isProvider, newVerifier, PKCE_COOKIE, PKCE_MAX_AGE, RETURN_COOKIE, RETURN_MAX_AGE } from '@/auth/oauth';
 import { cookieOptions } from '@/auth/cookies';
 import { tenantTranslator } from '@/config/store';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
@@ -28,12 +28,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
   const res = NextResponse.redirect(url, 303);
   // The secret half of the exchange, and which provider it is for; read once by the callback.
   res.cookies.set(PKCE_COOKIE, `${provider}.${verifier}`, cookieOptions(PKCE_MAX_AGE));
-  // Safety net: if the authentication service ever falls back to its main address, the main page
-  // knows which school to hand the code to. Not secret: it names the school, nothing else.
+  // Safety net: if the authentication service falls back to its main address (with a code, or with
+  // an error such as a sign-in finished twice), the main page knows which school to hand it to.
+  // Not secret: it names the school, nothing else; kept a month so a late error still finds it.
   const host = new URL(req.url).hostname;
   const root = rootDomain().split(':')[0]!;
   if (!pathMode && isSecureOrigin() && host.endsWith(`.${root}`)) {
-    res.cookies.set(RETURN_COOKIE, decodeURIComponent(key), { ...cookieOptions(PKCE_MAX_AGE), domain: root });
+    res.cookies.set(RETURN_COOKIE, decodeURIComponent(key), { ...cookieOptions(RETURN_MAX_AGE), domain: root });
   }
   return res;
 }

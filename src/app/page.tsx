@@ -10,16 +10,25 @@ import { parseTenantKey } from '@/tenancy/route';
 
 // The main page. If the authentication service ever lands a sign-in here (its fallback address),
 // the code is handed on to the school the sign-in started from.
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ code?: string; error?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ code?: string; error?: string; error_code?: string }> }) {
   const q = await searchParams;
   const school = (await cookies()).get(RETURN_COOKIE)?.value;
   if ((q.code || q.error) && school && parseTenantKey(school)) {
-    const pass = new URLSearchParams(q.code ? { code: q.code.slice(0, 500) } : { error: String(q.error).slice(0, 100) });
+    const pass = new URLSearchParams(q.code ? { code: q.code.slice(0, 500) } : { error: String(q.error).slice(0, 100), ...(q.error_code ? { error_code: String(q.error_code).slice(0, 100) } : {}) });
     redirect(`/auth/return/${encodeURIComponent(school)}?${pass}`);
   }
   const t = translator(DEFAULT_LOCALE);
+  // A sign-in that landed here without a school to hand it to: a link used twice (Back, Reload,
+  // an old tab) or one started before this browser was seen. Say so instead of showing nothing.
+  const unfinished = !!(q.code || q.error);
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-12 text-center">
+      {unfinished ? (
+        <section role="alert" className="card max-w-xl text-start">
+          <h1 className="text-lg font-bold text-on-surface">{t('home.signInUnfinished.title')}</h1>
+          <p className="mt-2 text-sm">{t('home.signInUnfinished.body', { domain: rootDomain() })}</p>
+        </section>
+      ) : null}
       <Image src={wordmark} alt={t('brand.wordmarkAlt')} priority className="h-14 w-auto" />
       <p className="text-lg text-on-surface-muted">{t('home.tagline')}</p>
       <p className="max-w-2xl text-on-surface-muted">{t('home.about')}</p>

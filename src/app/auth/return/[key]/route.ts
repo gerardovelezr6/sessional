@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { RETURN_COOKIE } from '@/auth/oauth';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant } from '@/tenancy/directory';
 import { parseTenantKey } from '@/tenancy/route';
@@ -23,11 +22,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   const from = new URL(req.url).searchParams;
   const to = new URL(`${origin}/auth/callback`);
   // Only what the callback reads: the code, or the provider's error.
-  for (const name of ['code', 'error', 'error_description']) {
+  for (const name of ['code', 'error', 'error_code']) {
     const v = from.get(name);
     if (v) to.searchParams.set(name, v.slice(0, 500));
   }
-  const res = NextResponse.redirect(to, 303);
-  res.cookies.set(RETURN_COOKIE, '', { path: '/', maxAge: 0, domain: rootDomain().split(':')[0] });
-  return res;
+  return NextResponse.redirect(to, 303);
 }

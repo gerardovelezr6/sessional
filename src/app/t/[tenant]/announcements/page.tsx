@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
+import { moduleOn } from '@/config/modules';
 import { Shell } from '@/components/Shell';
 import { enabledLocales, tenantTranslator } from '@/config/store';
 import { directionOf, languageName } from '@/i18n/locales';
@@ -19,6 +20,7 @@ export default async function AnnouncementsPage({ params, searchParams }: { para
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
   if (!ctx.can('announcements.manage') && !ctx.can('tenant.manage')) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
+  if (!moduleOn(config, 'announcements')) return <Notice title={t('modules.off.title')} body={t('modules.off.body')} locale={locale} />;
 
   const L: Record<string, string> = Object.fromEntries(
     Object.keys(catalogs.en)

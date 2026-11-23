@@ -132,6 +132,15 @@ export const sections = {
   announcements: z.object({
     items: z.array(announcementSchema).max(20).nullable().default(null),
   }),
+  // Parts of the product the school uses. Off: hidden everywhere and refused by the server.
+  modules: z.object({
+    grading: z.enum(['on', 'off']).default('on'),
+    documents: z.enum(['on', 'off']).default('on'),
+    screens: z.enum(['on', 'off']).default('on'),
+    discipline: z.enum(['on', 'off']).default('on'),
+    announcements: z.enum(['on', 'off']).default('on'),
+    schedule: z.enum(['on', 'off']).default('on'),
+  }),
   // The conference access code (edited on its own page); null: no code is asked.
   access: z.object({
     gate: gateSchema.nullable().default(null),

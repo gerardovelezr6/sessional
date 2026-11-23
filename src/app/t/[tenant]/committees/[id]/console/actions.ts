@@ -3,6 +3,8 @@ import { tenantTranslator } from '@/config/store';
 import { rpc, RpcError } from '@/data/rpc';
 import { readState, type LiveState } from '@/protocol/engine';
 import { envelopeSchema, runCommand, type RunResult } from '@/protocol/run';
+import { moduleOn } from '@/config/modules';
+import { tenantConfig } from '@/config/store';
 import { requireTenant, tenantContext } from '@/tenancy/context';
 import { UUID } from '../../data';
 
@@ -23,6 +25,8 @@ async function runCommandUntimed(tenantKey: string, committeeId: string, envelop
   if (!ctx || !UUID.test(committeeId)) return { ok: false, error: 'forbidden' };
   if (!parsed.success) return { ok: false, error: 'failed' };
   const { config } = await tenantTranslator(tenant.id);
+  // A part the school turned off is refused here too, not only hidden.
+  if (!moduleOn(config, 'discipline') && parsed.data.command.type.startsWith('discipline.')) return { ok: false, error: 'forbidden' };
   try {
     return await runCommand({ committeeId, userId: ctx.user.id, token: ctx.token, school: config.protocol, structure: config.structure, envelope: parsed.data });
   } catch (e) {
@@ -67,6 +71,8 @@ async function screensOf(committeeId: string, token: string): Promise<ScreenRow[
 
 async function screensContext(tenantKey: string, committeeId: string) {
   const tenant = await requireTenant(tenantKey);
+  // Screens turned off: nothing can be paired or changed.
+  if (!moduleOn(await tenantConfig(tenant.id), 'screens')) return null;
   const ctx = await tenantContext(tenant.id);
   return ctx && UUID.test(committeeId) ? ctx : null;
 }

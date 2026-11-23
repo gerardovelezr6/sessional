@@ -1,5 +1,6 @@
 'use server';
 import { z } from 'zod';
+import { moduleOn } from '@/config/modules';
 import { forgetTenantConfig, tenantTranslator } from '@/config/store';
 import { rpc, RpcError } from '@/data/rpc';
 import { announcementSchema } from '@/site/schema';
@@ -19,9 +20,9 @@ const list = z.array(announcementSchema).max(20).superRefine((items, ctx) => {
 // permission (announcements.manage, or tenant.manage) again.
 export async function saveAnnouncementsAction(tenantKey: string, items: unknown): Promise<AnnouncementsResult> {
   const tenant = await requireTenant(tenantKey);
-  const { t } = await tenantTranslator(tenant.id);
+  const { t, config } = await tenantTranslator(tenant.id);
   const ctx = await tenantContext(tenant.id);
-  if (!ctx || !(ctx.can('announcements.manage') || ctx.can('tenant.manage'))) return { ok: false, error: t('committees.error.forbidden') };
+  if (!ctx || !(ctx.can('announcements.manage') || ctx.can('tenant.manage')) || !moduleOn(config, 'announcements')) return { ok: false, error: t('committees.error.forbidden') };
   const checked = list.safeParse(items);
   if (!checked.success) return { ok: false, error: t(checked.error.issues.some((i) => i.message === 'ends before it starts') ? 'announcements.error.dates' : 'announcements.error.invalid') };
   try {

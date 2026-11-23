@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { ConfirmButton } from '@/components/ConfirmButton';
 import { Notice } from '@/components/Notice';
+import { moduleOn } from '@/config/modules';
 import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
@@ -26,6 +27,7 @@ export default async function DocumentsPage({ params, searchParams }: { params: 
   if (!detail) notFound();
   const canRun = await rpc<boolean>('committee_can_run', { p_committee: id }, { token: ctx.token });
   if (!canRun) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
+  if (!moduleOn(config, 'documents')) return <Notice title={t('modules.off.title')} body={t('modules.off.body')} locale={locale} />;
 
   const pack = protocolFor(null, config.protocol);
   const docs = (await rpc<DocumentRow[]>('documents_list', { p_committee: id }, { token: ctx.token })).sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || a.created_at.localeCompare(b.created_at));

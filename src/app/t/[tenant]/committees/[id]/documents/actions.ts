@@ -1,5 +1,6 @@
 'use server';
 import type { FormState } from '@/components/ActionForm';
+import { moduleOn } from '@/config/modules';
 import { tenantTranslator } from '@/config/store';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
 import type { Translate } from '@/messages';
@@ -13,7 +14,8 @@ import { checkDocument, type DocumentRow, type DocStatus } from './rules';
 async function setup(tenantKey: string, committeeId: string) {
   const tenant = await requireTenant(tenantKey);
   const { t, config } = await tenantTranslator(tenant.id);
-  const ctx = await tenantContext(tenant.id);
+  // Documents turned off: every document write is refused.
+  const ctx = moduleOn(config, 'documents') ? await tenantContext(tenant.id) : null;
   const base = await basePath();
   const committee = ctx && UUID.test(committeeId) ? await loadCommittee(tenant.id, committeeId, ctx.token) : null;
   return { tenant, t, ctx, base, committee, pack: protocolFor(null, config.protocol) };

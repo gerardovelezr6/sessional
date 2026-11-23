@@ -25,7 +25,7 @@ const AREAS: { id: string; path: string; title: MessageKey; body: MessageKey; pe
   { id: 'roles', path: '/people/roles', title: 'owner.area.roles', body: 'owner.area.roles.body', permission: 'roles.manage' },
   { id: 'audit', path: '/people/audit', title: 'owner.area.audit', body: 'owner.area.audit.body', permission: 'audit.view' },
   { id: 'data', path: '/owner/data', title: 'owner.area.data', body: 'owner.area.data.body', permission: 'tenant.manage' },
-  { id: 'archive', path: '/admin/archive', title: 'owner.area.archive', body: 'owner.area.archive.body', permission: 'tenant.manage' },
+  { id: 'reset', path: '/owner/reset', title: 'owner.area.reset', body: 'owner.area.reset.body', permission: 'tenant.manage' },
 ];
 
 interface RoleRow {

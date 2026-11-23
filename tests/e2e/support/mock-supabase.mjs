@@ -944,12 +944,33 @@ seed('owner@fresh.test', 'Fiona Fresh', tid(23), 'owner');
   grades.push({ id: randomUUID(), committee_id: c.id, session_id: session.id, delegate_id: ds[0].id, label: 'Brazil', category: 'speech', category_name: { en: 'Speech' }, level: 'good', level_label: { en: 'Good' }, points: 4, weight: 1, note: '', graded_at: conf.created_at, graded_by: byEmail('chair@history.test').id });
 }
 const confManager = (userId, tenant) => can(userId, tenant, 'conference.manage');
+const scheduleItems = []; // { id, conference_id, starts_at, ends_at, title, kind, location, session_number }
+// Ops School: one committee with three delegations in an open session, for analytics, the
+// schedule, modules and reset.
+TENANTS.ops = { kind: 'tenant', id: tid(24), slug: 'ops', name: 'Ops School', status: 'active' };
+seed('owner@ops.test', 'Olga Ops', tid(24), 'owner');
+seed('hc@ops.test', 'Hank Ops', tid(24), 'high_command');
+seed('chair@ops.test', 'Cora Ops', tid(24), 'chair');
+{
+  const conf = { id: randomUUID(), tenant_id: tid(24), name: 'Ops MUN 2026', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date(Date.now() - 86400000).toISOString() };
+  conferences.push(conf);
+  const c = { id: '00000000-0000-4000-9500-000000000001', tenant_id: tid(24), conference_id: conf.id, name: 'Security Council', abbreviation: 'SC', topic: 'Space debris', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@ops.test').id });
+  for (const label of ['Brazil', 'China', 'France']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
+  const session = { id: randomUUID(), committee_id: c.id, number: 1, protocol: {}, opened_at: conf.created_at, closed_at: conf.created_at };
+  liveSessions.push(session);
+  speechLog.push({ session_id: session.id, label: 'Brazil', list: 'general', seconds: 90, started_at: conf.created_at });
+  voteLog.push({ session_id: session.id, id: randomUUID(), title: 'Motion', subject: { kind: 'motion' }, method: 'placard', procedural: true, tally: { yes: 3 }, needed: 2, passed: true, vetoed: false, closed_at: conf.created_at, ballots: null });
+}
 const committeesOf = (conferenceId) => committees.filter((c) => c.conference_id === conferenceId);
 const sessionsOf = (cid) => liveSessions.filter((x) => x.committee_id === cid);
 const confCounts = (f) => {
   const cs = committeesOf(f.id).map((c) => c.id);
   const ss = liveSessions.filter((x) => cs.includes(x.committee_id)).map((x) => x.id);
-  return { committees: cs.length, delegates: delegates.filter((d) => cs.includes(d.committee_id)).length, sessions: ss.length, votes: voteLog.filter((v) => ss.includes(v.session_id)).length, grades: grades.filter((g) => cs.includes(g.committee_id)).length };
+  const vs = voteLog.filter((v) => ss.includes(v.session_id));
+  const sp = speechLog.filter((x) => ss.includes(x.session_id));
+  return { committees: cs.length, delegates: delegates.filter((d) => cs.includes(d.committee_id)).length, sessions: ss.length, votes: vs.length, passed: vs.filter((v) => v.passed).length, speeches: sp.length, speaking_seconds: sp.reduce((n, x) => n + x.seconds, 0), documents: documents.filter((d) => cs.includes(d.committee_id)).length, warnings: warningLog.filter((w) => cs.includes(w.committee_id)).length, grades: grades.filter((g) => cs.includes(g.committee_id)).length };
 };
 // What an export holds, per kind of record (the same tables as the database's export).
 const schoolExport = (tenant) => {
@@ -967,12 +988,68 @@ const schoolExport = (tenant) => {
     speeches: speechLog.filter((x) => sids.includes(x.session_id)), votes: voteLog.filter((v) => sids.includes(v.session_id)), warnings: warningLog.filter((w) => ids.includes(w.committee_id)),
     documents: documents.filter((d) => ids.includes(d.committee_id)), grades: grades.filter((g) => ids.includes(g.committee_id)).map((g) => without(g, 'graded_by')), awards: awardRows.filter((a) => ids.includes(a.committee_id)),
     export_mappings: mappings.filter((m) => m.tenant_id === tenant).map((m) => without(m, 'tenant_id')),
+    schedule_items: scheduleItems.filter((x) => confs.some((f) => f.id === x.conference_id)),
   };
 };
-const EXPORT_KEYS = ['roles', 'conferences', 'committees', 'committee_secrets', 'delegates', 'sessions', 'roll_calls', 'speeches', 'votes', 'warnings', 'documents', 'grades', 'awards', 'export_mappings'];
+const EXPORT_KEYS = ['roles', 'conferences', 'committees', 'committee_secrets', 'delegates', 'sessions', 'roll_calls', 'speeches', 'votes', 'warnings', 'documents', 'grades', 'awards', 'export_mappings', 'schedule_items'];
 const without = (row, ...keys) => Object.fromEntries(Object.entries(row).filter(([k]) => !keys.includes(k)));
 const countsOfExport = (data) => Object.fromEntries(EXPORT_KEYS.map((k) => [k, Array.isArray(data[k]) ? data[k].length : 0]));
 Object.assign(rpcs, {
+  schedule_list: ({ p_conference }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    return { body: f && memberOf(userId, f.tenant_id) ? scheduleItems.filter((x) => x.conference_id === f.id).sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : [] };
+  },
+  schedule_save: ({ p_conference, p_data }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !confManager(userId, f.tenant_id)) return DENIED;
+    const row = { id: randomUUID(), conference_id: f.id, starts_at: p_data.starts_at, ends_at: p_data.ends_at, title: p_data.title, kind: p_data.kind, location: p_data.location ?? '', session_number: p_data.session_number ? Number(p_data.session_number) : null };
+    scheduleItems.push(row);
+    return { body: row };
+  },
+  schedule_delete: ({ p_item }, userId) => {
+    const i = scheduleItems.findIndex((x) => x.id === p_item);
+    const f = i >= 0 ? conferences.find((x) => x.id === scheduleItems[i].conference_id) : null;
+    if (!f || !confManager(userId, f.tenant_id)) return { body: false };
+    scheduleItems.splice(i, 1);
+    return { body: true };
+  },
+  conference_analytics: ({ p_tenant }, userId) => {
+    if (!['conference.manage', 'committee.manage', 'grades.view'].some((p) => can(userId, p_tenant, p))) return { body: null };
+    const f = activeConference(p_tenant);
+    if (!f) return { body: { conference: null, committees: [], at: new Date().toISOString() } };
+    return {
+      body: {
+        conference: { id: f.id, name: f.name },
+        at: new Date().toISOString(),
+        committees: committeesOf(f.id).map((c) => {
+          const ss = sessionsOf(c.id).map((x) => x.id);
+          const vs = voteLog.filter((v) => ss.includes(v.session_id));
+          const sp = speechLog.filter((x) => ss.includes(x.session_id));
+          const open = sessionsOf(c.id).find((x) => !x.closed_at);
+          const att = live.get(c.id)?.state?.attendance ?? {};
+          return {
+            id: c.id, name: c.name, abbreviation: c.abbreviation, sort_order: c.sort_order,
+            status: { status: open ? 'in_session' : ss.length ? 'between_sessions' : 'not_started', session_number: open?.number ?? null, mode: null },
+            members: delegates.filter((d) => d.committee_id === c.id).length,
+            present: open ? Object.values(att).filter((v) => v !== 'absent').length : 0,
+            sessions: ss.length, speeches: sp.length, speaking_seconds: sp.reduce((n, x) => n + x.seconds, 0), motions: 0, points: 0,
+            votes: vs.length, passed: vs.filter((v) => v.passed).length, warnings: warningLog.filter((w) => w.committee_id === c.id).length,
+            documents: documents.filter((d) => d.committee_id === c.id).length,
+            grades: can(userId, p_tenant, 'grades.view') ? grades.filter((g) => g.committee_id === c.id).length : null,
+            last_activity: f.created_at,
+          };
+        }),
+      },
+    };
+  },
+  tenant_reset: ({ p_tenant, p_confirm }, userId) => {
+    if (!roleOf(memberOf(userId, p_tenant)?.role_key)?.all) return { status: 403, body: { code: '42501', message: 'Only the Owner can reset the school' } };
+    const t = Object.values(TENANTS).find((x) => x.id === p_tenant);
+    if (p_confirm !== t?.name) return { status: 400, body: { code: '22023', message: "Type the school's name to confirm" } };
+    for (let i = conferences.length - 1; i >= 0; i--) if (conferences[i].tenant_id === p_tenant) conferences.splice(i, 1);
+    for (let i = committees.length - 1; i >= 0; i--) if (committees[i].tenant_id === p_tenant) committees.splice(i, 1);
+    return { body: countsOfExport(schoolExport(p_tenant)) };
+  },
   conferences_list: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? conferences.filter((f) => f.tenant_id === p_tenant).sort((a, b) => b.created_at.localeCompare(a.created_at)).map((f) => ({ id: f.id, name: f.name, status: f.status, created_at: f.created_at, ...confCounts(f) })) : [] }),
   conference_summary: ({ p_conference }, userId) => {
     const f = conferences.find((x) => x.id === p_conference);
@@ -999,6 +1076,7 @@ Object.assign(rpcs, {
       if (p_options.delegates !== false) delegates.push(...delegates.filter((d) => d.committee_id === c.id).map((d) => ({ ...d, id: randomUUID(), committee_id: copy.id, name: '' })));
       if (p_options.chairs) chairs.push(...chairs.filter((x) => x.committee_id === c.id).map((x) => ({ ...x, committee_id: copy.id })));
     }
+    if (p_options.schedule_days != null) scheduleItems.push(...scheduleItems.filter((x) => x.conference_id === src.id).map((x) => ({ ...x, id: randomUUID(), conference_id: f.id, starts_at: new Date(Date.parse(x.starts_at) + p_options.schedule_days * 86400000).toISOString(), ends_at: new Date(Date.parse(x.ends_at) + p_options.schedule_days * 86400000).toISOString() })));
     if (p_options.make_current) {
       conferences.filter((x) => x.tenant_id === f.tenant_id && x.status === 'active').forEach((x) => (x.status = 'archived'));
       f.status = 'active';
@@ -1045,6 +1123,7 @@ Object.assign(rpcs, {
     for (const a of p_data.awards) awardRows.push({ ...a, committee_id: id(a.committee_id), delegate_id: id(a.delegate_id) });
     for (const m of p_data.export_mappings) mappings.push({ ...m, id: id(m.id), tenant_id: p_tenant });
     for (const r of p_data.roles) (CUSTOM_ROLES[p_tenant] ??= []).push({ ...r, all: false });
+    for (const x of p_data.schedule_items ?? []) scheduleItems.push({ ...x, id: id(x.id), conference_id: id(x.conference_id) });
     return { body: countsOfExport(schoolExport(p_tenant)) };
   },
 });

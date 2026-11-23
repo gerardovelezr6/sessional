@@ -63,7 +63,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'site', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'modules', 'site', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people', 'access'] },
 ];
@@ -80,6 +80,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   theme: 'settings.theme.description',
   people: 'settings.people.description',
   access: 'settings.access.description',
+  modules: 'settings.modules.description',
   announcements: 'settings.announcements.description',
 };
 
@@ -95,6 +96,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   theme: 'settings.theme',
   people: 'settings.people',
   access: 'settings.access',
+  modules: 'settings.modules',
   announcements: 'settings.announcements',
 };
 
@@ -305,6 +307,36 @@ export const registry: Setting[] = [
   {
     section: 'people', key: 'microsoftSignIn', permission: 'tenant.manage', presentation: 'buttons',
     labelKey: 'settings.people.microsoftSignIn', helpKey: 'settings.people.microsoftSignIn.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'modules', key: 'grading', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.modules.grading', helpKey: 'settings.modules.grading.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'modules', key: 'documents', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.modules.documents', helpKey: 'settings.modules.documents.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'modules', key: 'screens', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.modules.screens', helpKey: 'settings.modules.screens.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'modules', key: 'discipline', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.modules.discipline', helpKey: 'settings.modules.discipline.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'modules', key: 'announcements', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.modules.announcements', helpKey: 'settings.modules.announcements.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'modules', key: 'schedule', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.modules.schedule', helpKey: 'settings.modules.schedule.help',
     control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
   },
   {

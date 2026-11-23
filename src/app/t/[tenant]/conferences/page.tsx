@@ -25,7 +25,27 @@ interface ConferenceRow {
   sessions: number;
   votes: number;
   grades: number;
+  speeches: number;
+  speaking_seconds: number;
+  passed: number;
+  documents: number;
+  warnings: number;
 }
+
+// Year over year: oldest on the left, each year compared with the one before it.
+type Metric = { key: string; value: (c: ConferenceRow) => number; format?: (n: number) => string };
+const METRICS: Metric[] = [
+  { key: 'committees', value: (c) => c.committees },
+  { key: 'delegates', value: (c) => c.delegates },
+  { key: 'sessions', value: (c) => c.sessions },
+  { key: 'speeches', value: (c) => c.speeches },
+  { key: 'speechLength', value: (c) => (c.speeches ? Math.round(c.speaking_seconds / c.speeches) : 0), format: (n) => `${n} s` },
+  { key: 'votes', value: (c) => c.votes },
+  { key: 'passedShare', value: (c) => (c.votes ? Math.round((100 * c.passed) / c.votes) : 0), format: (n) => `${n}%` },
+  { key: 'documents', value: (c) => c.documents },
+  { key: 'warnings', value: (c) => c.warnings },
+  { key: 'grades', value: (c) => c.grades },
+];
 
 const DONE: Record<string, MessageKey> = { cloned: 'conferences.done.cloned', active: 'conferences.done.active', archived: 'conferences.done.archived', draft: 'conferences.done.draft' };
 const TONE = { active: 'tone-live', draft: 'tone-paused', archived: 'tone-idle' } as const;
@@ -33,7 +53,7 @@ const TONE = { active: 'tone-live', draft: 'tone-paused', archived: 'tone-idle' 
 export default async function ConferencesPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string }> }) {
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
-  const { t, locale } = await tenantTranslator(tenant.id);
+  const { t, locale, config } = await tenantTranslator(tenant.id);
   const base = await basePath();
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
@@ -41,8 +61,11 @@ export default async function ConferencesPage({ params, searchParams }: { params
 
   const list = await rpc<ConferenceRow[]>('conferences_list', { p_tenant: tenant.id }, { token: ctx.token });
   const manage = ctx.can('conference.manage');
+  const scheduleOn = config.modules.schedule !== 'off';
   const { done } = await searchParams;
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  // Up to five years, oldest first.
+  const years = list.slice(0, 5).reverse();
   const nextYear = list[0] ? list[0].name.replace(/\d{4}/, (y) => String(Number(y) + 1)) : '';
 
   return (
@@ -111,6 +134,53 @@ export default async function ConferencesPage({ params, searchParams }: { params
           </table>
         </section>
 
+        {list.length > 1 ? (
+          <section className="card overflow-x-auto" aria-labelledby="yoy-title">
+            <h2 id="yoy-title" className="mb-1 text-lg font-bold text-on-surface">
+              {t('conferences.yoy')}
+            </h2>
+            <p className="mb-3 text-sm">{t('conferences.yoy.help')}</p>
+            <table className="w-full text-sm" aria-labelledby="yoy-title">
+              <thead>
+                <tr className="border-b border-border-strong">
+                  <th scope="col" className="label-text p-2 text-start">
+                    <span className="sr-only">{t('conferences.yoy.measure')}</span>
+                  </th>
+                  {years.map((c) => (
+                    <th key={c.id} scope="col" className="p-2 text-end font-bold text-on-surface">
+                      {c.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {METRICS.map((m) => (
+                  <tr key={m.key} className="border-b border-border">
+                    <th scope="row" className="p-2 text-start font-normal">
+                      {t(`conferences.yoy.${m.key}` as MessageKey)}
+                    </th>
+                    {years.map((c, i) => {
+                      const v = m.value(c);
+                      const before = i > 0 ? m.value(years[i - 1]!) : null;
+                      const change = before === null || before === v ? null : v > before ? '▲' : '▼';
+                      return (
+                        <td key={c.id} className="p-2 text-end font-mono">
+                          {(m.format ?? String)(v)}
+                          {change ? (
+                            <span className="ms-1 text-xs text-on-surface-muted" aria-label={t(change === '▲' ? 'conferences.yoy.up' : 'conferences.yoy.down')}>
+                              {change}
+                            </span>
+                          ) : null}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ) : null}
+
         {manage && list.length ? (
           <section className="card flex flex-col gap-3" aria-labelledby="clone-title">
             <h2 id="clone-title" className="text-lg font-bold text-on-surface">
@@ -148,6 +218,12 @@ export default async function ConferencesPage({ params, searchParams }: { params
                     {t(`conferences.clone.${k}`)}
                   </label>
                 ))}
+                {scheduleOn ? (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="schedule" defaultChecked />
+                    {t('conferences.clone.schedule')}
+                  </label>
+                ) : null}
                 <label className="flex items-center gap-2 text-sm font-semibold text-on-surface">
                   <input type="checkbox" name="current" defaultChecked />
                   {t('conferences.clone.current')}

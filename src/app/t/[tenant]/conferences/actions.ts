@@ -31,7 +31,8 @@ export async function cloneConferenceAction(tenantKey: string, _s: FormState, fo
   const name = String(form.get('name') ?? '').trim().slice(0, 120);
   if (!UUID.test(source)) return { error: t('committees.error.failed') };
   if (!name) return { error: t('committees.error.name') };
-  const options = { topics: form.get('topics') === 'on', delegates: form.get('delegates') === 'on', chairs: form.get('chairs') === 'on', make_current: form.get('current') === 'on' };
+  // The schedule moves 52 weeks later, so sessions keep their weekday.
+  const options = { topics: form.get('topics') === 'on', delegates: form.get('delegates') === 'on', chairs: form.get('chairs') === 'on', make_current: form.get('current') === 'on', schedule_days: form.get('schedule') === 'on' ? 364 : null };
   try {
     verifiedWrite(await rpc('conference_clone', { p_source: source, p_name: name, p_options: options }, { token: ctx.token }), 'conference_clone');
   } catch (e) {

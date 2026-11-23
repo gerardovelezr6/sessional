@@ -1,9 +1,10 @@
 # Roadmap
 
-Status: Phases 0 to 8 and the website editor are merged. Phase 9 (people: roles matrix, member
-management, audit log, password rules, Google and Microsoft sign-in, and the conference access
-code) is up for review. The degraded-mode load test from Phase 7 still needs staging (see
-`docs/LOAD-TEST.md`).
+Status: Phases 0 to 9, the website editor, the Owner area and Google and Microsoft sign-in are
+merged. Phase 10 part 1 (several conferences, clone, archive browsing, full export and import) is up
+for review; part 2 (live analytics, schedule and session structure, module toggles) and part 3
+(year-over-year comparison, reset) follow. The degraded-mode load test from Phase 7 still needs
+staging (see `docs/LOAD-TEST.md`).
 
 Editable email texts move to the email phase.
 

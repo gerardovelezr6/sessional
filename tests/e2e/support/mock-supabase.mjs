@@ -922,6 +922,133 @@ Object.assign(rpcs, {
   },
 });
 
+// --- Conferences and history (Phase 10, part 1). ---
+// History School: last year's conference with a committee, two delegations, a closed session, a
+// vote and a grade. Fresh School: nothing yet, to import into.
+TENANTS.history = { kind: 'tenant', id: tid(22), slug: 'history', name: 'History School', status: 'active' };
+TENANTS.fresh = { kind: 'tenant', id: tid(23), slug: 'fresh', name: 'Fresh School', status: 'active' };
+seed('owner@history.test', 'Hilda History', tid(22), 'owner');
+seed('chair@history.test', 'Hugo History', tid(22), 'chair');
+seed('owner@fresh.test', 'Fiona Fresh', tid(23), 'owner');
+{
+  const conf = { id: randomUUID(), tenant_id: tid(22), name: 'MUN 2026', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date(Date.now() - 86400000).toISOString() };
+  conferences.push(conf);
+  const c = { id: randomUUID(), tenant_id: tid(22), conference_id: conf.id, name: 'Human Rights Council', abbreviation: 'HRC', topic: 'Digital privacy', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: conf.created_at };
+  committees.push(c);
+  chairs.push({ committee_id: c.id, user_id: byEmail('chair@history.test').id });
+  const ds = ['Brazil', 'Kenya'].map((label) => ({ id: randomUUID(), committee_id: c.id, label, name: `${label} Student`, group_key: null, flag: null, extra: {}, created_at: conf.created_at }));
+  delegates.push(...ds);
+  const session = { id: randomUUID(), committee_id: c.id, number: 1, protocol: {}, opened_at: conf.created_at, closed_at: conf.created_at };
+  liveSessions.push(session);
+  voteLog.push({ session_id: session.id, id: randomUUID(), title: 'Resolution 1', subject: { kind: 'motion' }, method: 'roll_call', procedural: false, tally: { yes: 2 }, needed: 2, passed: true, vetoed: false, closed_at: conf.created_at, ballots: ds.map((d) => ({ delegate_id: d.id, label: d.label, choice: 'yes' })) });
+  grades.push({ id: randomUUID(), committee_id: c.id, session_id: session.id, delegate_id: ds[0].id, label: 'Brazil', category: 'speech', category_name: { en: 'Speech' }, level: 'good', level_label: { en: 'Good' }, points: 4, weight: 1, note: '', graded_at: conf.created_at, graded_by: byEmail('chair@history.test').id });
+}
+const confManager = (userId, tenant) => can(userId, tenant, 'conference.manage');
+const committeesOf = (conferenceId) => committees.filter((c) => c.conference_id === conferenceId);
+const sessionsOf = (cid) => liveSessions.filter((x) => x.committee_id === cid);
+const confCounts = (f) => {
+  const cs = committeesOf(f.id).map((c) => c.id);
+  const ss = liveSessions.filter((x) => cs.includes(x.committee_id)).map((x) => x.id);
+  return { committees: cs.length, delegates: delegates.filter((d) => cs.includes(d.committee_id)).length, sessions: ss.length, votes: voteLog.filter((v) => ss.includes(v.session_id)).length, grades: grades.filter((g) => cs.includes(g.committee_id)).length };
+};
+// What an export holds, per kind of record (the same tables as the database's export).
+const schoolExport = (tenant) => {
+  const confs = conferences.filter((f) => f.tenant_id === tenant);
+  const cs = committees.filter((c) => c.tenant_id === tenant);
+  const ids = cs.map((c) => c.id);
+  const ss = liveSessions.filter((x) => ids.includes(x.committee_id));
+  const sids = ss.map((x) => x.id);
+  return {
+    format: 'sessional-export', version: 1, exported_at: new Date().toISOString(), tenant: Object.values(TENANTS).find((x) => x.id === tenant),
+    settings: Object.fromEntries(Object.entries(CONFIG[tenant] ?? {}).map(([k, v]) => [k, { schema_version: 1, data: v.data }])),
+    roles: (CUSTOM_ROLES[tenant] ?? []).map((r) => ({ key: r.key, name: r.name, rank: r.rank, scope: r.scope, permissions: r.permissions })),
+    conferences: confs.map((f) => without(f, 'tenant_id')), committees: cs.map((c) => without(c, 'tenant_id')), committee_secrets: [],
+    delegates: delegates.filter((d) => ids.includes(d.committee_id)), sessions: ss, roll_calls: rollCalls.filter((r) => sids.includes(r.session_id)),
+    speeches: speechLog.filter((x) => sids.includes(x.session_id)), votes: voteLog.filter((v) => sids.includes(v.session_id)), warnings: warningLog.filter((w) => ids.includes(w.committee_id)),
+    documents: documents.filter((d) => ids.includes(d.committee_id)), grades: grades.filter((g) => ids.includes(g.committee_id)).map((g) => without(g, 'graded_by')), awards: awardRows.filter((a) => ids.includes(a.committee_id)),
+    export_mappings: mappings.filter((m) => m.tenant_id === tenant).map((m) => without(m, 'tenant_id')),
+  };
+};
+const EXPORT_KEYS = ['roles', 'conferences', 'committees', 'committee_secrets', 'delegates', 'sessions', 'roll_calls', 'speeches', 'votes', 'warnings', 'documents', 'grades', 'awards', 'export_mappings'];
+const without = (row, ...keys) => Object.fromEntries(Object.entries(row).filter(([k]) => !keys.includes(k)));
+const countsOfExport = (data) => Object.fromEntries(EXPORT_KEYS.map((k) => [k, Array.isArray(data[k]) ? data[k].length : 0]));
+Object.assign(rpcs, {
+  conferences_list: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? conferences.filter((f) => f.tenant_id === p_tenant).sort((a, b) => b.created_at.localeCompare(a.created_at)).map((f) => ({ id: f.id, name: f.name, status: f.status, created_at: f.created_at, ...confCounts(f) })) : [] }),
+  conference_summary: ({ p_conference }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !memberOf(userId, f.tenant_id)) return { body: null };
+    return {
+      body: {
+        conference: f,
+        committees: committeesOf(f.id).map((c) => {
+          const ss = sessionsOf(c.id).map((x) => x.id);
+          const vs = voteLog.filter((v) => ss.includes(v.session_id));
+          return { id: c.id, name: c.name, abbreviation: c.abbreviation, topic: c.topic, delegates: delegates.filter((d) => d.committee_id === c.id).length, sessions: ss.length, speeches: speechLog.filter((x) => ss.includes(x.session_id)).length, votes: vs.length, passed: vs.filter((v) => v.passed).length, grades: grades.filter((g) => g.committee_id === c.id).length, awards: can(userId, f.tenant_id, 'grades.view') ? awardRows.filter((a) => a.committee_id === c.id) : [] };
+        }),
+      },
+    };
+  },
+  conference_clone: ({ p_source, p_name, p_options }, userId) => {
+    const src = conferences.find((x) => x.id === p_source);
+    if (!src || !confManager(userId, src.tenant_id) || !manages(userId, src.tenant_id)) return DENIED;
+    const f = { id: randomUUID(), tenant_id: src.tenant_id, name: p_name, status: 'draft', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() };
+    conferences.push(f);
+    for (const c of committeesOf(src.id)) {
+      const copy = { ...c, id: randomUUID(), conference_id: f.id, topic: p_options.topics === false ? '' : c.topic, created_at: f.created_at };
+      committees.push(copy);
+      if (p_options.delegates !== false) delegates.push(...delegates.filter((d) => d.committee_id === c.id).map((d) => ({ ...d, id: randomUUID(), committee_id: copy.id, name: '' })));
+      if (p_options.chairs) chairs.push(...chairs.filter((x) => x.committee_id === c.id).map((x) => ({ ...x, committee_id: copy.id })));
+    }
+    if (p_options.make_current) {
+      conferences.filter((x) => x.tenant_id === f.tenant_id && x.status === 'active').forEach((x) => (x.status = 'archived'));
+      f.status = 'active';
+    }
+    return { body: { id: f.id, name: f.name, status: f.status, ...confCounts(f) } };
+  },
+  conference_activate: ({ p_conference }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !confManager(userId, f.tenant_id)) return { body: null };
+    conferences.filter((x) => x.tenant_id === f.tenant_id && x.status === 'active').forEach((x) => (x.status = 'archived'));
+    f.status = 'active';
+    return { body: f };
+  },
+  conference_set_status: ({ p_conference, p_status }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !confManager(userId, f.tenant_id)) return { body: null };
+    f.status = p_status;
+    return { body: f };
+  },
+  conference_rename: ({ p_conference, p_name }, userId) => {
+    const f = conferences.find((x) => x.id === p_conference);
+    if (!f || !confManager(userId, f.tenant_id)) return { body: null };
+    f.name = p_name;
+    return { body: f };
+  },
+  tenant_export: ({ p_tenant }, userId) => ({ body: can(userId, p_tenant, 'tenant.manage') ? schoolExport(p_tenant) : null }),
+  tenant_counts: ({ p_tenant }, userId) => ({ body: can(userId, p_tenant, 'tenant.manage') ? countsOfExport(schoolExport(p_tenant)) : null }),
+  tenant_import: ({ p_tenant, p_data }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { status: 403, body: { code: '42501', message: 'You cannot import into this school' } };
+    if (p_data?.format !== 'sessional-export' || p_data.version !== 1) return { status: 400, body: { code: '22023', message: 'not a Sessional export' } };
+    if (conferences.some((f) => f.tenant_id === p_tenant)) return { status: 400, body: { code: '22023', message: 'This school already has conferences: import only into an empty school' } };
+    const map = new Map();
+    const id = (old) => (old ? (map.get(old) ?? (map.set(old, randomUUID()), map.get(old))) : null);
+    for (const f of p_data.conferences) conferences.push({ ...f, id: id(f.id), tenant_id: p_tenant });
+    for (const c of p_data.committees) committees.push({ ...c, id: id(c.id), conference_id: id(c.conference_id), tenant_id: p_tenant });
+    for (const d of p_data.delegates) delegates.push({ ...d, id: id(d.id), committee_id: id(d.committee_id) });
+    for (const x of p_data.sessions) liveSessions.push({ ...x, id: id(x.id), committee_id: id(x.committee_id) });
+    for (const r of p_data.roll_calls) rollCalls.push({ ...r, id: id(r.id), session_id: id(r.session_id) });
+    for (const x of p_data.speeches) speechLog.push({ ...x, session_id: id(x.session_id), delegate_id: id(x.delegate_id) });
+    for (const v of p_data.votes) voteLog.push({ ...v, id: id(v.id), session_id: id(v.session_id), ballots: v.ballots?.map((b) => ({ ...b, delegate_id: id(b.delegate_id) })) ?? null });
+    for (const w of p_data.warnings) warningLog.push({ ...w, committee_id: id(w.committee_id) });
+    for (const d of p_data.documents) documents.push({ ...d, id: id(d.id), committee_id: id(d.committee_id) });
+    for (const g of p_data.grades) grades.push({ ...g, id: id(g.id), committee_id: id(g.committee_id), session_id: id(g.session_id), delegate_id: id(g.delegate_id) });
+    for (const a of p_data.awards) awardRows.push({ ...a, committee_id: id(a.committee_id), delegate_id: id(a.delegate_id) });
+    for (const m of p_data.export_mappings) mappings.push({ ...m, id: id(m.id), tenant_id: p_tenant });
+    for (const r of p_data.roles) (CUSTOM_ROLES[p_tenant] ??= []).push({ ...r, all: false });
+    return { body: countsOfExport(schoolExport(p_tenant)) };
+  },
+});
+
 const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel']);
 
 const auth = {

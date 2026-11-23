@@ -497,3 +497,22 @@ committees), editable email texts (email phase), flags (Phase 5).
   through `announcements_publish`, which checks the permission itself because settings are
   otherwise written only with `tenant.manage`. Until something is posted there, announcements
   written in the website settings keep showing.
+
+## Conferences, history, export and import (Phase 10, part 1)
+
+- A school has any number of conferences: one current (`active`), drafts and archived years. The
+  home page, committees and consoles show the current one. High Command → Conferences
+  (`/conferences`, for `conference.manage`, `committee.manage` or `grades.view`) lists them with
+  their counts; `conference.manage` makes one current (the previous one is archived), archives,
+  restores and renames.
+- `conference_clone` copies a conference in one action: committees in order, and as chosen their
+  topics and confidential topics, delegations (without students' names) and chairs. Sessions, votes,
+  grades and awards stay with the old year. It runs with the caller's rights.
+- `/conferences/<id>`: a year at a glance (committees, sessions, speeches, votes passed, grades,
+  awards following grade privacy), each committee opening to its own page.
+- Owner → Export & import (`/owner/data`, `tenant.manage`): `tenant_export` returns published
+  settings, roles and every conference record, without people or the ids of who did what; the page
+  offers JSON (re-importable), CSV (one file per table, zipped by `src/data/zip.ts`) and a PDF
+  summary. `tenant_import` brings an export into a school with no conference yet, replacing every
+  id and following every reference (ballots, roll-call entries, sponsors, amendments, vote
+  subjects); it returns the new counts, which equal the export's (`tests/db/conferences-history.test.ts`).

@@ -22,6 +22,7 @@ describe('defaults', () => {
       access: { gate: null },
       modules: { grading: 'on', documents: 'on', screens: 'on', discipline: 'on', announcements: 'on', schedule: 'on' },
       announcements: { items: null },
+      publicSite: { enabled: 'off', delegations: 'on', schedule: 'on', resolutions: 'on', live: 'off' },
       theme: {
         preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,

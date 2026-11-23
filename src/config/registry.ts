@@ -63,7 +63,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'modules', 'site', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'modules', 'site', 'publicSite', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people', 'access'] },
 ];
@@ -81,6 +81,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   people: 'settings.people.description',
   access: 'settings.access.description',
   modules: 'settings.modules.description',
+  publicSite: 'settings.publicSite.description',
   announcements: 'settings.announcements.description',
 };
 
@@ -97,6 +98,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   people: 'settings.people',
   access: 'settings.access',
   modules: 'settings.modules',
+  publicSite: 'settings.publicSite',
   announcements: 'settings.announcements',
 };
 
@@ -337,6 +339,31 @@ export const registry: Setting[] = [
   {
     section: 'modules', key: 'schedule', permission: 'tenant.manage', presentation: 'buttons',
     labelKey: 'settings.modules.schedule', helpKey: 'settings.modules.schedule.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'publicSite', key: 'enabled', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.publicSite.enabled', helpKey: 'settings.publicSite.enabled.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'publicSite', key: 'delegations', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.publicSite.delegations', helpKey: 'settings.publicSite.delegations.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'publicSite', key: 'schedule', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.publicSite.schedule', helpKey: 'settings.publicSite.schedule.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'publicSite', key: 'resolutions', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.publicSite.resolutions', helpKey: 'settings.publicSite.resolutions.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'publicSite', key: 'live', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.publicSite.live', helpKey: 'settings.publicSite.live.help',
     control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
   },
   {

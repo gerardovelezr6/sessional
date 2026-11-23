@@ -15,6 +15,7 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 const AREAS: { id: string; path: string; title: MessageKey; body: MessageKey; permission: string }[] = [
   { id: 'website', path: '/settings/site', title: 'owner.area.website', body: 'owner.area.website.body', permission: 'tenant.manage' },
   { id: 'branding', path: '/settings?section=theme', title: 'owner.area.branding', body: 'owner.area.branding.body', permission: 'tenant.manage' },
+  { id: 'public', path: '/settings?section=publicSite', title: 'owner.area.public', body: 'owner.area.public.body', permission: 'tenant.manage' },
   { id: 'identity', path: '/settings?section=identity', title: 'owner.area.identity', body: 'owner.area.identity.body', permission: 'tenant.manage' },
   { id: 'language', path: '/settings?section=locale', title: 'owner.area.language', body: 'owner.area.language.body', permission: 'tenant.manage' },
   { id: 'types', path: '/settings/structure', title: 'owner.area.types', body: 'owner.area.types.body', permission: 'tenant.manage' },

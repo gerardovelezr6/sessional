@@ -141,6 +141,15 @@ export const sections = {
     announcements: z.enum(['on', 'off']).default('on'),
     schedule: z.enum(['on', 'off']).default('on'),
   }),
+  // The school's public pages (no sign-in): off until the Owner turns them on, then each part on
+  // its own. They show delegations by country or role, never students' names.
+  publicSite: z.object({
+    enabled: z.enum(['on', 'off']).default('off'),
+    delegations: z.enum(['on', 'off']).default('on'),
+    schedule: z.enum(['on', 'off']).default('on'),
+    resolutions: z.enum(['on', 'off']).default('on'),
+    live: z.enum(['on', 'off']).default('off'),
+  }),
   // The conference access code (edited on its own page); null: no code is asked.
   access: z.object({
     gate: gateSchema.nullable().default(null),

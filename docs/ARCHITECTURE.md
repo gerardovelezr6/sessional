@@ -537,3 +537,37 @@ committees), editable email texts (email phase), flags (Phase 5).
 - Reset (Owner → Reset): `tenant_reset` removes every conference and what is in it; settings, roles
   and people stay. Only the Owner (the role holding every permission), only by typing the school's
   name; noted in the audit log with the counts removed.
+
+## Import, print and public side (Phase 11)
+
+- Import (High Command → Import, `committee.manage`): a CSV (any delimiter a spreadsheet writes),
+  an Excel file (first sheet) or a Google Sheets link shared as "anyone with the link". Sheets are
+  downloaded on the server from `docs.google.com` only (redirects followed only to Google's download
+  hosts; 2 MB and 10 seconds at most; a sign-in page is reported as "not shared"). Columns are
+  recognised by heading in English or Spanish, and can be changed. Every row is checked
+  (`src/import/plan.ts`: committee exists or may be created, label present and ≤ 160 characters,
+  no duplicate in the sheet or the committee, group valid for the committee type, at most 2,000
+  rows); the preview shows what will be imported and why other rows will not, and those rows
+  download as a CSV to fix and import again. The browser's copy of the table is checked again in
+  full before `import_apply` writes the good rows in one transaction.
+- Undo: each import is an `import_batches` row (in the isolation matrix, audited); the delegations
+  and committees it created carry its id. `import_undo` removes them (a created committee stays if
+  someone added a delegation to it since) and records who undid it and when.
+- Print (High Command → Print; chairs see the parts for their committees): `/print/<kind>` returns
+  a PDF built with pdf-lib in the school's primary colour, with its logo (PNG or JPEG; a WebP logo
+  is left out) and Noto Sans: placards (tent cards, each with a signed check-in QR code), sign-in
+  sheets, the agenda, passed resolutions, certificates of participation (`committee.manage`) or of
+  award (`grades.view`), and the grade report (the gradebook PDF). What appears follows what the
+  person may read. The same data gives the same file.
+- Check-in: a placard's QR code opens `/checkin/<committee>.<delegate>.<signature>` (HMAC with a key
+  derived from the server secret). Opening it changes nothing; a signed-in chair of that committee
+  presses "Mark as …", which sends the console's own `attendance.set` command.
+- Public pages (Owner → Settings → Public pages, off by default): `/public`, `/public/committees/<id>`
+  and `/public/committees/<id>/live`. `public_site` runs for the server role only and returns
+  whitelisted fields: the current conference's name, committees (name, abbreviation, topic, type,
+  category), delegations as label, flag and group, passed resolutions as code, title and kind, and
+  the schedule. Never students' names, people, grades or documents' text. The server then picks
+  those keys again, blanks confidential topics and drops each part the school switched off. The
+  live view shows what a projection screen shows, polled (no realtime channel for visitors) and
+  limited per address. A school with an access code keeps these pages behind it too.
+

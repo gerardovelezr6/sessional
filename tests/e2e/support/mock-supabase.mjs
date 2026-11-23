@@ -1132,6 +1132,13 @@ Object.assign(rpcs, {
 // Pub School: one committee with two delegations (one with a student's name), a passed
 // resolution, a confidential crisis committee and a schedule item.
 TENANTS.pub = { kind: 'tenant', id: tid(25), slug: 'pub', name: 'Pub School', status: 'active' };
+// A crisis committee type whose topic is confidential.
+CONFIG[tid(25)] = {
+  structure: { version: 1, schema_version: 1, data: { categories: [], types: [
+    { key: 'standard', name: { en: 'Standard' }, labelField: { en: 'Country' }, defaultCategory: null, flag: 'country', groupLabel: {}, groups: [], groupRequired: false, confidentialTopic: false, veto: false, fields: [], bulk: ['label', 'name'] },
+    { key: 'crisis', name: { en: 'Crisis' }, labelField: { en: 'Role' }, defaultCategory: null, flag: 'none', groupLabel: {}, groups: [], groupRequired: false, confidentialTopic: true, veto: false, fields: [], bulk: ['label', 'name'] },
+  ] } },
+};
 seed('owner@pub.test', 'Pia Pub', tid(25), 'owner');
 seed('hc@pub.test', 'Hal Pub', tid(25), 'high_command');
 seed('chair@pub.test', 'Cy Pub', tid(25), 'chair');

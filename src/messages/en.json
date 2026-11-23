@@ -1497,5 +1497,9 @@
   "legal.terms.s10.title": "Contact",
   "legal.terms.s10.body": "Questions about these terms: {email}.",
   "home.about": "Sessional runs Model United Nations conferences for schools: chairs take roll call, manage speakers, motions and votes from a live console; projection screens follow the room; organisers grade delegates and export gradebooks; each school gets its own branded site. Accounts are created by invitation from a school.",
-  "home.signIn": "Schools sign in at their own address, for example yourschool.{domain}."
+  "home.signIn": "Schools sign in at their own address, for example yourschool.{domain}.",
+  "home.signInUnfinished.title": "Your sign-in did not finish",
+  "home.signInUnfinished.body": "Sign-in links work only once, so this one was already used (often by pressing Back or Reload, or reusing an old tab). Go to your school's sign-in page, for example yourschool.{domain}/login, and choose “Continue with Google” again in a new tab. If you were already signed in, simply open your school's page.",
+  "auth.provider.expired": "That sign-in was already used or took too long (this happens after pressing Back or Reload). Please choose “Continue with Google” or “Continue with Microsoft” again.",
+  "auth.provider.cancelled": "Sign-in was cancelled. Choose a button below to try again, or use your email and password."
 }

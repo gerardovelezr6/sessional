@@ -47,3 +47,29 @@ test('the sign-in return address forwards a code only to a real school', async (
     expect(res.headers().location, bad).toBe(`http://localhost:${PORT}/`);
   }
 });
+
+test('a sign-in that lands on the main page without a school says what to do', async ({ page }) => {
+  await page.goto(`http://localhost:${PORT}/?error=invalid_request&error_code=flow_state_already_used`);
+  await expect(page.getByRole('alert').filter({ hasText: 'Your sign-in did not finish' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'Continue with Google' })).toBeVisible();
+});
+
+test('a sign-in finished twice explains itself, or simply goes home when already signed in', async ({ page, request }) => {
+  // The authentication service reports the reused sign-in; the return address passes it on.
+  const res = await request.get(`http://localhost:${PORT}/auth/return/alpha?error=invalid_request&error_code=flow_state_already_used`, { maxRedirects: 0 });
+  expect(res.headers().location).toBe(`http://alpha.localhost:${PORT}/auth/callback?error=invalid_request&error_code=flow_state_already_used`);
+  await page.goto(`http://alpha.localhost:${PORT}/auth/callback?error=invalid_request&error_code=flow_state_already_used`);
+  await expect(page.getByText(/^That sign-in was already used or took too long/)).toBeVisible();
+  // Someone already signed in who comes back to an old sign-in page lands on the school's home.
+  await page.getByLabel('Email').fill('owner@alpha.test');
+  await page.getByLabel('Password').fill('correct-password');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL((u) => !u.pathname.endsWith('/login'));
+  await page.goto(`http://alpha.localhost:${PORT}/auth/callback?code=already-used`);
+  await expect(page).toHaveURL(`http://alpha.localhost:${PORT}/`);
+});
+
+test('the main page explains a sign-in that arrives without a school', async ({ page }) => {
+  await page.goto(`http://localhost:${PORT}/?error=invalid_request&error_code=flow_state_already_used`);
+  await expect(page.getByRole('heading', { name: 'Your sign-in did not finish' })).toBeVisible();
+});

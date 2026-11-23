@@ -1497,5 +1497,9 @@
   "legal.terms.s10.title": "Contacto",
   "legal.terms.s10.body": "Preguntas sobre estos términos: {email}.",
   "home.about": "Sessional organiza conferencias de Modelo de Naciones Unidas para escuelas: las mesas pasan lista y manejan oradores, mociones y votaciones desde una consola en vivo; las pantallas de proyección siguen la sala; los organizadores califican a los delegados y exportan las calificaciones; cada escuela tiene su propio sitio con su marca. Las cuentas se crean por invitación de una escuela.",
-  "home.signIn": "Las escuelas inician sesión en su propia dirección, por ejemplo suescuela.{domain}."
+  "home.signIn": "Las escuelas inician sesión en su propia dirección, por ejemplo suescuela.{domain}.",
+  "home.signInUnfinished.title": "El inicio de sesión no terminó",
+  "home.signInUnfinished.body": "Los enlaces de inicio de sesión sirven una sola vez, y este ya se usó (a menudo al pulsar Atrás o Recargar, o al reutilizar una pestaña antigua). Vayan a la página de inicio de sesión de su escuela, por ejemplo suescuela.{domain}/login, y elijan «Continuar con Google» de nuevo en una pestaña nueva. Si ya habían iniciado sesión, simplemente abran la página de su escuela.",
+  "auth.provider.expired": "Ese inicio de sesión ya se usó o tardó demasiado (pasa al pulsar Atrás o Recargar). Elijan de nuevo «Continuar con Google» o «Continuar con Microsoft».",
+  "auth.provider.cancelled": "Se canceló el inicio de sesión. Elijan un botón de abajo para intentarlo de nuevo, o usen su correo y contraseña."
 }

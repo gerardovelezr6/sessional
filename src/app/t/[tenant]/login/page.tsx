@@ -7,7 +7,8 @@ import { assetUrl } from '@/data/storage';
 import { initialsOf } from '@/site/presets';
 import { siteOf } from '@/site/rules';
 import { tenantTranslator } from '@/config/store';
-import { localize } from '@/messages';
+import { localize, type MessageKey } from '@/messages';
+import { SIGN_IN_PROBLEMS } from '@/auth/oauth-errors';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { signInAction } from '../actions';
 
@@ -35,9 +36,9 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
           <Field label={t('auth.email')} name="email" type="email" autoComplete="username" />
           <Field label={t('auth.password')} name="password" type="password" autoComplete="current-password" />
         </ActionForm>
-        {error === 'provider' || error === 'unavailable' ? (
+        {error && (SIGN_IN_PROBLEMS as string[]).includes(error) ? (
           <p role="alert" className="error-text mt-3">
-            {t(error === 'provider' ? 'auth.provider.failed' : 'auth.error.unavailable')}
+            {t(error === 'unavailable' ? 'auth.error.unavailable' : error === 'provider' ? 'auth.provider.failed' : (`auth.provider.${error}` as MessageKey))}
           </p>
         ) : null}
         {providers.length ? (

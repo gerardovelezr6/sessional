@@ -1,3 +1,5 @@
+import { FORMAL_NAMES } from './formal-names';
+
 // Country names in any language, and recognising a country from what someone types: short names,
 // formal names and common alternatives, in every language the school uses. Names come from the
 // Unicode data built into the runtime (Intl.DisplayNames); the aliases below cover what that data
@@ -109,7 +111,7 @@ function indexFor(locales: string[]): Map<string, string> {
   // Exact names first, then the same names without "Republic of" and the like, so a shortened
   // alias can never take a name that belongs to another country ("Republic of China" → "China").
   const pairs: [string, string][] = [];
-  for (const [code, names] of Object.entries(ALIASES)) for (const name of names) pairs.push([normalise(name), code]);
+  for (const table of [ALIASES, FORMAL_NAMES]) for (const [code, names] of Object.entries(table)) for (const name of names) pairs.push([normalise(name), code]);
   for (const locale of id.split('|')) {
     let names: Intl.DisplayNames;
     try {
@@ -139,5 +141,10 @@ export function resolveCountry(input: string, locales: string[] = []): string | 
   const n = normalise(raw);
   if (!n) return null;
   const index = indexFor(locales);
-  return index.get(n) ?? index.get(n.replace(FILLER, '')) ?? null;
+  const found = index.get(n) ?? index.get(n.replace(FILLER, ''));
+  if (found) return found;
+  // A formal name not in the lists: what comes after its last "of" ("Islamic Republic of Pakistan",
+  // "Federal Democratic Republic of X"), when that alone is a country's name.
+  const tail = n.match(/ (?:of|de|del) (?:the |la |el )?([a-z][a-z ]+)$/)?.[1];
+  return (tail && tail.length > 2 && index.get(tail)) || null;
 }

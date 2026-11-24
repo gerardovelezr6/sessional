@@ -41,8 +41,8 @@ export async function startPdf(title: string, brand: Brand): Promise<Kit> {
   const doc = await lib.PDFDocument.create();
   doc.registerFontkit(fontkit);
   const dir = path.join(process.cwd(), 'assets', 'fonts');
-  const regular = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_400Regular.ttf')), { subset: true });
-  const bold = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_700Bold.ttf')), { subset: true });
+  const regular = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_400Regular.ttf')), { subset: false });
+  const bold = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_700Bold.ttf')), { subset: false });
   let logo: PDFImage | null = null;
   if (brand.logo) {
     const b = brand.logo;

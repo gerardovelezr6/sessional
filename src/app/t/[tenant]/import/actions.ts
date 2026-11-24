@@ -2,9 +2,9 @@
 import type { FormState } from '@/components/ActionForm';
 import { tenantTranslator } from '@/config/store';
 import { rpc, RpcError } from '@/data/rpc';
-import { detectMapping, errorReport, FIELDS, planImport, type CommitteeRef, type Mapping, type Problem } from '@/import/plan';
+import { detectLayout, errorReport, FIELDS, planImport, type CommitteeRef, type Layout, type Problem } from '@/import/plan';
 import { readSheets, readUpload, type ReadError, type Source } from '@/import/read';
-import { IMPORT_MAX_ROWS, type Table } from '@/import/table';
+import { IMPORT_MAX_CELL_ROWS, IMPORT_MAX_SHEETS, type Sheet } from '@/import/table';
 import type { MessageKey } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { allow } from '@/live/limit';
@@ -14,19 +14,28 @@ import { loadCommittee, loadOverview, UUID } from '../committees/data';
 // good rows in one go. Nothing is trusted from the browser: the table it sends back is checked
 // again in full before anything is written. Students' names never go to the logs.
 
+export interface SheetView {
+  name: string;
+  // Up to 50 columns: the headings row's words, else "Column 3".
+  columns: string[];
+  rows: number;
+  layout: Layout;
+  good: number;
+  bad: number;
+}
 export interface Preview {
-  table: Table;
-  header: boolean;
-  mapping: Mapping;
+  sheets: Sheet[];
+  views: SheetView[];
   source: Source;
   fileName: string;
   createCommittees: boolean;
-  defaultCommittee: string;
   good: number;
   badCount: number;
+  existing: number;
+  blank: number;
   newCommittees: string[];
-  sample: { line: number; committee: string; label: string; name: string }[];
-  bad: { line: number; text: string; reasons: string }[];
+  sample: { sheet: string; line: number; committee: string; label: string; name: string }[];
+  bad: { sheet: string; line: number; text: string; reasons: string }[];
   report: string;
 }
 export interface ImportState extends FormState {
@@ -49,26 +58,46 @@ const READ_ERRORS: Record<ReadError, MessageKey> = {
   empty: 'import.error.empty',
 };
 
-// The table the browser sends back: the same shape and limits as one read from a file.
-function tableFrom(json: string): Table | null {
+// The tabs the browser sends back: the same shape and limits as those read from a file.
+function sheetsFrom(json: string): Sheet[] | null {
   try {
-    const t = JSON.parse(json) as unknown;
-    if (!Array.isArray(t) || t.length > IMPORT_MAX_ROWS + 1) return null;
-    if (!t.every((r) => Array.isArray(r) && r.length <= 50 && r.every((c) => typeof c === 'string' && c.length <= 1000))) return null;
-    return t as Table;
+    const v = JSON.parse(json) as unknown;
+    if (!Array.isArray(v) || v.length === 0 || v.length > IMPORT_MAX_SHEETS) return null;
+    let total = 0;
+    for (const sh of v as Sheet[]) {
+      if (!sh || typeof sh.name !== 'string' || sh.name.length > 100 || !Array.isArray(sh.rows)) return null;
+      total += sh.rows.length;
+      if (!sh.rows.every((r) => Array.isArray(r) && r.length <= 50 && r.every((c) => typeof c === 'string' && c.length <= 1000))) return null;
+    }
+    return total <= IMPORT_MAX_CELL_ROWS * 2 ? (v as Sheet[]) : null;
   } catch {
     return null;
   }
 }
 
-function mappingFrom(form: FormData, fallback: Mapping): Mapping {
-  const out = { ...fallback };
-  for (const f of FIELDS) {
-    const v = form.get(`map_${f}`);
-    if (v === null) continue;
-    out[f] = /^\d{1,2}$/.test(String(v)) ? Number(v) : null;
-  }
-  return out;
+// What the person changed for each tab: the headings row, the columns, the committee.
+function layoutsFrom(form: FormData, sheets: Sheet[], detected: Layout[], committees: CommitteeRef[]): Layout[] {
+  return detected.map((d, i) => {
+    const sheet = sheets[i]!;
+    const h = form.get(`h_${i}`);
+    const headerRow = h !== null && /^\d{1,4}$/.test(String(h)) ? Math.min(Number(h), sheet.rows.length) - 1 : d.headerRow;
+    const mapping = { ...d.mapping };
+    for (const f of FIELDS) {
+      const v = form.get(`m_${i}_${f}`);
+      if (v !== null) mapping[f] = /^\d{1,2}$/.test(String(v)) ? Number(v) : null;
+    }
+    const c = form.get(`c_${i}`);
+    let committee = d.committee;
+    let skip = d.skip;
+    if (c !== null) {
+      const v = String(c);
+      skip = v === 'skip';
+      if (v === '' || v === 'skip') committee = '';
+      else if (v.startsWith('id:') && committees.some((x) => `id:${x.id}` === v)) committee = v;
+      else if (v.startsWith('new:') && v.length <= 124) committee = v;
+    }
+    return { sheet: i, headerRow: Math.max(-1, headerRow), mapping, committee, skip: skip || mapping.label === null };
+  });
 }
 
 async function committeesOf(tenantId: string, token: string) {
@@ -78,7 +107,24 @@ async function committeesOf(tenantId: string, token: string) {
   return { conference: overview.conference, committees };
 }
 
-// Reads the file or link (or the table already read, with a new column mapping) and checks it.
+// The tabs as read, each with its layout: detected, then the default committee for tabs that name
+// none, then what the person changed.
+function layoutsOf(form: FormData, sheets: Sheet[], committees: CommitteeRef[]): Layout[] {
+  const fallback = String(form.get('default_committee') ?? '');
+  const detected = sheets.map((sh, i) => {
+    const l = detectLayout(sh, i, committees, sheets.length === 1);
+    return !l.committee && l.mapping.committee === null && UUID.test(fallback) ? { ...l, committee: `id:${fallback}` } : l;
+  });
+  return layoutsFrom(form, sheets, detected, committees);
+}
+
+const columnsOf = (sheet: Sheet, layout: Layout, word: (n: number) => string) => {
+  const width = Math.min(50, Math.max(0, ...sheet.rows.slice(0, 300).map((r) => r.length)));
+  const head = layout.headerRow >= 0 ? (sheet.rows[layout.headerRow] ?? []) : [];
+  return Array.from({ length: width }, (_, i) => (head[i] ? `${head[i]} (${word(i + 1)})` : word(i + 1)));
+};
+
+// Reads the file or link (or the tabs already read, with changed layouts) and checks it.
 export async function previewImportAction(tenantKey: string, _s: ImportState, form: FormData): Promise<ImportState> {
   const { tenant, t, config, ctx } = await setup(tenantKey);
   if (!ctx?.can('committee.manage')) return { error: t('committees.error.forbidden') };
@@ -86,66 +132,67 @@ export async function previewImportAction(tenantKey: string, _s: ImportState, fo
   const { conference, committees } = await committeesOf(tenant.id, ctx.token);
   if (!conference) return { error: t('import.error.noConference') };
 
-  let table: Table;
+  let sheets: Sheet[];
   let source: Source;
   let fileName: string;
-  let header: boolean;
-  let mapping: Mapping;
-  const kept = form.get('table');
+  const kept = form.get('sheets');
   if (typeof kept === 'string' && kept) {
-    const parsed = tableFrom(kept);
+    const parsed = sheetsFrom(kept);
     if (!parsed) return { error: t('import.error.unreadable') };
-    table = parsed;
+    sheets = parsed;
     source = (['csv', 'xlsx', 'sheets'] as const).find((s) => s === form.get('source')) ?? 'csv';
     fileName = String(form.get('file_name') ?? '').slice(0, 200);
-    header = form.get('header') === 'on';
-    mapping = mappingFrom(form, detectMapping(table).mapping);
   } else {
     const file = form.get('file');
     const link = String(form.get('link') ?? '').trim();
     const read = file instanceof File && file.size > 0 ? await readUpload(file) : link ? await readSheets(link) : { error: 'empty' as const };
     if ('error' in read) return { error: t(READ_ERRORS[read.error]) };
-    table = read.table;
+    sheets = read.sheets;
     source = read.source;
     fileName = (file instanceof File && file.size > 0 ? file.name : 'Google Sheets').slice(0, 200);
-    ({ mapping, header } = detectMapping(table));
   }
+  const layouts = layoutsOf(form, sheets, committees);
   const createCommittees = form.get('create_committees') === 'on';
-  const defaultCommittee = String(form.get('default_committee') ?? '');
-  const plan = planImport({ table, mapping, header, committees, structure: config.structure, createCommittees, defaultCommittee: UUID.test(defaultCommittee) ? defaultCommittee : null });
+  const plan = planImport({ sheets, layouts, committees, structure: config.structure, createCommittees });
   const reasons = (p: Problem) => t(`import.problem.${p}` as MessageKey);
-  const report = plan.bad.length ? errorReport(header ? (table[0] ?? null) : null, plan.bad, reasons, { line: t('import.report.line'), problems: t('import.report.problems') }) : '';
+  const report = plan.bad.length ? errorReport(plan.bad, reasons, { sheet: t('import.report.sheet'), line: t('import.report.line'), problems: t('import.report.problems') }) : '';
+  const count = (name: string, list: { sheet: string }[]) => list.filter((x) => x.sheet === name).length;
   return {
     preview: {
-      table,
-      header,
-      mapping,
+      sheets,
+      views: sheets.map((sh, i) => ({
+        name: sh.name,
+        columns: columnsOf(sh, layouts[i]!, (n) => t('import.columnN', { n })),
+        rows: sh.rows.length,
+        layout: layouts[i]!,
+        good: count(sh.name, plan.good),
+        bad: count(sh.name, plan.bad),
+      })),
       source,
       fileName,
       createCommittees,
-      defaultCommittee,
       good: plan.good.length,
       badCount: plan.bad.length,
+      existing: plan.existing,
+      blank: plan.blank,
       newCommittees: plan.newCommittees,
-      sample: plan.good.slice(0, 8).map((g) => ({ line: g.line, committee: g.committeeName, label: g.label, name: g.name })),
-      bad: plan.bad.slice(0, 20).map((b) => ({ line: b.line, text: b.cells.join(' · ').slice(0, 160), reasons: b.problems.map(reasons).join('; ') })),
+      sample: plan.good.slice(0, 8).map((g) => ({ sheet: g.sheet, line: g.line, committee: g.committeeName, label: g.label, name: g.name })),
+      bad: plan.bad.slice(0, 20).map((b) => ({ sheet: b.sheet, line: b.line, text: b.cells.filter(Boolean).join(' · ').slice(0, 160), reasons: b.problems.map(reasons).join('; ') })),
       report,
     },
   };
 }
 
-// Checks the table again and writes the good rows in one go.
+// Checks the tabs again and writes the good rows in one go.
 export async function applyImportAction(tenantKey: string, _s: FormState, form: FormData): Promise<FormState> {
   const { tenant, t, config, ctx, base } = await setup(tenantKey);
   if (!ctx?.can('committee.manage')) return { error: t('committees.error.forbidden') };
-  const table = tableFrom(String(form.get('table') ?? ''));
-  if (!table) return { error: t('import.error.unreadable') };
+  const sheets = sheetsFrom(String(form.get('sheets') ?? ''));
+  if (!sheets) return { error: t('import.error.unreadable') };
   const { conference, committees } = await committeesOf(tenant.id, ctx.token);
   if (!conference) return { error: t('import.error.noConference') };
-  const header = form.get('header') === 'on';
-  const mapping = mappingFrom(form, detectMapping(table).mapping);
-  const defaultCommittee = String(form.get('default_committee') ?? '');
-  const plan = planImport({ table, mapping, header, committees, structure: config.structure, createCommittees: form.get('create_committees') === 'on', defaultCommittee: UUID.test(defaultCommittee) ? defaultCommittee : null });
+  const layouts = layoutsOf(form, sheets, committees);
+  const plan = planImport({ sheets, layouts, committees, structure: config.structure, createCommittees: form.get('create_committees') === 'on' });
   if (!plan.good.length) return { error: t('import.error.nothing') };
   const source = (['csv', 'xlsx', 'sheets'] as const).find((s) => s === form.get('source')) ?? 'csv';
   try {
@@ -155,7 +202,7 @@ export async function applyImportAction(tenantKey: string, _s: FormState, form: 
       { token: ctx.token },
     );
     if (!out) return { error: t('committees.error.failed') };
-    console.info(JSON.stringify({ event: 'import_applied', tenant: tenant.id, rows: out.imported, skipped: plan.bad.length, source }));
+    console.info(JSON.stringify({ event: 'import_applied', tenant: tenant.id, rows: out.imported, skipped: plan.bad.length, existing: plan.existing, tabs: sheets.length, source }));
     return { redirectTo: `${base}/import?done=imported&n=${out.imported}` };
   } catch (e) {
     if (e instanceof RpcError && e.forbidden) return { error: t('committees.error.forbidden') };

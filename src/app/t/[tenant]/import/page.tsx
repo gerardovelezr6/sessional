@@ -29,7 +29,8 @@ interface Batch {
 
 const WORDS = [
   'step1', 'step2', 'help', 'file', 'link', 'linkHelp', 'linkPlaceholder', 'defaultCommittee', 'none', 'createCommittees', 'check', 'recheck', 'summary', 'newCommittees', 'columns',
-  'field_committee', 'field_label', 'field_name', 'field_group', 'notInSheet', 'column', 'header', 'goodRows', 'badRows', 'line', 'row', 'reasons', 'download', 'reportFile', 'apply',
+  'field_committee', 'field_label', 'field_name', 'field_group', 'notInSheet', 'goodRows', 'badRows', 'line', 'row', 'reasons', 'download', 'reportFile', 'apply',
+  'templateTitle', 'templateHelp', 'templateXlsx', 'templateCsv', 'skippedSummary', 'tab', 'tabSummary', 'tabSkipped', 'tabCommittee', 'committeeFromColumn', 'committeeNew', 'tabLeaveOut', 'headerRow',
 ] as const;
 
 export default async function ImportPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string; n?: string }> }) {
@@ -57,7 +58,7 @@ export default async function ImportPage({ params, searchParams }: { params: Pro
           </p>
         ) : null}
         {overview.conference ? (
-          <ImportFlow preview={previewImportAction.bind(null, key)} apply={applyImportAction.bind(null, key)} committees={overview.committees.map((c) => ({ id: c.id, name: c.abbreviation ? `${c.abbreviation} · ${c.name}` : c.name }))} L={L} />
+          <ImportFlow templateUrl={`${base}/import/template`} preview={previewImportAction.bind(null, key)} apply={applyImportAction.bind(null, key)} committees={overview.committees.map((c) => ({ id: c.id, name: c.abbreviation ? `${c.abbreviation} · ${c.name}` : c.name }))} L={L} />
         ) : (
           <p className="placeholder text-sm">{t('import.error.noConference')}</p>
         )}

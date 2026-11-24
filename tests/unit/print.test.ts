@@ -57,6 +57,8 @@ describe('printables', () => {
     expect(text.startsWith('%PDF-')).toBe(true);
     expect((text.match(/\/Type \/Page\b/g) ?? []).length).toBe(2);
     expect(text).toMatch(/NotoSans/);
+    // The whole font is embedded: a subset dropped most letters when the file was printed or viewed.
+    expect(pdf.byteLength).toBeGreaterThan(400_000);
     expect(text).toMatch(/\/Subtype \/Image/);
     const c = contents(pdf);
     expect(c).toMatch(PRIMARY);

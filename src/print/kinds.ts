@@ -33,7 +33,8 @@ function face(k: Kit, page: ReturnType<Kit['doc']['addPage']>, it: PlacardItem, 
   // Bottom face upright; top face turned half a circle around the page centre.
   const at = (x: number, y: number) => (upsideDown ? { x: W - x, y: 2 * h - y } : { x, y });
   const rotate = upsideDown ? k.degrees(180) : undefined;
-  page.drawRectangle({ ...at(upsideDown ? W : 0, upsideDown ? 2 * h - 10 : 0), width: W, height: 10, color: k.primary, rotate });
+  // A band along the outer edge of each face (bottom of the page, top of the page).
+  page.drawRectangle({ x: 0, y: upsideDown ? 2 * h - 10 : 0, width: W, height: 10, color: k.primary });
   page.drawText(it.label, { ...at((W - labelW) / 2, h / 2 - size / 3), size, font: k.bold, color: k.ink, rotate });
   page.drawText(small, { ...at((W - smallW) / 2, h / 2 - size / 3 - 28), size: 14, font: k.regular, color: k.primary, rotate });
   if (k.logo) {
@@ -53,8 +54,8 @@ export async function signInSheets(brand: Brand, title: string, committees: Sign
   const [W, H] = A4.landscape;
   const M = 36;
   const rowH = 22;
-  const first = 150;
-  const second = 150;
+  const first = 230;
+  const second = 170;
   const box = (W - 2 * M - first - second) / Math.max(1, sessions);
   for (const c of committees) {
     let page = k.doc.addPage([W, H]);

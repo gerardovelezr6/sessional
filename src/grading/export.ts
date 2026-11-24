@@ -123,8 +123,8 @@ export async function toPdf(p: PdfInput): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const dir = path.join(process.cwd(), 'assets', 'fonts');
-  const regular = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_400Regular.ttf')), { subset: true });
-  const bold = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_700Bold.ttf')), { subset: true });
+  const regular = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_400Regular.ttf')), { subset: false });
+  const bold = await doc.embedFont(await readFile(path.join(dir, 'NotoSans_700Bold.ttf')), { subset: false });
   doc.setTitle(p.title);
   doc.setCreator('Sessional');
   doc.setProducer('Sessional');

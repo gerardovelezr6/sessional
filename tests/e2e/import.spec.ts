@@ -36,23 +36,24 @@ test('a 500-row sheet with errors imports the good rows, reports the rest, and u
   await page.getByLabel('CSV or Excel file').setInputFiles({ name: 'delegations.csv', mimeType: 'text/csv', buffer: Buffer.from(sheet()) });
   await page.getByLabel('Create committees the sheet names').check();
   await page.getByRole('button', { name: 'Check the sheet' }).click();
-  // GA1 and Nowhere are created as new committees; only the empty and duplicate rows are bad.
-  await expect(page.getByRole('status')).toHaveText('480 rows can be imported. 20 cannot.');
+  // GA1 and Nowhere are created as new committees; rows without a country are bad; Brazil is
+  // already in the Security Council, so those rows are counted, not reported.
+  await expect(page.getByRole('status')).toHaveText('480 rows can be imported. 10 cannot.');
   await expect(page.getByText('New committees: Nowhere, GA1')).toBeVisible();
+  await expect(page.getByText('Already in their committee: 10. Blank or total rows skipped: 0.')).toBeVisible();
 
   // Without creating committees, the unknown ones are reported too.
   await page.getByLabel('CSV or Excel file').setInputFiles({ name: 'delegations.csv', mimeType: 'text/csv', buffer: Buffer.from(sheet()) });
   await page.getByLabel('Create committees the sheet names').uncheck();
   await page.getByRole('button', { name: 'Check the sheet' }).click();
-  await expect(page.getByRole('status')).toHaveText('240 rows can be imported. 260 cannot.');
+  await expect(page.getByRole('status')).toHaveText('240 rows can be imported. 250 cannot.');
   const bad = page.getByRole('table', { name: 'Rows that cannot be imported' });
-  await expect(bad.getByRole('row', { name: /^2 / })).toContainText('Committee not found in this conference');
-  await expect(bad.getByRole('row', { name: /^3 / })).toContainText('No country or role');
-  await expect(bad.getByRole('row', { name: /^4 / })).toContainText('Already in this committee');
+  await expect(bad.getByRole('row', { name: /^delegations 2 / })).toContainText('Committee not found in this conference');
+  await expect(bad.getByRole('row', { name: /^delegations 3 / })).toContainText('No country or role');
   const download = page.waitForEvent('download');
   await page.getByRole('link', { name: /Download the rows that cannot be imported/ }).click();
   const report = readFileSync(await (await download).path(), 'utf8');
-  expect(report.split('\r\n').filter(Boolean)).toHaveLength(261);
+  expect(report.split('\r\n').filter(Boolean)).toHaveLength(251);
   expect(report).toContain('Committee not found in this conference');
 
   await page.getByRole('button', { name: 'Import 240 rows' }).click();
@@ -62,7 +63,7 @@ test('a 500-row sheet with errors imports the good rows, reports the rest, and u
 
   await page.goto(at('/import'));
   const history = page.getByRole('region', { name: 'Earlier imports' });
-  await expect(history).toContainText('240 of 500 rows');
+  await expect(history).toContainText('240 of 490 rows');
   await history.getByRole('button', { name: 'Undo the import delegations.csv' }).click();
   await history.getByRole('button', { name: 'Remove 240 delegations' }).click();
   await expect(page.getByText('Import undone: 240 delegations removed.')).toBeVisible();
@@ -71,22 +72,47 @@ test('a 500-row sheet with errors imports the good rows, reports the rest, and u
   await expect(page.getByRole('link', { name: 'Delegates (2)' })).toBeVisible();
 });
 
-test('the column mapping can be changed before importing', async ({ page }) => {
+test('how a tab is read can be changed before importing', async ({ page }) => {
   await signIn(page, 'owner@pub.test');
   await page.goto(at('/import'));
   await page.getByLabel('CSV or Excel file').setInputFiles({ name: 'plain.csv', mimeType: 'text/csv', buffer: Buffer.from('Peru,Lima Student\nChile,Santiago Student\n') });
-  await page.getByLabel('Committee for rows that do not name one').selectOption({ label: 'SC · Security Council' });
   await page.getByRole('button', { name: 'Check the sheet' }).click();
-  // Without headings the first column is taken as the committee: nothing fits.
+  // No headings and too few countries to tell: the first column is taken as the committee, and nothing fits.
   await expect(page.getByRole('status')).toHaveText('0 rows can be imported. 2 cannot.');
-  const columns = page.getByRole('form', { name: 'Which column holds what' });
-  await columns.getByLabel('Committee').selectOption({ label: 'Not in the sheet' });
-  await columns.getByLabel('Country or role').selectOption({ label: 'Column 1' });
-  await columns.getByLabel("Student's name").selectOption({ label: 'Column 2' });
-  await columns.getByRole('button', { name: 'Check again' }).click();
+  const tabs = page.getByRole('form', { name: 'How each tab is read' });
+  const pick = (name: string) => tabs.getByRole('combobox', { name, exact: true });
+  await pick('Committee for this tab').selectOption({ label: 'SC · Security Council' });
+  await pick('Committee').selectOption({ label: 'Not in the sheet' });
+  await pick('Country or role').selectOption({ label: 'column 1' });
+  await pick("Student's name").selectOption({ label: 'column 2' });
+  await tabs.getByRole('button', { name: 'Check again' }).click();
   await expect(page.getByRole('status')).toHaveText('2 rows can be imported. 0 cannot.');
   await page.getByRole('button', { name: 'Import 2 rows' }).click();
   await expect(page.getByText('2 delegations imported.', { exact: false })).toBeVisible();
+});
+
+test('the Excel template has a tab per committee; filled in and imported, it adds only the new rows', async ({ page }) => {
+  await signIn(page, 'owner@pub.test');
+  await page.goto(at('/import'));
+  const download = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Excel template (a tab per committee)' }).click();
+  const ExcelJS = (await import('exceljs')).default;
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(await (await download).path());
+  expect(wb.worksheets.map((w) => w.name)).toEqual(['SC', 'CC', 'Read me']);
+  const sc = wb.getWorksheet('SC')!;
+  expect(sc.getCell('A1').text).toBe('Committee: SC');
+  expect(sc.getCell('A4').text).toBe('Brazil');
+  sc.addRow(['Ghana', 'Kofi Mensah']);
+  const filled = Buffer.from(await wb.xlsx.writeBuffer());
+
+  await page.getByLabel('CSV or Excel file').setInputFiles({ name: 'filled.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: filled });
+  await page.getByRole('button', { name: 'Check the sheet' }).click();
+  await expect(page.getByRole('status')).toHaveText('1 rows can be imported. 0 cannot.');
+  await expect(page.getByText(/^Already in their committee: \d+\./)).toBeVisible();
+  await expect(page.getByRole('group', { name: /^Read me/ })).toContainText('Left out');
+  await page.getByRole('button', { name: 'Import 1 rows' }).click();
+  await expect(page.getByText('1 delegation imported.', { exact: false })).toBeVisible();
 });
 
 test('a chair cannot import', async ({ page }) => {

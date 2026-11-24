@@ -283,3 +283,10 @@
 @media (prefers-reduced-motion: reduce) { .screen-alert { animation: none; } }
 /* A screen covers the whole window: no header or menus behind it. */
 body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
+
+/* The marketing page: a printed-programme feel. Serif headings, square-ish frames, no shadows,
+   no gradients, no motion. */
+.landing-serif { font-family: "Source Serif 4 Variable", "Source Serif 4", ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+.landing-frame { border: 1px solid var(--s-color-border-strong); border-radius: 4px; }
+.landing-key { border: 1px solid var(--s-color-border-strong); border-radius: 3px; padding: 0.15rem 0.5rem; }
+.landing-rule { border-top: 1px solid var(--s-color-border-strong); }

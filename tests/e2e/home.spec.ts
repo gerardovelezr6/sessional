@@ -32,3 +32,20 @@ test('the favicon is the supplied app icon', async ({ page, request }) => {
   expect(res.ok()).toBe(true);
   expect(res.headers()['content-type']).toContain('image/png');
 });
+
+test('the landing page lists what Sessional does, in English and Spanish, and is honest about what is not built', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText("Run every committee of your Model UN from the chair's laptop.");
+  for (const name of ['How a session runs', 'Three screens in the room', 'For the people organising it', 'Your conference, your words', 'Pricing', 'Coming next', 'Questions']) {
+    await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+  }
+  await expect(page.locator('#next')).toContainText('Not built yet');
+  // No billing tables in this database: pricing says so rather than inventing numbers.
+  await expect(page.locator('#pricing')).toContainText('Pricing is being finalised');
+  await expect(page.locator('#screens svg').first()).toBeVisible();
+
+  await page.getByRole('link', { name: 'Español' }).click();
+  await expect(page).toHaveURL(/lang=es/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dirige cada comité de tu Modelo de la ONU desde la laptop de la mesa.');
+  await expect(page.getByRole('link', { name: 'English' })).toBeVisible();
+});

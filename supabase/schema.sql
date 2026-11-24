@@ -4487,3 +4487,12 @@ revoke all on function public.billing_tick(timestamptz), public.billing_stripe_e
   public.billing_server_set(uuid, jsonb), public.referral_of_promotion(text) from public, anon, authenticated;
 grant execute on function public.billing_tick(timestamptz), public.billing_stripe_event(jsonb, timestamptz), public.billing_server_get(uuid),
   public.billing_server_set(uuid, jsonb), public.referral_of_promotion(text) to service_role;
+
+-- Server only: the subscriptions on record, for the daily reconciliation.
+create or replace function public.billing_subscriptions() returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(jsonb_build_object('tenant_id', b.tenant_id, 'subscription', b.stripe_subscription_id)), '[]'::jsonb)
+  from public.tenant_billing b where b.stripe_subscription_id is not null
+$$;
+revoke all on function public.billing_subscriptions() from public, anon, authenticated;
+grant execute on function public.billing_subscriptions() to service_role;

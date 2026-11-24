@@ -34,7 +34,7 @@ export async function placards(brand: Brand, title: string, items: PlacardItem[]
     face(k, page, it, flag, style, W, H / 2, false);
     face(k, page, it, flag, style, W, H / 2, true);
     page.drawLine({ start: { x: 0, y: H / 2 }, end: { x: W, y: H / 2 }, thickness: 0.5, color: k.line, dashArray: [4, 4] });
-    if (it.checkin) await drawQr(k, page, it.checkin, W - 30 - 60, 24, 60);
+    if (it.checkin) await drawQr(k, page, it.checkin, W - 30 - 60, 22, 60);
   }
   if (!items.length) header(k, k.doc.addPage([W, H]), title, brand.school);
   return save(k);
@@ -55,28 +55,26 @@ function face(k: Kit, page: Page, it: PlacardItem, flag: Awaited<ReturnType<type
   if (st.style === 'classic') rect(0, 0, W, 12, { color: colour });
   if (st.style === 'framed') rect(16, 16, W - 32, h - 32, { borderColor: colour, borderWidth: 6 });
 
-  // The block, centred: flag, delegation, committee.
-  const flagH = flag ? 66 : 0;
-  const size = sizeToFit(it.label, k.bold, 64, 22, W - 120);
-  const small = st.committee ? it.committee : '';
-  const blockH = flagH + (flag ? 16 : 0) + size * 0.75 + (small ? 30 : 0);
-  let y = h / 2 + blockH / 2;
+  // The flag large on the left; the delegation and committee centred in the space beside it.
+  const flagH = flag ? Math.min(150, h - 90) : 0;
+  const flagW = flag ? flagH * (flag.width / flag.height) : 0;
+  const left = flag ? 50 + flagW + 30 : 50;
+  const right = W - 50;
+  const room = right - left;
   if (flag) {
-    const w = flagH * (flag.width / flag.height);
-    y -= flagH;
-    rect((W - w) / 2 - 1, y - 1, w + 2, flagH + 2, { color: k.line });
-    page.drawImage(flag, { ...at((W - w) / 2, y), width: w, height: flagH, rotate });
-    y -= 16;
+    const fy = (h - flagH) / 2;
+    rect(49, fy - 1, flagW + 2, flagH + 2, { color: k.line });
+    page.drawImage(flag, { ...at(50, fy), width: flagW, height: flagH, rotate });
   }
-  y -= size * 0.75;
-  page.drawText(it.label, { ...at((W - k.bold.widthOfTextAtSize(it.label, size)) / 2, y), size, font: k.bold, color: ink, rotate });
-  if (small) {
-    const s = fit(small, k.regular, 14, W - 120);
-    page.drawText(s, { ...at((W - k.regular.widthOfTextAtSize(s, 14)) / 2, y - 26), size: 14, font: k.regular, color: accent, rotate });
-  }
+  const size = sizeToFit(it.label, k.bold, 64, 20, room);
+  const small = st.committee ? fit(it.committee, k.regular, 14, room) : '';
+  const blockH = size * 0.75 + (small ? 30 : 0);
+  const y = h / 2 + blockH / 2 - size * 0.75;
+  page.drawText(it.label, { ...at(left + (room - k.bold.widthOfTextAtSize(it.label, size)) / 2, y), size, font: k.bold, color: ink, rotate });
+  if (small) page.drawText(small, { ...at(left + (room - k.regular.widthOfTextAtSize(small, 14)) / 2, y - 26), size: 14, font: k.regular, color: accent, rotate });
   if (st.logo && k.logo) {
     const sz = k.logo.scaleToFit(90, 36);
-    page.drawImage(k.logo, { ...at(30, h - 26 - sz.height), width: sz.width, height: sz.height, rotate });
+    page.drawImage(k.logo, { ...at(W - 30 - sz.width, h - 26 - sz.height), width: sz.width, height: sz.height, rotate });
   }
 }
 

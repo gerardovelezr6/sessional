@@ -79,7 +79,7 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
                 <tr key={e.id} className="border-b border-border align-top">
                   <td className="whitespace-nowrap p-2">{when.format(new Date(e.created_at))}</td>
                   <td className="p-2 font-semibold text-on-surface">
-                    {e.actor_name ?? (e.actor_id ? t('audit.formerMember') : t('audit.system'))}
+                    {e.actor_name ?? (e.impersonated ? t('audit.platform') : e.actor_id ? t('audit.formerMember') : t('audit.system'))}
                     {e.impersonated ? <span className="block text-xs font-normal">{t('audit.impersonated')}</span> : null}
                   </td>
                   <td className="p-2">{what(e.action)}</td>

@@ -3,7 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { connect } from './client';
 
 // Global platform tables: no tenant_id, no policies, no grants to signed-in users (service role only).
-const GLOBAL_TABLES = ['reserved_slugs', 'platform_admins'];
+// Platform tables (the control plane) included: reached only through their functions, never directly.
+const GLOBAL_TABLES = ['reserved_slugs', 'platform_admins', 'impersonations', 'feature_flags', 'feature_flag_overrides', 'platform_announcements', 'platform_presets'];
 // Tables that are the root of ownership rather than owned by a tenant. Each has its own policies,
 // tested in tenancy.test.ts.
 const ROOT_TABLES = ['tenants', 'profiles'];

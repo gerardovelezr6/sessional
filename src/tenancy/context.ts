@@ -5,6 +5,7 @@ import { cache } from 'react';
 import { accessToken } from '@/auth/session';
 import { rpc, RpcError } from '@/data/rpc';
 import { isSecureOrigin } from '@/platform/env';
+import { currentImpersonation } from '@/platform/impersonation';
 import { resolveTenant, type Tenant } from './directory';
 import { BASE_PATH_HEADER, parseTenantKey } from './route';
 
@@ -48,6 +49,10 @@ export const tenantContext = cache(async (tenantId: string): Promise<TenantConte
     throw e;
   }
   if (!row?.user) return null;
+  // A platform admin signed in as this person: only while the impersonation is in force, and only
+  // in the school it was started for.
+  const imp = await currentImpersonation();
+  if (imp && (!imp.active || imp.tenant_id !== tenantId || imp.user_id !== row.user.id)) return null;
   const m = row.membership;
   return {
     token,

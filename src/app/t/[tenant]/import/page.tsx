@@ -5,6 +5,7 @@ import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import type { MessageKey } from '@/messages';
+import { flagOn } from '@/platform/flags';
 import { AdminTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadOverview } from '../committees/data';
@@ -41,6 +42,7 @@ export default async function ImportPage({ params, searchParams }: { params: Pro
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
   if (!ctx.can('committee.manage')) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
+  if (!(await flagOn(tenant.id, 'imports'))) return <Notice title={t('platform.off.title')} body={t('platform.off.body')} locale={locale} />;
   const overview = await loadOverview(tenant.id, ctx.token);
   const batches = (await rpc<Batch[]>('import_batches_list', { p_tenant: tenant.id }, { token: ctx.token })) ?? [];
   const { done, n } = await searchParams;

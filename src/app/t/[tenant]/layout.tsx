@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { PlatformBanners } from '@/site/PlatformBanners';
 import { NavLinks } from '@/components/NavLinks';
 import { localize } from '@/messages';
 import { enabledLocales, tenantConfig, tenantTranslator } from '@/config/store';
@@ -166,10 +167,14 @@ export default async function TenantLayout({ params, children }: Props) {
       );
     }
   }
+  const banners = (
+    <PlatformBanners tenantId={found.tenant.id} base={base} locale={own.locale} t={own.t} manager={!!ctx?.can('tenant.manage')} name={ctx ? ctx.user.fullName || ctx.user.email : null} />
+  );
   if (!own.preview) {
     return (
       <>
         {theme}
+        {banners}
         {header}
         {children}
       </>
@@ -182,6 +187,7 @@ export default async function TenantLayout({ params, children }: Props) {
         <span>{own.t('settings.preview.banner')}</span>
         <ActionButton action={setPreviewAction.bind(null, key, false) as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('settings.preview.off')} />
       </div>
+      {banners}
       {header}
       {children}
     </>

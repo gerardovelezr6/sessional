@@ -51,8 +51,12 @@ async function errorOf(who: Person | null, sql: string, params: unknown[] = []):
   }
 }
 
+// Rows visible; a table the person may not read at all counts as none.
 const count = async (who: Person | null, sql: string, params: unknown[] = []) =>
-  as(who, async (q) => Number((await q(sql, params)).rows[0].n));
+  as(who, async (q) => Number((await q(sql, params)).rows[0].n)).catch((e: Error) => {
+    if (/permission denied/.test(e.message)) return 0;
+    throw e;
+  });
 
 const MANAGER_PERMISSIONS = ['users.view', 'users.manage', 'roles.manage', 'conference.manage', 'tenant.manage', 'audit.view'];
 
@@ -77,6 +81,8 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   speeches: { insert: `insert into speeches (tenant_id, committee_id, session_id, list, started_at, seconds) values ($1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), 'general', now(), 60)`, params: (t) => [t] },
   votes: { insert: `insert into votes (id, tenant_id, committee_id, session_id, subject, method, majority, procedural, tally, needed, passed) values (gen_random_uuid(), $1, (select committee_id from committee_sessions where tenant_id = $1 limit 1), (select id from committee_sessions where tenant_id = $1 limit 1), '{}', 'placard', 'simple', true, '{}', 1, true)`, params: (t) => [t] },
   warnings: { insert: `insert into warnings (id, tenant_id, committee_id, level, points) values (gen_random_uuid(), $1, (select id from committees where tenant_id = $1 limit 1), 'warning', 1)`, params: (t) => [t] },
+  impersonations: { insert: `insert into impersonations (admin_id, tenant_id, target_user_id, reason, expires_at, handoff_hash, handoff_expires_at) values ((select user_id from memberships where tenant_id = $1 limit 1), $1, (select user_id from memberships where tenant_id = $1 limit 1), 'Intruder reason', now() + interval '1 hour', repeat('a', 64), now())`, params: (t) => [t] },
+  feature_flag_overrides: { insert: `insert into feature_flag_overrides (tenant_id, key, enabled) values ($1, 'intruder', true)`, params: (t) => [t] },
   import_batches: { insert: `insert into import_batches (tenant_id, conference_id, source, rows_total, rows_imported) values ($1, (select id from conferences where tenant_id = $1 limit 1), 'csv', 1, 1)`, params: (t) => [t] },
   schedule_items: { insert: `insert into schedule_items (tenant_id, conference_id, starts_at, ends_at, title) values ($1, (select id from conferences where tenant_id = $1 limit 1), now(), now() + interval '1 hour', 'Intruder')`, params: (t) => [t] },
   documents: { insert: `insert into documents (tenant_id, committee_id, kind, title) values ($1, (select id from committees where tenant_id = $1 limit 1), 'working_paper', 'Intruder')`, params: (t) => [t] },

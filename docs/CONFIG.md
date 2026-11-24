@@ -175,8 +175,8 @@ Spanish: Impresión
 | Certificate colour | `printing.certificateColor` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main colour. |
 | Flag on certificates | `printing.certificateFlag` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The flag of the delegation the student represented. |
 | Logo on certificates | `printing.certificateLogo` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The school's logo at the top (PNG or JPEG logos). |
-| Participation certificate title | `printing.certificateTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of participation”. |
-| Award certificate title | `printing.certificateAwardTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of award”. |
+| Participation certificate title | `printing.certificateTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of Participation”. |
+| Award certificate title | `printing.certificateAwardTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of Award”. |
 | Line under the text | `printing.certificateNote` | (none) | text per language, up to 160 characters each | `tenant.manage` | For example the dates and place: “March 12–14, 2027 · City Hall”. Empty: the conference's name. |
 | First signature: name | `printing.signer1Name` | (none) | text per language, up to 80 characters each | `tenant.manage` | Who signs, printed under a signature line. Empty: no signature line. |
 | First signature: role | `printing.signer1Role` | (none) | text per language, up to 80 characters each | `tenant.manage` | For example “Secretary-General”. |

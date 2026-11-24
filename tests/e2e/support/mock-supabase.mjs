@@ -742,7 +742,14 @@ seed('leaver@people.test', 'Lee Leaver', tid(21), 'chair');
   for (const label of ['Brazil', 'China']) delegates.push({ id: randomUUID(), committee_id: c.id, label, name: '', group_key: null, flag: null, extra: {}, created_at: conf.created_at });
 }
 const auditLog = []; // { id, tenant_id, actor_id, action, target, meta, created_at }
-const audit = (tenant, actor, action, target, meta = {}) => auditLog.push({ id: auditLog.length + 1, tenant_id: tenant, actor_id: actor, action, target, meta, created_at: new Date().toISOString() });
+// The impersonation header of the request being handled (handlers run one at a time).
+let requestImpersonation = null;
+const impersonations = []; // { id, admin_id, tenant_id, target_user_id, reason, started_at, expires_at, handoff_hash, handoff_expires_at, claimed_at, ended_at, ended_why }
+const impersonatorFor = (actor) => {
+  const i = impersonations.find((x) => x.id === requestImpersonation);
+  return i && i.target_user_id === actor && !i.ended_at && Date.parse(i.expires_at) > Date.now() ? i.admin_id : null;
+};
+const audit = (tenant, actor, action, target, meta = {}) => auditLog.push({ id: auditLog.length + 1, tenant_id: tenant, actor_id: actor, impersonator_id: impersonatorFor(actor), action, target, meta, created_at: new Date().toISOString() });
 const myRole = (userId, tenant) => roleOf(memberOf(userId, tenant)?.role_key);
 Object.assign(rpcs, {
   roles_matrix: ({ p_tenant }, userId) => {
@@ -808,7 +815,7 @@ Object.assign(rpcs, {
     const name = (id) => (id && users.get(id) && memberships.some((m) => m.tenant_id === p_tenant && m.user_id === id) ? nameOf(id) : null);
     return {
       body: {
-        entries: mine.filter((a) => !p_action || a.action.startsWith(p_action)).reverse().slice(0, 50).map((a) => ({ ...a, actor_name: name(a.actor_id), target_name: name(a.target), impersonated: false })),
+        entries: mine.filter((a) => !p_action || a.action.startsWith(p_action)).reverse().slice(0, 50).map((a) => ({ ...without(a, 'impersonator_id'), actor_name: name(a.actor_id), target_name: name(a.target), impersonated: !!a.impersonator_id })),
         actions: [...new Set(mine.map((a) => a.action.split('.')[0]))],
       },
     };
@@ -1221,7 +1228,187 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site']);
+// --- Phase 12: the control plane. root@platform.test is a platform admin; Control School has an
+// owner, a chair who has signed in, and an invited member. ---
+TENANTS.ctl = { kind: 'tenant', id: tid(26), slug: 'ctl', name: 'Control School', status: 'active' };
+seed('owner@ctl.test', 'Olive Control', tid(26), 'owner');
+seed('chair@ctl.test', 'Chad Control', tid(26), 'chair');
+memberships.push({ tenant_id: tid(26), user_id: addUser('invited@ctl.test', null, 'Ivy Invited', false).id, role_key: 'chair', status: 'invited' });
+conferences.push({ id: randomUUID(), tenant_id: tid(26), name: 'Control MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() });
+const platformAdmins = new Set([addUser('root@platform.test', 'correct-password', 'Root Admin').id]);
+const flagGlobal = {}; // key -> { enabled, note }
+const flagOverrides = []; // { tenant_id, key, enabled }
+const platformAnnouncements = [];
+const platformPresets = [];
+const tenantRow = (id) => Object.values(TENANTS).find((t) => t.kind === 'tenant' && t.id === id);
+const NOT_ADMIN = { status: 403, body: { code: '42501', message: 'not found' } };
+const invalid = (message) => ({ status: 400, body: { code: '22023', message } });
+const platformAudit = (tenant, admin, action, target, meta = {}) => auditLog.push({ id: auditLog.length + 1, tenant_id: tenant, actor_id: admin, impersonator_id: admin, action, target, meta, created_at: new Date().toISOString() });
+const usageOf = (tenant) => {
+  const cs = committees.filter((c) => c.tenant_id === tenant).map((c) => c.id);
+  const log = auditLog.filter((a) => a.tenant_id === tenant);
+  return {
+    members: memberships.filter((m) => m.tenant_id === tenant && m.status === 'active').length,
+    invited: memberships.filter((m) => m.tenant_id === tenant && m.status === 'invited').length,
+    conferences: conferences.filter((f) => f.tenant_id === tenant).length, committees: cs.length,
+    delegates: delegates.filter((d) => cs.includes(d.committee_id)).length,
+    sessions_30d: liveSessions.filter((x) => cs.includes(x.committee_id)).length,
+    changes_30d: log.length, last_activity: log.at(-1)?.created_at ?? null,
+    settings_published: Object.keys(CONFIG[tenant] ?? {}).length, domains: 0,
+  };
+};
+const inForce = (i) => !i.ended_at && Date.parse(i.expires_at) > Date.now();
+Object.assign(rpcs, {
+  am_platform_admin: (_b, userId) => ({ body: platformAdmins.has(userId) }),
+  platform_tenants: ({ p_query }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const q = String(p_query ?? '').toLowerCase();
+    const list = Object.values(TENANTS).filter((t) => t.kind === 'tenant' && (!q || t.slug.includes(q) || t.name.toLowerCase().includes(q)));
+    return { body: list.map((t) => ({ id: t.id, slug: t.slug, name: t.name, status: t.status, plan_key: null, created_at: '2026-01-01T00:00:00Z', deleted_at: t.deleted_at ?? null, purge_after: t.purge_after ?? null, usage: usageOf(t.id) })) };
+  },
+  platform_tenant: ({ p_tenant }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const t = tenantRow(p_tenant);
+    if (!t) return { body: null };
+    return {
+      body: {
+        id: t.id, slug: t.slug, name: t.name, status: t.status, status_before: t.status_before ?? null, plan_key: null, created_at: '2026-01-01T00:00:00Z',
+        deleted_at: t.deleted_at ?? null, purge_after: t.purge_after ?? null, usage: usageOf(t.id), domains: [],
+        members: memberships.filter((m) => m.tenant_id === t.id).map((m) => ({ user_id: m.user_id, email: users.get(m.user_id).email, name: users.get(m.user_id).full_name, role_key: m.role_key, status: m.status, staff: m.role_key === 'owner' })),
+        flags: Object.fromEntries(flagOverrides.filter((o) => o.tenant_id === t.id).map((o) => [o.key, o.enabled])),
+        impersonations: impersonations.filter((i) => i.tenant_id === t.id).reverse().map((i) => ({ id: i.id, admin: users.get(i.admin_id).email, target: nameOf(i.target_user_id), reason: i.reason, started_at: i.started_at, expires_at: i.expires_at, ended_at: i.ended_at, ended_why: i.ended_why })),
+        audit: auditLog.filter((a) => a.tenant_id === t.id).reverse().slice(0, 50).map((a) => ({ action: a.action, created_at: a.created_at, by_platform: !!a.impersonator_id })),
+      },
+    };
+  },
+  platform_set_suspended: ({ p_tenant, p_suspended, p_reason }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const t = tenantRow(p_tenant);
+    if (!t || t.status === 'deleted') return { body: null };
+    if (String(p_reason ?? '').trim().length < 5) return invalid('a reason is needed');
+    if (p_suspended && t.status !== 'suspended') Object.assign(t, { status_before: t.status, status: 'suspended' });
+    else if (!p_suspended && t.status === 'suspended') Object.assign(t, { status: t.status_before ?? 'active', status_before: null });
+    else return { body: { status: t.status } };
+    platformAudit(t.id, userId, p_suspended ? 'platform.suspend' : 'platform.unsuspend', t.id, { reason: p_reason });
+    return { body: { status: t.status } };
+  },
+  platform_delete: ({ p_tenant, p_confirm, p_reason }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const t = tenantRow(p_tenant);
+    if (!t) return { body: null };
+    if (p_confirm !== t.slug) return invalid('confirmation does not match');
+    if (String(p_reason ?? '').trim().length < 5) return invalid('a reason is needed');
+    Object.assign(t, { status_before: t.status === 'suspended' ? t.status_before ?? 'active' : t.status, status: 'deleted', deleted_at: new Date().toISOString(), purge_after: new Date(Date.now() + 30 * 86400000).toISOString() });
+    platformAudit(t.id, userId, 'platform.delete', t.id, { reason: p_reason });
+    return { body: { status: t.status, purge_after: t.purge_after } };
+  },
+  platform_restore: ({ p_tenant }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const t = tenantRow(p_tenant);
+    if (!t || t.status !== 'deleted') return { body: null };
+    Object.assign(t, { status: t.status_before ?? 'active', status_before: null, deleted_at: null, purge_after: null });
+    platformAudit(t.id, userId, 'platform.restore', t.id);
+    return { body: { status: t.status } };
+  },
+  platform_purge: (_b, userId) => (platformAdmins.has(userId) ? { body: false } : NOT_ADMIN),
+  platform_impersonate_start: ({ p_tenant, p_user, p_reason, p_minutes, p_handoff_hash }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const t = tenantRow(p_tenant);
+    if (!t || ['suspended', 'deleted'].includes(t.status)) return invalid('school not available');
+    if (String(p_reason ?? '').trim().length < 10) return invalid('a reason of at least 10 characters is needed');
+    if (!(p_minutes >= 5 && p_minutes <= 60)) return invalid('between 5 and 60 minutes');
+    if (!memberOf(p_user, t.id)) return invalid('not an active member');
+    for (const i of impersonations) if (i.admin_id === userId && inForce(i)) Object.assign(i, { ended_at: new Date().toISOString(), ended_why: 'replaced' });
+    const i = { id: randomUUID(), admin_id: userId, tenant_id: t.id, target_user_id: p_user, reason: p_reason.trim(), started_at: new Date().toISOString(), expires_at: new Date(Date.now() + p_minutes * 60000).toISOString(), handoff_hash: p_handoff_hash, handoff_expires_at: new Date(Date.now() + 120000).toISOString(), claimed_at: null, ended_at: null, ended_why: null };
+    impersonations.push(i);
+    platformAudit(t.id, userId, 'impersonation.start', p_user, { reason: i.reason, minutes: p_minutes, impersonation: i.id });
+    return { body: { id: i.id } };
+  },
+  impersonation_claim: ({ p_id, p_hash }) => {
+    const i = impersonations.find((x) => x.id === p_id);
+    if (!i || i.handoff_hash !== p_hash || i.claimed_at || !inForce(i) || Date.parse(i.handoff_expires_at) <= Date.now()) return { body: null };
+    i.claimed_at = new Date().toISOString();
+    return { body: { tenant_id: i.tenant_id, user_id: i.target_user_id, expires_at: i.expires_at, email: users.get(i.target_user_id).email } };
+  },
+  impersonation_status: ({ p_id }) => {
+    const i = impersonations.find((x) => x.id === p_id);
+    return { body: i ? { active: inForce(i), tenant_id: i.tenant_id, user_id: i.target_user_id, expires_at: i.expires_at, reason: i.reason, admin: users.get(i.admin_id).email } : null };
+  },
+  impersonation_end: ({ p_id, p_why }) => {
+    const i = impersonations.find((x) => x.id === p_id);
+    if (!i || i.ended_at) return { body: false };
+    Object.assign(i, { ended_at: new Date(Math.min(Date.now(), Date.parse(i.expires_at))).toISOString(), ended_why: p_why });
+    auditLog.push({ id: auditLog.length + 1, tenant_id: i.tenant_id, actor_id: i.admin_id, impersonator_id: i.admin_id, action: 'impersonation.end', target: i.target_user_id, meta: { why: p_why }, created_at: new Date().toISOString() });
+    return { body: true };
+  },
+  platform_flags: (_b, userId) => (platformAdmins.has(userId) ? { body: { global: flagGlobal, overrides: flagOverrides.map((o) => ({ ...o, slug: tenantRow(o.tenant_id)?.slug })) } } : NOT_ADMIN),
+  platform_flag_set: ({ p_key, p_enabled, p_note }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    if (p_enabled === null) delete flagGlobal[p_key];
+    else flagGlobal[p_key] = { enabled: p_enabled, note: p_note ?? '' };
+    return { body: true };
+  },
+  platform_flag_override: ({ p_tenant, p_key, p_enabled }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const i = flagOverrides.findIndex((o) => o.tenant_id === p_tenant && o.key === p_key);
+    if (i >= 0) flagOverrides.splice(i, 1);
+    if (p_enabled !== null) flagOverrides.push({ tenant_id: p_tenant, key: p_key, enabled: p_enabled });
+    platformAudit(p_tenant, userId, 'platform.flag', p_key, { enabled: p_enabled });
+    return { body: true };
+  },
+  feature_flags_for: ({ p_tenant }) => ({
+    body: { ...Object.fromEntries(Object.entries(flagGlobal).map(([k, v]) => [k, v.enabled])), ...Object.fromEntries(flagOverrides.filter((o) => o.tenant_id === p_tenant).map((o) => [o.key, o.enabled])) },
+  }),
+  platform_announcements_list: (_b, userId) => (platformAdmins.has(userId) ? { body: [...platformAnnouncements].reverse() } : NOT_ADMIN),
+  platform_announcement_save: ({ p_data }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const a = { id: randomUUID(), message: p_data.message, tone: p_data.tone ?? 'info', audience: p_data.audience ?? 'all', starts_at: new Date(Date.now() - 1000).toISOString(), ends_at: p_data.ends_at ?? null };
+    platformAnnouncements.push(a);
+    return { body: a.id };
+  },
+  platform_announcement_end: ({ p_id }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const a = platformAnnouncements.find((x) => x.id === p_id);
+    if (!a) return { body: false };
+    a.ends_at = new Date().toISOString();
+    return { body: true };
+  },
+  platform_announcements_live: () => ({ body: platformAnnouncements.filter((a) => Date.parse(a.starts_at) <= Date.now() && (!a.ends_at || Date.parse(a.ends_at) > Date.now())) }),
+  platform_presets_list: (_b, userId) => (platformAdmins.has(userId) ? { body: platformPresets.map((p) => without(p, 'data')) } : NOT_ADMIN),
+  platform_preset_save: ({ p_data }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    if (!p_data.id) {
+      const p = { id: randomUUID(), section: p_data.section, name: p_data.name, description: p_data.description ?? {}, data: p_data.data, schema_version: p_data.schema_version ?? 1, version: 1, published: !!p_data.published, updated_at: new Date().toISOString() };
+      platformPresets.push(p);
+      return { body: p.id };
+    }
+    const p = platformPresets.find((x) => x.id === p_data.id);
+    if (!p) return { body: null };
+    if ('published' in p_data) p.published = p_data.published;
+    return { body: p.id };
+  },
+  platform_preset_delete: ({ p_id }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const i = platformPresets.findIndex((x) => x.id === p_id);
+    if (i >= 0) platformPresets.splice(i, 1);
+    return { body: i >= 0 };
+  },
+  presets_published: ({ p_section }) => ({ body: platformPresets.filter((p) => p.section === p_section && p.published).map((p) => without(p, 'published', 'section', 'updated_at')) }),
+  platform_find_person: ({ p_email }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const u = byEmail(String(p_email).trim().toLowerCase());
+    if (!u) return { body: null };
+    return { body: { user_id: u.id, email: u.email, name: u.full_name, created_at: '2026-01-01T00:00:00Z', platform_admin: platformAdmins.has(u.id), schools: memberships.filter((m) => m.user_id === u.id).map((m) => ({ tenant_id: m.tenant_id, slug: tenantRow(m.tenant_id)?.slug, name: tenantRow(m.tenant_id)?.name, tenant_status: tenantRow(m.tenant_id)?.status, role_key: m.role_key, status: m.status })) } };
+  },
+  platform_diagnostics: ({ p_tenant }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const t = tenantRow(p_tenant);
+    if (!t) return { body: null };
+    return { body: { tenant: { id: t.id, slug: t.slug, status: t.status }, usage: usageOf(t.id), settings: [], domains: [], roles: [], flags: {}, conferences: [], audit: auditLog.filter((a) => a.tenant_id === t.id).map((a) => ({ action: a.action, created_at: a.created_at, by_platform: !!a.impersonator_id })) } };
+  },
+});
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -1303,6 +1490,11 @@ createServer((req, res) => {
       return send({ status: 202, body: {} });
     }
     if (req.method === 'GET' && req.url === '/__test/announcements') return send({ body: announcements.slice(-50) });
+    // Test hook: every support session in force expires now.
+    if (req.method === 'POST' && req.url === '/__test/expire-impersonations') {
+      for (const i of impersonations) if (!i.ended_at) i.expires_at = new Date(Date.now() - 1000).toISOString();
+      return send({ body: { ok: true } });
+    }
     if (req.method === 'POST' && req.url === '/__test/drop-commits') {
       dropNext = Number(body.count ?? 1);
       return send({ body: { ok: true } });
@@ -1320,7 +1512,12 @@ createServer((req, res) => {
       }
       const userId = sessions.get(token);
       if (key !== ANON || !userId) return send({ status: 401, body: { code: 'PGRST301', message: 'JWT invalid' } });
-      return send(rpcs[rpc[1]](body, userId));
+      requestImpersonation = req.headers['x-sessional-impersonation'] ?? null;
+      try {
+        return send(rpcs[rpc[1]](body, userId));
+      } finally {
+        requestImpersonation = null;
+      }
     }
 
     // Provider sign-in: the browser comes here, and goes straight back with a code.

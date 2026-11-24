@@ -55,7 +55,7 @@ export const signInWithPassword = async (email: string, password: string) =>
   sessionFrom(await call('/token?grant_type=password', { body: { email, password } }));
 
 // Spends a one-time link. Only ever called when the person presses the button, never on page load.
-export const verifyTokenHash = async (tokenHash: string, type: 'invite' | 'recovery') =>
+export const verifyTokenHash = async (tokenHash: string, type: 'invite' | 'recovery' | 'magiclink') =>
   sessionFrom(await call('/verify', { body: { type, token_hash: tokenHash } }));
 
 export const refreshSession = async (refreshToken: string) =>
@@ -76,7 +76,7 @@ export async function signOut(accessToken: string): Promise<void> {
 // Creates the account if needed and returns a one-time token for our own set-password page.
 // Nothing is emailed by the authentication service.
 export async function generateLink(
-  type: 'invite' | 'recovery',
+  type: 'invite' | 'recovery' | 'magiclink',
   email: string,
   data?: Record<string, string>,
 ): Promise<AuthResult<{ userId: string; tokenHash: string }>> {

@@ -49,6 +49,7 @@ the production build. CI runs all three on every push and pull request.
 | `tenant_domains`, `tenant_slug_history` | Custom domains; old addresses that still redirect and stay reserved |
 | `audit_log` | Written by triggers; ids only, no names or emails |
 | `reserved_slugs`, `platform_admins` | Global; service role only |
+| `impersonations`, `feature_flags`, `feature_flag_overrides`, `platform_announcements`, `platform_presets` | Platform; reached only through their functions (Phase 12) |
 
 Policies call helpers in the private `app` schema (`app.my_tenants()`, `app.tenants_with(perm)`,
 `app.tenants_writable_with(perm)`) inside a scalar subquery, so they run once per statement.
@@ -586,4 +587,46 @@ committees), editable email texts (email phase), flags (Phase 5).
   those keys again, blanks confidential topics and drops each part the school switched off. The
   live view shows what a projection screen shows, polled (no realtime channel for visitors) and
   limited per address. A school with an access code keeps these pages behind it too.
+
+## The control plane (Phase 12)
+
+- The admin console is served on `admin.<root>` (`/p/admin`). Every page and the diagnostics route
+  check `am_platform_admin()`; anyone else, signed in or not, gets the same "not found" as an
+  unknown address. Sign-in there keeps no session for a non-admin and answers them exactly as for a
+  wrong password. Platform admins are added by hand (`docs/SETUP.md`, step 4b). Every
+  `platform_*` function checks `app.is_platform_admin()` itself.
+- Schools: list with usage counts (`app.tenant_usage`) and a health score from them
+  (`src/platform/health.ts`: activity, setup, members, invitations, sessions; the reasons that cost
+  points are shown). Suspend and lift (a reason each), delete (the slug typed and a reason; hidden at
+  once, restorable for 30 days, then purged by an admin), restore. Each is in the school's own
+  audit log with the admin as actor (`impersonator_id` set, shown as "Platform support").
+- Impersonation: an admin picks a member who has signed in before (a new sign-in link would
+  replace a pending invitation's), gives a reason (10+ characters) and a time (15, 30 or 60 minutes,
+  at most 60 in the database). `platform_impersonate_start` records it and writes
+  `impersonation.start` to the school's audit log; only a SHA-256 of a one-time secret is stored.
+  The admin's browser goes to the school's address with the secret, which `impersonation_claim`
+  spends once within two minutes; the server then makes and spends a magic link for the member
+  (nothing is emailed) and sets the session plus an `s_imp` cookie. While it lasts, every page shows
+  a banner (who, why, until when, and a button to end it); every database call carries the
+  impersonation's id in a header, and `app.impersonator()` puts the admin in `impersonator_id` of
+  every audited change, only if the impersonation is real, in force and for the signed-in person.
+  When it ends or expires, the session stops counting on every page (`tenantContext` checks the
+  impersonation on each request) and `impersonation.end` is written once. Known limit: the access
+  token itself stays valid at the authentication service until it expires (at most an hour); the app
+  no longer accepts it, and the end button also signs it out.
+- Feature flags (`src/platform/flags.ts`): defaults in the code; a value for every school and per
+  school overrides in the database; read with the server role and kept 30 seconds. Today they are
+  kill switches for imports, printables and public pages.
+- Platform announcements: a message per language, info or warning, for everyone or only people who
+  manage a school, between two times; shown above every school page (kept 30 seconds).
+- Presets: a settings pack (exported from any school) uploaded by an admin, checked like an import,
+  published or not; Owners see published presets of a section under Settings → History and files
+  and install one as a draft (the same checks as importing a pack).
+- Support: a person by exact email (sent in the request body, never the address bar or the logs),
+  with their schools, roles and statuses. Diagnostic bundle per school: status, usage, which settings
+  sections and versions are published (not their contents), domains, roles with counts, flags in
+  force, conferences with committee counts, the last 200 actions without details, and the app's
+  commit; no names or email addresses.
+- Also fixed here: settings section names may be camelCase in the database (`publicSite` could not
+  be saved before).
 

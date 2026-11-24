@@ -97,6 +97,21 @@ The address must be 3–40 lowercase letters, digits or hyphens. Names the produ
    automatically yet. The link works once, and only when they press Continue, so chat previews
    do not use it up.
 
+## 4b. Platform admins and the admin console (Phase 12)
+
+The admin console lives at `admin.sessional.app` (the wildcard DNS of step 3 already covers it).
+It answers "not found" to everyone except platform admins, and there is deliberately no screen to
+create one. Make yourself one in the Supabase SQL editor, after signing up once on any school:
+
+```sql
+insert into public.platform_admins (user_id)
+select id from auth.users where email = 'you@example.com';
+```
+
+Remove someone with `delete from public.platform_admins where user_id = …`. Keep this list short:
+a platform admin can suspend and delete schools and sign in as any member who has signed in before
+(with a reason, for at most an hour, and always in that school's audit log).
+
 ## 5. Stripe (billing phase)
 
 Stay in test mode. Nothing to do yet.

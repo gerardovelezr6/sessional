@@ -90,8 +90,11 @@ describe('decideRoute', () => {
     // A school's address cannot reach it.
     expect(decideRoute('alpha.sessional.app', '/p/app', prod)).toEqual({ action: 'rewrite', path: '/t/alpha/p/app' });
   });
-  it('answers not-found for the admin area (until built) and invalid hosts', () => {
-    expect(decideRoute('admin.sessional.app', '/', prod)).toEqual({ action: 'not-found' });
+  it('serves the admin console on the admin host, and answers not-found for invalid hosts', () => {
+    expect(decideRoute('admin.sessional.app', '/', prod)).toEqual({ action: 'rewrite', path: '/p/admin' });
+    expect(decideRoute('admin.sessional.app', '/tenants/x', prod)).toEqual({ action: 'rewrite', path: '/p/admin/tenants/x' });
+    // Never reachable by its internal path on the marketing host in production.
+    expect(decideRoute('sessional.app', '/p/admin', prod)).toEqual({ action: 'not-found' });
     expect(decideRoute('a.b.sessional.app', '/', prod)).toEqual({ action: 'not-found' });
     expect(decideRoute(null, '/', prod)).toEqual({ action: 'not-found' });
   });

@@ -12,6 +12,8 @@ export interface Brand {
   primary: string;
   onPrimary: string;
   logo: Uint8Array | null;
+  // Paper: A4 unless the school prints on US Letter.
+  paper?: 'a4' | 'letter';
 }
 
 const hex = (h: string): [number, number, number] => {
@@ -19,7 +21,35 @@ const hex = (h: string): [number, number, number] => {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 };
 
-export const A4 = { portrait: [595, 842] as [number, number], landscape: [842, 595] as [number, number] };
+const PAPER = { a4: [595, 842], letter: [612, 792] } as const;
+export const pageSize = (brand: Brand, orientation: 'portrait' | 'landscape'): [number, number] => {
+  const [w, h] = PAPER[brand.paper ?? 'a4'];
+  return orientation === 'portrait' ? [w, h] : [h, w];
+};
+
+export const hexToRgb = hex;
+// White or near-black, whichever reads better on a colour.
+export const textOn = (h: string): [number, number, number] => {
+  const lin = hex(h).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const lum = 0.2126 * lin[0]! + 0.7152 * lin[1]! + 0.0722 * lin[2]!;
+  return lum > 0.4 ? [0.1, 0.12, 0.16] : [1, 1, 1];
+};
+
+// An image (PNG or JPEG) placed in the document once, however often it is drawn.
+export async function embedImage(k: Kit, bytes: Uint8Array | null): Promise<PDFImage | null> {
+  if (!bytes) return null;
+  const cached = k.images.get(bytes);
+  if (cached !== undefined) return cached;
+  let img: PDFImage | null = null;
+  try {
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) img = await k.doc.embedPng(bytes);
+    else if (bytes[0] === 0xff && bytes[1] === 0xd8) img = await k.doc.embedJpg(bytes);
+  } catch {
+    img = null;
+  }
+  k.images.set(bytes, img);
+  return img;
+}
 
 export interface Kit {
   doc: PDFDocument;
@@ -31,6 +61,7 @@ export interface Kit {
   ink: RGB;
   muted: RGB;
   line: RGB;
+  images: Map<Uint8Array, PDFImage | null>;
   degrees: (n: number) => ReturnType<typeof import('pdf-lib').degrees>;
   rgb: typeof import('pdf-lib').rgb;
 }
@@ -62,7 +93,7 @@ export async function startPdf(title: string, brand: Brand): Promise<Kit> {
   return {
     doc, regular, bold, logo,
     primary: lib.rgb(...hex(brand.primary)), onPrimary: lib.rgb(...hex(brand.onPrimary)),
-    ink: lib.rgb(0.1, 0.12, 0.16), muted: lib.rgb(0.38, 0.41, 0.46), line: lib.rgb(0.8, 0.82, 0.85),
+    ink: lib.rgb(0.1, 0.12, 0.16), muted: lib.rgb(0.38, 0.41, 0.46), line: lib.rgb(0.8, 0.82, 0.85), images: new Map(),
     degrees: lib.degrees, rgb: lib.rgb,
   };
 }

@@ -48,7 +48,16 @@ export default async function PrintPage({ params }: { params: Promise<{ tenant: 
   return (
     <Shell title={t('print.title')} size="full" locale={locale}>
       {ADMIN_PERMISSIONS.some(can) ? <AdminTabs base={base} t={t} can={can} current="print" /> : null}
-      <p className="mb-5 max-w-3xl text-sm">{t('print.help')}</p>
+      <p className="mb-2 max-w-3xl text-sm">{t('print.help')}</p>
+      {ctx.can('tenant.manage') ? (
+        <p className="mb-5">
+          <a className="text-sm font-semibold underline underline-offset-2" href={`${base}/settings?section=printing`}>
+            {t('print.style')}
+          </a>
+        </p>
+      ) : (
+        <div className="mb-5" />
+      )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {list.map((p) => (
           <form key={p.kind} method="get" action={`${base}/print/${p.kind}`} target="_blank" className="card flex flex-col gap-3" aria-labelledby={`print-${p.kind}`}>

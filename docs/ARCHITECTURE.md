@@ -569,6 +569,12 @@ committees), editable email texts (email phase), flags (Phase 5).
   sheets, the agenda, passed resolutions, certificates of participation (`committee.manage`) or of
   award (`grades.view`), and the grade report (the gradebook PDF). What appears follows what the
   person may read. The same data gives the same file.
+- Printing settings (Owner → Settings → Printing): paper size (A4 or Letter); placard style
+  (classic, bold, framed, minimal), colour, and whether the flag, logo, committee and check-in code
+  appear; certificate style (classic, modern, elegant, minimal), colour, flag, logo, titles, a line
+  under the text and up to three signatures. Flags are the app's own (flag-icons for countries, the
+  bundled US state flags, a group's uploaded logo), turned into PNG with sharp on the server, once
+  per flag per process.
 - Check-in: a placard's QR code opens `/checkin/<committee>.<delegate>.<signature>` (HMAC with a key
   derived from the server secret). Opening it changes nothing; a signed-in chair of that committee
   presses "Mark as …", which sends the console's own `attendance.set` command.

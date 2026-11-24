@@ -158,6 +158,33 @@ Spanish: Páginas públicas
 | Passed resolutions | `publicSite.resolutions` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Code and title of each resolution a committee passed. |
 | Live view | `publicSite.live` | `off` | `on` (On), `off` (Off) | `tenant.manage` | What each committee's projection screen shows (speaker, timer, list, last vote), on any phone. |
 
+## Printing (`printing`)
+
+Spanish: Impresión
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Paper size | `printing.paper` | `a4` | `a4` (A4), `letter` (Letter) | `tenant.manage` | A4 for most of the world, Letter for the United States, Canada and Mexico. |
+| Placard style | `printing.placardStyle` | `classic` | `classic` (Classic), `bold` (Bold), `framed` (Framed), `minimal` (Minimal) | `tenant.manage` | Placards are folded in half; both faces show the delegation. |
+| Placard colour | `printing.placardColor` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main colour. |
+| Flag on placards | `printing.placardFlag` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The delegation's flag, as in the app (country, US state or group logo). |
+| Logo on placards | `printing.placardLogo` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The school's logo in a corner of each face (PNG or JPEG logos). |
+| Committee on placards | `printing.placardCommittee` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The committee's name under the delegation. |
+| Check-in code on placards | `printing.placardQr` | `on` | `on` (On), `off` (Off) | `tenant.manage` | A QR code a chair scans to mark the delegation present. |
+| Certificate style | `printing.certificateStyle` | `classic` | `classic` (Classic), `modern` (Modern), `elegant` (Elegant), `minimal` (Minimal) | `tenant.manage` | Used for participation and award certificates. |
+| Certificate colour | `printing.certificateColor` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main colour. |
+| Flag on certificates | `printing.certificateFlag` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The flag of the delegation the student represented. |
+| Logo on certificates | `printing.certificateLogo` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The school's logo at the top (PNG or JPEG logos). |
+| Participation certificate title | `printing.certificateTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of participation”. |
+| Award certificate title | `printing.certificateAwardTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of award”. |
+| Line under the text | `printing.certificateNote` | (none) | text per language, up to 160 characters each | `tenant.manage` | For example the dates and place: “March 12–14, 2027 · City Hall”. Empty: the conference's name. |
+| First signature: name | `printing.signer1Name` | (none) | text per language, up to 80 characters each | `tenant.manage` | Who signs, printed under a signature line. Empty: no signature line. |
+| First signature: role | `printing.signer1Role` | (none) | text per language, up to 80 characters each | `tenant.manage` | For example “Secretary-General”. |
+| Second signature: name | `printing.signer2Name` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: no second signature. |
+| Second signature: role | `printing.signer2Role` | (none) | text per language, up to 80 characters each | `tenant.manage` | For example “Faculty advisor”. |
+| Third signature: name | `printing.signer3Name` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: no third signature. |
+| Third signature: role | `printing.signer3Role` | (none) | text per language, up to 80 characters each | `tenant.manage` | For example “Head of school”. |
+
 ## Access code (`access`)
 
 Spanish: Código de acceso

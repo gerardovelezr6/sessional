@@ -96,13 +96,14 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
           }
         }
         if (section === 'protocol') for (const o of options) o.description = t(`settings.protocol.preset.${o.value}.help` as MessageKey);
+        if (section === 'printing' && setting.presentation === 'cards') for (const o of options) o.description = t(`settings.printing.${setting.key}.${o.value}.help` as MessageKey);
         if (setting.key === 'font') for (const o of options) if (o.value) o.fontFamily = FONT_STACKS[o.value as FontKey];
         const kind = setting.presentation === 'cards' ? 'cards' : setting.presentation === 'buttons' ? 'buttons' : 'select';
         out.push({ ...base, kind, name, value: current, options });
         break;
       }
       case 'color':
-        out.push({ ...base, kind: 'color', name, value: value ? String(value) : '', presetValue: preset[setting.key as 'brand' | 'accent' | 'background'], swatches: SWATCHES[setting.key] ?? BRAND_SWATCHES });
+        out.push({ ...base, kind: 'color', name, value: value ? String(value) : '', presetValue: preset[setting.key as 'brand' | 'accent' | 'background'] ?? preset.brand, swatches: SWATCHES[setting.key] ?? BRAND_SWATCHES });
         break;
       case 'asset': {
         const path = typeof value === 'string' ? value : '';

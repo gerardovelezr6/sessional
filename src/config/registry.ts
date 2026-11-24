@@ -63,7 +63,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: MessageKey; help: Messa
 
 // The settings menu: sections grouped the way people look for them.
 export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
-  { label: 'settings.menu.conference', sections: ['identity', 'modules', 'site', 'publicSite', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
+  { label: 'settings.menu.conference', sections: ['identity', 'modules', 'site', 'publicSite', 'printing', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people', 'access'] },
 ];
@@ -82,6 +82,7 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   access: 'settings.access.description',
   modules: 'settings.modules.description',
   publicSite: 'settings.publicSite.description',
+  printing: 'settings.printing.description',
   announcements: 'settings.announcements.description',
 };
 
@@ -99,6 +100,7 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   access: 'settings.access',
   modules: 'settings.modules',
   publicSite: 'settings.publicSite',
+  printing: 'settings.printing',
   announcements: 'settings.announcements',
 };
 
@@ -365,6 +367,106 @@ export const registry: Setting[] = [
     section: 'publicSite', key: 'live', permission: 'tenant.manage', presentation: 'buttons',
     labelKey: 'settings.publicSite.live', helpKey: 'settings.publicSite.live.help',
     control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'paper', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.paper', helpKey: 'settings.printing.paper.help',
+    control: { kind: 'select', options: [{ value: 'a4', labelKey: 'settings.printing.paper.a4' }, { value: 'letter', labelKey: 'settings.printing.paper.letter' }] },
+  },
+  {
+    section: 'printing', key: 'placardStyle', permission: 'tenant.manage', presentation: 'cards',
+    labelKey: 'settings.printing.placardStyle', helpKey: 'settings.printing.placardStyle.help',
+    control: { kind: 'select', options: [{ value: 'classic', labelKey: 'settings.printing.placardStyle.classic' }, { value: 'bold', labelKey: 'settings.printing.placardStyle.bold' }, { value: 'framed', labelKey: 'settings.printing.placardStyle.framed' }, { value: 'minimal', labelKey: 'settings.printing.placardStyle.minimal' }] },
+  },
+  {
+    section: 'printing', key: 'placardColor', permission: 'tenant.manage',
+    labelKey: 'settings.printing.placardColor', helpKey: 'settings.printing.placardColor.help',
+    control: { kind: 'color' },
+  },
+  {
+    section: 'printing', key: 'placardFlag', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.placardFlag', helpKey: 'settings.printing.placardFlag.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'placardLogo', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.placardLogo', helpKey: 'settings.printing.placardLogo.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'placardCommittee', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.placardCommittee', helpKey: 'settings.printing.placardCommittee.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'placardQr', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.placardQr', helpKey: 'settings.printing.placardQr.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'certificateStyle', permission: 'tenant.manage', presentation: 'cards',
+    labelKey: 'settings.printing.certificateStyle', helpKey: 'settings.printing.certificateStyle.help',
+    control: { kind: 'select', options: [{ value: 'classic', labelKey: 'settings.printing.certificateStyle.classic' }, { value: 'modern', labelKey: 'settings.printing.certificateStyle.modern' }, { value: 'elegant', labelKey: 'settings.printing.certificateStyle.elegant' }, { value: 'minimal', labelKey: 'settings.printing.certificateStyle.minimal' }] },
+  },
+  {
+    section: 'printing', key: 'certificateColor', permission: 'tenant.manage',
+    labelKey: 'settings.printing.certificateColor', helpKey: 'settings.printing.certificateColor.help',
+    control: { kind: 'color' },
+  },
+  {
+    section: 'printing', key: 'certificateFlag', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.certificateFlag', helpKey: 'settings.printing.certificateFlag.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'certificateLogo', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.printing.certificateLogo', helpKey: 'settings.printing.certificateLogo.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'printing', key: 'certificateTitle', permission: 'tenant.manage',
+    labelKey: 'settings.printing.certificateTitle', helpKey: 'settings.printing.certificateTitle.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'certificateAwardTitle', permission: 'tenant.manage',
+    labelKey: 'settings.printing.certificateAwardTitle', helpKey: 'settings.printing.certificateAwardTitle.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'certificateNote', permission: 'tenant.manage',
+    labelKey: 'settings.printing.certificateNote', helpKey: 'settings.printing.certificateNote.help',
+    control: { kind: 'localizedText', maxLength: 160 },
+  },
+  {
+    section: 'printing', key: 'signer1Name', permission: 'tenant.manage',
+    labelKey: 'settings.printing.signer1Name', helpKey: 'settings.printing.signer1Name.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'signer1Role', permission: 'tenant.manage',
+    labelKey: 'settings.printing.signer1Role', helpKey: 'settings.printing.signer1Role.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'signer2Name', permission: 'tenant.manage',
+    labelKey: 'settings.printing.signer2Name', helpKey: 'settings.printing.signer2Name.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'signer2Role', permission: 'tenant.manage',
+    labelKey: 'settings.printing.signer2Role', helpKey: 'settings.printing.signer2Role.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'signer3Name', permission: 'tenant.manage',
+    labelKey: 'settings.printing.signer3Name', helpKey: 'settings.printing.signer3Name.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'printing', key: 'signer3Role', permission: 'tenant.manage',
+    labelKey: 'settings.printing.signer3Role', helpKey: 'settings.printing.signer3Role.help',
+    control: { kind: 'localizedText', maxLength: 80 },
   },
   {
     section: 'access', key: 'gate', permission: 'tenant.manage',

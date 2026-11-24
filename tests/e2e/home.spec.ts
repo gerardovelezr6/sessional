@@ -43,6 +43,9 @@ test('the landing page lists what Sessional does, in English and Spanish, and is
   // No billing tables in this database: pricing says so rather than inventing numbers.
   await expect(page.locator('#pricing')).toContainText('Pricing is being finalised');
   await expect(page.locator('#screens svg').first()).toBeVisible();
+  // One main action in the hero; the one bright band near the end.
+  await expect(page.locator('#hero-title').locator('..').locator('.btn')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 2, name: 'Running a conference this school year?' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Español' }).click();
   await expect(page).toHaveURL(/lang=es/);

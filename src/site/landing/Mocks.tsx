@@ -26,8 +26,8 @@ export function ConsoleMock({ t, locale }: { t: Translate; locale: string }) {
             <span className="font-mono text-4xl font-bold text-on-surface">0:47</span>
             <span className="text-sm">{t('landing.mock.console.of', { total: '1:30' })}</span>
           </span>
-          <span className="block h-1.5 w-full bg-surface-raised" aria-hidden="true">
-            <span className="block h-1.5 w-[52%] bg-accent" />
+          <span className="block h-2 w-full bg-surface" aria-hidden="true">
+            <span className="block h-2 w-[52%] bg-on-surface" />
           </span>
           <span className="flex flex-wrap gap-2 text-xs">
             <span className="landing-key">{t('landing.mock.console.yieldChair')}</span>
@@ -71,7 +71,7 @@ export function ProjectorMock({ t, locale }: { t: Translate; locale: string }) {
           </span>
           <span className="font-mono text-6xl font-bold">0:12</span>
           <span className="block h-2 w-full bg-on-primary/20" aria-hidden="true">
-            <span className="block h-2 w-[80%] bg-accent" />
+            <span className="block h-2 w-[80%] bg-on-primary" />
           </span>
           <span className="text-sm opacity-80">{t('landing.mock.projector.caucus')}</span>
         </div>

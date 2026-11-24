@@ -49,6 +49,7 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
   const money = (amount: number, currency: string) => `${new Intl.NumberFormat(locale === 'es' ? 'es-MX' : 'en-US', { style: 'currency', currency: currency.toUpperCase(), maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
   const currency = locale === 'es' ? 'mxn' : 'usd';
   const other = locale === 'es' ? 'en' : 'es';
+  const mail = contact ? `mailto:${contact}?subject=${encodeURIComponent(t('landing.mailSubject'))}` : '';
   return (
     <div className="flex flex-1 flex-col bg-surface text-on-surface-muted">
       <header className="border-b border-border">
@@ -76,19 +77,27 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
       <main className="mx-auto w-full max-w-6xl px-5">
         <section className="grid grid-cols-1 items-start gap-10 py-14 lg:grid-cols-[1fr_1.05fr]" aria-labelledby="hero-title">
           <div className="flex flex-col gap-5">
+            <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
             <h1 id="hero-title" className="landing-serif text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
               {t('landing.hero.title')}
             </h1>
             <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
-            <div className="flex flex-wrap gap-3">
-              <a className="btn btn-primary normal-case tracking-normal" href="#session">
-                {t('landing.hero.see')}
-              </a>
+            {/* One main action. Writing to us when there is an address to write to; otherwise the tour. */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               {contact ? (
-                <a className="btn btn-secondary" href={`mailto:${contact}?subject=${encodeURIComponent(t('landing.mailSubject'))}`}>
-                  {t('landing.hero.write')}
+                <>
+                  <a className="btn btn-primary normal-case tracking-normal" href={mail}>
+                    {t('landing.hero.write')}
+                  </a>
+                  <a className="font-semibold text-on-surface underline underline-offset-4" href="#session">
+                    {t('landing.hero.see')}
+                  </a>
+                </>
+              ) : (
+                <a className="btn btn-primary normal-case tracking-normal" href="#session">
+                  {t('landing.hero.see')}
                 </a>
-              ) : null}
+              )}
             </div>
             <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
           </div>
@@ -129,11 +138,13 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
         </Section>
 
         <Section id="organisers" title={t('landing.organisers.title')} intro={t('landing.organisers.intro')}>
-          <dl className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
+          {/* Each card carries a real detail of the feature, not a slogan. */}
+          <dl className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {ORGANISERS.map((o) => (
-              <div key={o} className="border-t border-border py-4">
+              <div key={o} className="landing-frame flex flex-col gap-2 bg-surface-raised p-4">
                 <dt className="font-semibold text-on-surface">{t(`landing.org.${o}.title` as MessageKey)}</dt>
-                <dd className="mt-1 text-sm">{t(`landing.org.${o}.body` as MessageKey)}</dd>
+                <dd className="text-sm">{t(`landing.org.${o}.body` as MessageKey)}</dd>
+                <dd className="mt-auto border-t border-border pt-2 font-mono text-xs text-on-surface">{t(`landing.org.${o}.detail` as MessageKey)}</dd>
               </div>
             ))}
           </dl>
@@ -223,14 +234,19 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
               </table>
               <p className="mt-4 max-w-3xl text-sm">{t('landing.pricing.notes')}</p>
             </div>
-          ) : contact ? (
-            <p>
-              <a className="font-semibold text-on-surface underline underline-offset-4" href={`mailto:${contact}?subject=${encodeURIComponent(t('landing.mailSubject'))}`}>
-                {t('landing.hero.write')}
-              </a>
-            </p>
           ) : null}
         </Section>
+
+        {/* The page's one bright moment. */}
+        <section aria-labelledby="start-title" className="my-14 grid grid-cols-1 items-center gap-6 rounded-sm bg-accent px-8 py-12 text-on-accent lg:grid-cols-[1fr_auto]">
+          <div className="flex flex-col gap-3">
+            <h2 id="start-title" className="landing-serif text-3xl font-semibold">{t('landing.start.title')}</h2>
+            <p className="max-w-2xl">{t(contact ? 'landing.start.body' : 'landing.start.bodySignedUp')}</p>
+          </div>
+          <a className="btn btn-primary self-start normal-case tracking-normal lg:self-center" href={contact ? mail : appUrl}>
+            {t(contact ? 'landing.hero.write' : 'landing.signIn')}
+          </a>
+        </section>
 
         <Section id="next" title={t('landing.next.title')} intro={t('landing.next.intro')}>
           <ul className="flex max-w-3xl flex-col">

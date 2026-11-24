@@ -2233,5 +2233,21 @@
   "landing.mock.phone.vote": "Resolution 1.2 passed, 11 in favour, 2 against, 2 abstaining",
   "landing.mock.placard.label": "A printed placard",
   "landing.mock.placard.committee": "Human Rights Council",
-  "home.about": "Sessional runs Model United Nations conferences for schools: chairs take roll call, manage speakers, motions and votes from a live console; projection screens follow the room; organisers grade delegates and export gradebooks; each school gets its own branded site. Accounts are created by invitation from a school."
+  "home.about": "Sessional runs Model United Nations conferences for schools: chairs take roll call, manage speakers, motions and votes from a live console; projection screens follow the room; organisers grade delegates and export gradebooks; each school gets its own branded site. Accounts are created by invitation from a school.",
+  "landing.hero.pill": "Software for running Model UN conferences",
+  "landing.start.title": "Running a conference this school year?",
+  "landing.start.body": "Tell us the dates and how many committees. We set up your school's address and bring in your spreadsheet with you, before the first session.",
+  "landing.start.bodySignedUp": "Schools already on Sessional sign in at their own address, or here.",
+  "landing.org.import.detail": "Excel · CSV · Google Sheets · undo",
+  "landing.org.schedule.detail": "Each person's own time zone",
+  "landing.org.analytics.detail": "Live, per committee",
+  "landing.org.print.detail": "6 kinds of PDF",
+  "landing.org.grading.detail": "CSV · Excel · PDF, saved column mappings",
+  "landing.org.documents.detail": "Amendments tracked against the draft",
+  "landing.org.people.detail": "Email · Google · Microsoft",
+  "landing.org.audit.detail": "Who, what, when",
+  "landing.org.access.detail": "All screens, or one committee",
+  "landing.org.history.detail": "One step to clone",
+  "landing.org.export.detail": "JSON · CSV · PDF",
+  "landing.org.public.detail": "You pick every field shown"
 }

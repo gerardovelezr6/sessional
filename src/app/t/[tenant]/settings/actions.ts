@@ -236,18 +236,37 @@ const PACK_ERROR: Record<PackProblem, MessageKey> = {
 
 // Imports a pack file into a draft of one section. Nothing becomes live until it is published.
 export async function importPackAction(tenantKey: string, section: string, _state: SettingsState, form: FormData): Promise<SettingsState> {
-  const { tenant, t, ctx } = await editor(tenantKey);
-  if (!ctx || !isSection(section)) return { error: t('settings.error.forbidden') };
   const file = form.get('pack');
+  const { t } = await editor(tenantKey);
   if (!(file instanceof File) || file.size === 0) return { error: t('settings.pack.error.format') };
   if (file.size > 300_000) return { error: t('settings.pack.error.size') };
+  return savePack(tenantKey, section, await file.text());
+}
 
+// Installs a preset the platform published (Admin → Presets) as a draft, checked like any pack.
+export async function installPresetAction(tenantKey: string, section: string, presetId: string): Promise<SettingsState> {
+  const { t, ctx } = await editor(tenantKey);
+  if (!ctx || !isSection(section) || !/^[0-9a-f-]{36}$/.test(presetId)) return { error: t('settings.error.forbidden') };
+  let preset: { id: string; schema_version: number; data: Record<string, unknown> } | undefined;
+  try {
+    preset = (await rpc<{ id: string; schema_version: number; data: Record<string, unknown> }[]>('presets_published', { p_section: section }, { token: ctx.token })).find((p) => p.id === presetId);
+  } catch (e) {
+    return failure(e, t);
+  }
+  if (!preset) return { error: t('settings.library.gone') };
+  const pack = { format: 'sessional-pack', version: 1, kind: section, schemaVersion: preset.schema_version, exportedAt: new Date(0).toISOString(), data: preset.data };
+  return savePack(tenantKey, section, JSON.stringify(pack));
+}
+
+async function savePack(tenantKey: string, section: string, text: string): Promise<SettingsState> {
+  const { tenant, t, ctx } = await editor(tenantKey);
+  if (!ctx || !isSection(section)) return { error: t('settings.error.forbidden') };
   try {
     // The school's own images stay as they are, whatever the file says.
     const state = await rpc<Record<string, { draft: Stored | null; published: Stored | null } | undefined>>('config_editor_state', { p_tenant: tenant.id, p_conference: null }, { token: ctx.token });
     const current = resolveSection(section, state[section]?.draft ?? state[section]?.published).data as Record<string, unknown>;
     const keep = Object.fromEntries(settingsOf(section).filter((r) => r.control.kind === 'asset').map((r) => [r.key, current[r.key]]));
-    const result = readPack(await file.text(), section, keep);
+    const result = readPack(text, section, keep);
     if (!result.ok) {
       const detail = result.issues?.length ? `\n${result.issues.slice(0, 6).join(', ')}` : '';
       return { error: `${t(PACK_ERROR[result.problem])}${detail}` };

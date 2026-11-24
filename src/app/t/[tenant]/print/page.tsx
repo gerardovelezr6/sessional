@@ -4,6 +4,7 @@ import { Shell } from '@/components/Shell';
 import { moduleOn } from '@/config/modules';
 import { tenantTranslator } from '@/config/store';
 import type { MessageKey } from '@/messages';
+import { flagOn } from '@/platform/flags';
 import { AdminTabs } from '@/site/AdminTabs';
 import { ADMIN_PERMISSIONS } from '@/site/nav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
@@ -39,6 +40,7 @@ export default async function PrintPage({ params }: { params: Promise<{ tenant: 
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
   if (!ctx.membership) redirect(`${base}/`);
+  if (!(await flagOn(tenant.id, 'printing'))) return <Notice title={t('platform.off.title')} body={t('platform.off.body')} locale={locale} />;
   const can = (p: string) => ctx.can(p);
   const list = PRINTABLES.filter((p) => p.may(can) && (!p.module || moduleOn(config, p.module)));
   if (!list.length) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;

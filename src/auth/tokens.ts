@@ -3,6 +3,8 @@
 
 export const ACCESS_COOKIE = 's_at';
 export const REFRESH_COOKIE = 's_rt';
+// Present while a platform admin is signed in as a member (the impersonation's id).
+export const IMPERSONATION_COOKIE = 's_imp';
 export const REFRESH_MARGIN_SECONDS = 60;
 
 export function expiryOf(accessToken: string | undefined): number | null {

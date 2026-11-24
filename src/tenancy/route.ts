@@ -8,6 +8,8 @@ import { isValidSlugFormat } from './slug';
 export const TENANT_PREFIX = '/t';
 // Internal path of the account area served on app.<root>.
 export const APP_PREFIX = '/p/app';
+// Internal path of the platform admin console served on admin.<root>.
+export const ADMIN_PREFIX = '/p/admin';
 export const CUSTOM_HOST_MARK = '~';
 // Set by the proxy (never accepted from the visitor): the path prefix of the tenant, if any.
 export const BASE_PATH_HEADER = 'x-sessional-base';
@@ -49,8 +51,10 @@ export function decideRoute(hostHeader: string | null, pathname: string, opts: R
   const target = classifyHost(hostHeader, opts.rootDomain);
   switch (target.kind) {
     case 'marketing': {
-      if (pathname === APP_PREFIX || pathname.startsWith(`${APP_PREFIX}/`)) {
-        return opts.allowTenantPaths ? { action: 'next', basePath: APP_PREFIX } : { action: 'not-found' };
+      for (const prefix of [APP_PREFIX, ADMIN_PREFIX]) {
+        if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+          return opts.allowTenantPaths ? { action: 'next', basePath: prefix } : { action: 'not-found' };
+        }
       }
       if (pathname === '/p' || pathname.startsWith('/p/')) return { action: 'not-found' };
       if (!isInternal(pathname)) return { action: 'next' };
@@ -64,9 +68,8 @@ export function decideRoute(hostHeader: string | null, pathname: string, opts: R
     case 'custom':
       return { action: 'rewrite', path: `${TENANT_PREFIX}/${tenantKeyForHost(target.host)}${pathname === '/' ? '' : pathname}` };
     case 'platform':
-      // The account area. The super-admin console arrives in a later phase.
-      if (target.area === 'app') return { action: 'rewrite', path: `${APP_PREFIX}${pathname === '/' ? '' : pathname}` };
-      return { action: 'not-found' };
+      // The account area, and the platform admin console (which answers 404 to anyone but a platform admin).
+      return { action: 'rewrite', path: `${target.area === 'app' ? APP_PREFIX : ADMIN_PREFIX}${pathname === '/' ? '' : pathname}` };
     case 'invalid':
       return { action: 'not-found' };
   }

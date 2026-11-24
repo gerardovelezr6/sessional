@@ -7,6 +7,7 @@ import { loadGrading } from '@/grading/server';
 import { standingsOf } from '@/grading/standings';
 import { assetUrl } from '@/data/storage';
 import { localize } from '@/messages';
+import { flagOn } from '@/platform/flags';
 import { brandOf } from '@/print/brand';
 import { flagPng } from '@/print/flags';
 import { flagFor } from '@/structure/flags';
@@ -40,7 +41,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
   const tenant = await requireTenant(key);
   const ctx = await tenantContext(tenant.id);
   if (!ctx) return new NextResponse(null, { status: 401 });
-  if (!kind || !ctx.membership) return new NextResponse(null, { status: 404 });
+  if (!kind || !ctx.membership || !(await flagOn(tenant.id, 'printing'))) return new NextResponse(null, { status: 404 });
   const url = new URL(req.url);
   if (kind === 'grades') {
     if (!ctx.can('grades.view')) return new NextResponse(null, { status: 403 });

@@ -8,6 +8,7 @@ import { IMPORT_MAX_CELL_ROWS, IMPORT_MAX_SHEETS, type Sheet } from '@/import/ta
 import type { MessageKey } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { allow } from '@/live/limit';
+import { flagOn } from '@/platform/flags';
 import { loadCommittee, loadOverview, UUID } from '../committees/data';
 
 // Importing delegations from a spreadsheet: read, check every row, show the result, then write the
@@ -45,7 +46,8 @@ export interface ImportState extends FormState {
 async function setup(tenantKey: string) {
   const tenant = await requireTenant(tenantKey);
   const { t, config } = await tenantTranslator(tenant.id);
-  const ctx = await tenantContext(tenant.id);
+  // Off for this school (a platform switch): as if the person could not import.
+  const ctx = (await flagOn(tenant.id, 'imports')) ? await tenantContext(tenant.id) : null;
   return { tenant, t, config, ctx, base: await basePath() };
 }
 

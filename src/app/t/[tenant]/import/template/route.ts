@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { tenantTranslator } from '@/config/store';
 import { templateCsv, templateXlsx, type TemplateCommittee } from '@/import/template';
 import { localize } from '@/messages';
+import { flagOn } from '@/platform/flags';
 import { typeOf } from '@/structure/schema';
 import { buildTheme } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
@@ -18,6 +19,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
   const ctx = await tenantContext(tenant.id);
   if (!ctx) return new NextResponse(null, { status: 401 });
   if (!ctx.can('committee.manage')) return new NextResponse(null, { status: 403 });
+  if (!(await flagOn(tenant.id, 'imports'))) return new NextResponse(null, { status: 404 });
   const format = new URL(req.url).searchParams.get('format') === 'csv' ? 'csv' : 'xlsx';
   const { t, locale, config } = await tenantTranslator(tenant.id);
   const overview = await loadOverview(tenant.id, ctx.token);

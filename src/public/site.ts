@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { TenantConfig } from '@/config/schema';
 import { moduleOn } from '@/config/modules';
 import { rpc } from '@/data/rpc';
+import { flagOn } from '@/platform/flags';
 import { assetUrl } from '@/data/storage';
 import type { ScreenView } from '@/live/screen';
 import { projectionOf } from '@/protocol/projection';
@@ -42,7 +43,7 @@ const pick = <T extends object>(row: Record<string, unknown>, keys: (keyof T)[])
 
 export async function loadPublicSite(tenantId: string, config: TenantConfig): Promise<PublicSite | null> {
   const p = config.publicSite;
-  if (p.enabled !== 'on') return null;
+  if (p.enabled !== 'on' || !(await flagOn(tenantId, 'public_pages'))) return null;
   const row = await rpc<{ conference: { name: string }; committees: Record<string, unknown>[]; schedule: Record<string, unknown>[] } | null>('public_site', { p_tenant: tenantId }, 'service');
   if (!row) return null;
   const show = {

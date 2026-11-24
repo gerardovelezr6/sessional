@@ -11,13 +11,14 @@ import { editorState, tenantTranslator } from '@/config/store';
 import { assetUrl } from '@/data/storage';
 import { missingTexts } from '@/i18n/coverage';
 import { languageName } from '@/i18n/locales';
-import type { MessageKey } from '@/messages';
+import { rpc } from '@/data/rpc';
+import { localize, type MessageKey } from '@/messages';
 import { PRODUCT_NAME } from '@/platform/product';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { renderEmail } from '@/theme/email';
 import { buildTheme, visibleAdjustments } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
-import { discardDraftAction, importPackAction, publishAction, removeCustomCssAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
+import { discardDraftAction, importPackAction, installPresetAction, publishAction, removeCustomCssAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
 import { sectionGroups } from './build';
 import { ActionButton, SectionForm } from './SectionForm';
 import { ThemePreview } from './ThemePreview';
@@ -45,6 +46,8 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   const query = await searchParams;
   const done = DONE[query.done ?? ''];
   const section: SectionName = (SECTION_NAMES as string[]).includes(query.section ?? '') ? (query.section as SectionName) : SECTION_NAMES[0]!;
+  // Presets the platform published for this section, to install as a draft.
+  const library = await rpc<{ id: string; name: Record<string, string>; description: Record<string, string> }[]>('presets_published', { p_section: section }, { token: ctx.token }).catch(() => []);
   // Dates in the reader's language and the school's time zone.
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
   const anyDraft = SECTION_NAMES.some((s) => state[s]?.draft);
@@ -326,6 +329,23 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                     <input className="text-sm" id={`${section}-pack`} name="pack" type="file" accept="application/json,.json" required />
                   </div>
                 </ActionButton>
+                {library.length ? (
+                  <div className="flex flex-col gap-2">
+                    <h3 className="label-text">{t('settings.library.title')}</h3>
+                    <p className="text-sm">{t('settings.library.help')}</p>
+                    <ul className="flex flex-col gap-2" aria-label={t('settings.library.title')}>
+                      {library.map((p) => (
+                        <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+                          <span className="min-w-48 flex-1 text-sm">
+                            <span className="font-semibold text-on-surface">{localize(p.name, locale, '')}</span>
+                            {localize(p.description, locale, '') ? <span className="block text-xs">{localize(p.description, locale, '')}</span> : null}
+                          </span>
+                          <ActionButton action={installPresetAction.bind(null, key, section, p.id) as Bound} label={t('settings.library.install', { name: localize(p.name, locale, '') })} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             </div>
           </details>

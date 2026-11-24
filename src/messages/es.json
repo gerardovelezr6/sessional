@@ -2249,5 +2249,6 @@
   "landing.org.access.detail": "Todas las pantallas, o un comité",
   "landing.org.history.detail": "Un paso para copiar",
   "landing.org.export.detail": "JSON · CSV · PDF",
-  "landing.org.public.detail": "Tú eliges cada campo visible"
+  "landing.org.public.detail": "Tú eliges cada campo visible",
+  "landing.skip": "Ir al contenido"
 }

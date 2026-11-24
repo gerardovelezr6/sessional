@@ -35,7 +35,7 @@ test('the favicon is the supplied app icon', async ({ page, request }) => {
 
 test('the landing page lists what Sessional does, in English and Spanish, and is honest about what is not built', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText("Run every committee of your Model UN from the chair's laptop.");
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText("Run every committee of your Model UN from the chair’s laptop.");
   for (const name of ['How a session runs', 'Three screens in the room', 'For the people organising it', 'Your conference, your words', 'Pricing', 'Coming next', 'Questions']) {
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }

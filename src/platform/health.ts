@@ -53,3 +53,6 @@ export const isPast = (iso: string) => Date.parse(iso) <= Date.now();
 
 // The badge colour of each level.
 export const LEVEL_TONE = { good: 'tone-live', watch: 'tone-paused', risk: 'tone-idle' } as const;
+
+// The time of this request (kept out of components, which must not read the clock).
+export const requestTime = () => Date.now();

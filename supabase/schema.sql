@@ -4496,3 +4496,13 @@ language sql stable security definer set search_path = '' as $$
 $$;
 revoke all on function public.billing_subscriptions() from public, anon, authenticated;
 grant execute on function public.billing_subscriptions() to service_role;
+
+-- A school's billing for the admin console.
+create or replace function public.platform_tenant_billing(p_tenant uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform app.require_platform_admin();
+  return app.entitlements(p_tenant) || jsonb_build_object('overrides', (select b.limit_overrides from public.tenant_billing b where b.tenant_id = p_tenant), 'usage', app.usage(p_tenant));
+end $$;
+revoke all on function public.platform_tenant_billing(uuid) from public, anon;
+grant execute on function public.platform_tenant_billing(uuid) to authenticated, service_role;

@@ -1,4 +1,5 @@
 'use server';
+import { limitError } from '@/billing/limits';
 import { generateLink } from '@/auth/gotrue';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
 import type { FormState } from '@/components/ActionForm';
@@ -82,6 +83,8 @@ async function invite(tenantKey: string, input: { email: string; fullName: strin
     if (!link) return { error: t('people.invite.error.failed') };
     return { message: t('people.invite.ready', { email }), link };
   } catch (e) {
+    const limit = limitError(e, t);
+    if (limit) return { error: limit };
     if (e instanceof RpcError && e.duplicate) return { error: t('people.invite.error.member') };
     if (e instanceof RpcError && e.forbidden) return { error: t('people.invite.error.forbidden') };
     if (e instanceof RpcError || e instanceof WriteNotApplied) {

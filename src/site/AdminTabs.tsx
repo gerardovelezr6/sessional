@@ -10,7 +10,7 @@ import { parseTenantKey, TENANT_KEY_HEADER } from '@/tenancy/route';
 // design, roles, audit log), for staff only: High Command members are usually students. Each row
 // shows on its landing page and on every page it leads to.
 export type AdminTab = 'analytics' | 'conferences' | 'schedule' | 'committees' | 'grades' | 'people' | 'announcements' | 'documents' | 'import' | 'print';
-export type OwnerTab = 'overview' | 'website' | 'branding' | 'settings' | 'types' | 'rules' | 'rubric' | 'roles' | 'access' | 'audit' | 'data' | 'reset';
+export type OwnerTab = 'overview' | 'website' | 'branding' | 'settings' | 'types' | 'rules' | 'rubric' | 'roles' | 'access' | 'audit' | 'data' | 'billing' | 'reset';
 
 type Tab<T> = { id: T; path: string; word: MessageKey; permission: string | string[] };
 
@@ -39,6 +39,7 @@ const OWNER: Tab<OwnerTab>[] = [
   { id: 'access', path: '/settings/access', word: 'owner.tab.access', permission: 'tenant.manage' },
   { id: 'audit', path: '/people/audit', word: 'admin.tab.audit', permission: 'audit.view' },
   { id: 'data', path: '/owner/data', word: 'owner.tab.data', permission: 'tenant.manage' },
+  { id: 'billing', path: '/owner/billing', word: 'owner.tab.billing', permission: 'tenant.manage' },
   { id: 'reset', path: '/owner/reset', word: 'owner.tab.reset', permission: 'tenant.manage' },
 ];
 

@@ -39,6 +39,11 @@ export default defineConfig({
         NEXT_PUBLIC_SUPABASE_URL: `http://localhost:${MOCK_PORT}`,
         SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY,
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY,
+        // Billing against the Stripe stand-in in the mock server.
+        STRIPE_SECRET_KEY: 'sk_test_mock',
+        STRIPE_API_BASE: `http://localhost:${MOCK_PORT}/stripe`,
+        STRIPE_WEBHOOK_SECRET: 'whsec_test',
+        CRON_SECRET: 'cron-test-secret',
       },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

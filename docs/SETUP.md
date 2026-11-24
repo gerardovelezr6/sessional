@@ -112,9 +112,33 @@ Remove someone with `delete from public.platform_admins where user_id = …`. Ke
 a platform admin can suspend and delete schools and sign in as any member who has signed in before
 (with a reason, for at most an hour, and always in that school's audit log).
 
-## 5. Stripe (billing phase)
+## 5. Stripe (Phase 13)
 
-Stay in test mode. Nothing to do yet.
+Stay in **test mode** until the checklist at the end is done.
+
+1. **Keys.** Stripe → Developers → API keys. In Vercel → Settings → Environment Variables add
+   `STRIPE_SECRET_KEY` (the `sk_test_…` key for Preview; the live key only for Production, later).
+2. **Webhook.** Stripe → Developers → Webhooks → Add endpoint:
+   `https://sessional.app/api/stripe/webhook`, with the events `checkout.session.completed`,
+   `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`,
+   `invoice.paid`, `invoice.payment_failed`. Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+3. **Daily job.** Add `CRON_SECRET` (any long random string). `vercel.json` already asks Vercel to
+   call `/api/cron/billing` once a day with it; it re-reads subscriptions from Stripe and moves
+   schools whose trial, grace or pass ran out.
+4. **Prices.** Sign in to `admin.sessional.app` → Plans, adjust prices if you like, then press
+   **Create the missing prices in Stripe**.
+5. **Customer portal.** Stripe → Settings → Billing → Customer portal → Activate (payment methods,
+   invoices, billing details). Plan changes are made in Sessional, not in the portal.
+6. **Run the database changes** (`supabase/schema.sql` from `main`, as for every phase).
+
+Before the first real charge (open question 7):
+
+- Finish Stripe's account activation (in test mode it shows charges as not enabled yet).
+- Mexico: Stripe does not issue CFDI. Domestic customers who need a *factura* need a CFDI provider
+  (a PAC); decide this with your accountant before selling in Mexico.
+- Stripe Tax: set your origin address and registrations, then set `STRIPE_AUTOMATIC_TAX=on`.
+  Until then Checkout collects the customer's tax ID and address but adds no tax.
+- Switch Vercel to Pro (Hobby is non-commercial), and create the live webhook and live prices.
 
 ## 6. Email provider (later)
 

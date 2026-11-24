@@ -51,7 +51,7 @@ export async function choosePlanAction(tenantKey: string, planKey: string, price
   const { tenant, t, ok, token, origin } = await setup(tenantKey);
   if (!ok) return { error: t('forbidden.title') };
   if (!stripeConfigured()) return { error: t('billing.error.unconfigured') };
-  const plans = await rpc<Plan[]>('plans_public', {}, 'service');
+  const plans = await rpc<Plan[]>('plans_public', {}, { token });
   const plan = plans.find((p) => p.key === planKey);
   const price = plan?.prices.find((p) => p.key === priceKey);
   if (!plan || !price?.stripe_price_id) return { error: t('billing.error.price') };

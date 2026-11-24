@@ -5,7 +5,12 @@ import { rpc } from '@/data/rpc';
 import { gradingRulesOf } from '@/grading/rules';
 import { loadGrading } from '@/grading/server';
 import { standingsOf } from '@/grading/standings';
+import { assetUrl } from '@/data/storage';
+import { localize } from '@/messages';
 import { brandOf } from '@/print/brand';
+import { flagPng } from '@/print/flags';
+import { flagFor } from '@/structure/flags';
+import { typeOf } from '@/structure/schema';
 import { checkinCode } from '@/print/checkin';
 import { agenda, certificates, placards, resolutions, signInSheets } from '@/print/kinds';
 import { currentSchedule } from '@/schedule/load';
@@ -53,6 +58,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
     const ids = overview.committees.filter((c) => which === 'all' || c.id === which).map((c) => c.id);
     return (await Promise.all(ids.map((id) => loadCommittee(tenant.id, id, ctx.token)))).filter((d): d is CommitteeDetail => !!d);
   };
+  const pr = config.printing;
+  // A delegation's flag as the app shows it (country, US state or group logo), as an image.
+  const flagOf = (d: CommitteeDetail, x: CommitteeDetail['delegates'][number]) => {
+    const type = typeOf(config.structure, d.committee.type_key);
+    const logo = x.group_key ? assetUrl(tenant.id, type.groups.find((g) => g.key === x.group_key)?.logo) : null;
+    return flagPng(flagFor(type, x, [locale]), logo);
+  };
   const nameOf = (c: CommitteeDetail['committee']) => (c.abbreviation ? `${c.abbreviation} · ${c.name}` : c.name);
 
   let body: Uint8Array;
@@ -63,11 +75,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
       const list = await committees();
       const origin = await tenantOrigin();
       title = t('print.placards.title');
-      body = await placards(
-        brand,
-        title,
-        list.flatMap((d) => d.delegates.map((x) => ({ committee: nameOf(d.committee), label: x.label, checkin: `${origin}/checkin/${checkinCode(d.committee.id, x.id)}` }))),
+      const flags = pr.placardFlag === 'on';
+      const items = await Promise.all(
+        list.flatMap((d) =>
+          d.delegates.map(async (x) => ({
+            committee: nameOf(d.committee),
+            label: x.label,
+            flag: flags ? await flagOf(d, x) : null,
+            checkin: pr.placardQr === 'on' ? `${origin}/checkin/${checkinCode(d.committee.id, x.id)}` : null,
+          })),
+        ),
       );
+      body = await placards(brand, title, items, { style: pr.placardStyle, color: pr.placardColor ?? brand.primary, logo: pr.placardLogo === 'on', committee: pr.placardCommittee === 'on' });
       break;
     }
     case 'signin': {
@@ -120,18 +139,30 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
       if (awards ? !ctx.can('grades.view') : !ctx.can('committee.manage')) return new NextResponse(null, { status: 403 });
       const list = await committees();
       title = t(awards ? 'print.certificates.awards' : 'print.certificates.participation');
-      const items: { name: string; line: string }[] = [];
+      const flags = pr.certificateFlag === 'on';
+      const items: { name: string; line: string; flag: Uint8Array | null }[] = [];
       if (awards) {
         const rules = gradingRulesOf(config);
         for (const d of list) {
           const data = await loadGrading(d.committee.id, ctx.token);
           if (!data) continue;
-          for (const s of standingsOf(rules, data, locale)) for (const a of s.awards) items.push({ name: s.name || s.label, line: t('print.certificates.awardLine', { award: a, delegation: s.label, committee: d.committee.name }) });
+          for (const s of standingsOf(rules, data, locale)) {
+            const who = d.delegates.find((x) => x.id === s.delegateId);
+            for (const a of s.awards) items.push({ name: s.name || s.label, line: t('print.certificates.awardLine', { award: a, delegation: s.label, committee: d.committee.name }), flag: flags && who ? await flagOf(d, who) : null });
+          }
         }
       } else {
-        for (const d of list) for (const x of d.delegates) items.push({ name: x.name || x.label, line: t('print.certificates.participationLine', { delegation: x.label, committee: d.committee.name }) });
+        for (const d of list) for (const x of d.delegates) items.push({ name: x.name || x.label, line: t('print.certificates.participationLine', { delegation: x.label, committee: d.committee.name }), flag: flags ? await flagOf(d, x) : null });
       }
-      body = await certificates(brand, title, t(awards ? 'print.certificates.awardHeading' : 'print.certificates.heading'), conferenceName, items);
+      const own = (v: Record<string, string>) => localize(v, locale, '');
+      const heading = own(awards ? pr.certificateAwardTitle : pr.certificateTitle) || t(awards ? 'print.certificates.awardHeading' : 'print.certificates.heading');
+      body = await certificates(brand, title, heading, items, {
+        style: pr.certificateStyle,
+        color: pr.certificateColor ?? brand.primary,
+        logo: pr.certificateLogo === 'on',
+        note: own(pr.certificateNote) || conferenceName,
+        signers: ([1, 2, 3] as const).map((n) => ({ name: own(pr[`signer${n}Name`]), role: own(pr[`signer${n}Role`]) })),
+      });
       break;
     }
   }

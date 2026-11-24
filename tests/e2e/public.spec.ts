@@ -48,6 +48,28 @@ test('High Command prints placards, sign-in sheets, the agenda, resolutions and 
   expect((await get(page, '/print/nonsense')).status).toBe(404);
 });
 
+test('the Owner styles placards and certificates; the PDFs follow', async ({ page }) => {
+  test.setTimeout(90_000);
+  await signIn(page, 'owner@pub.test');
+  await page.goto(at('/print'));
+  await page.getByRole('link', { name: 'Change how placards and certificates look' }).click();
+  const section = page.locator('section#printing');
+  await section.getByRole('group', { name: 'Paper size', exact: true }).getByText('Letter', { exact: true }).click();
+  await section.getByRole('group', { name: 'Placard style', exact: true }).getByText('Bold', { exact: true }).click();
+  await section.getByRole('group', { name: 'Certificate style', exact: true }).getByText('Elegant', { exact: true }).click();
+  await section.getByRole('group', { name: 'First signature: name', exact: true }).getByRole('textbox', { name: 'English' }).fill('Dana Ruiz');
+  await section.getByRole('button', { name: 'Save and publish' }).click();
+  await page.waitForURL(/done=published/);
+  // Route handlers keep their own copy of the settings for up to 30 seconds after a publish.
+  const sizeOf = () =>
+    page.evaluate(async () => {
+      const text = new TextDecoder('latin1').decode(await (await fetch('/print/placards?committee=all')).arrayBuffer());
+      return text.match(/\/MediaBox \[ ([\d.]+ [\d.]+ [\d.]+ [\d.]+) \]/)?.[1] ?? '';
+    });
+  await expect.poll(sizeOf, { timeout: 40_000, intervals: [1000, 2000, 5000] }).toBe('0 0 792 612');
+  expect((await get(page, '/print/certificates?type=participation&committee=all')).status).toBe(200);
+});
+
 test('a chair prints for their committee only, and nobody signed out prints anything', async ({ page, browser }) => {
   await signIn(page, 'chair@pub.test');
   await page.goto(at('/print'));

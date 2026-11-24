@@ -19,5 +19,5 @@ export async function brandOf(tenant: { id: string; name: string }, config: Tena
       logo = null;
     }
   }
-  return { school: tenant.name, primary: theme['--s-color-primary']!, onPrimary: theme['--s-color-on-primary']!, logo };
+  return { school: tenant.name, primary: theme['--s-color-primary']!, onPrimary: theme['--s-color-on-primary']!, logo, paper: config.printing.paper };
 }

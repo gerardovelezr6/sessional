@@ -23,6 +23,11 @@ describe('defaults', () => {
       modules: { grading: 'on', documents: 'on', screens: 'on', discipline: 'on', announcements: 'on', schedule: 'on' },
       announcements: { items: null },
       publicSite: { enabled: 'off', delegations: 'on', schedule: 'on', resolutions: 'on', live: 'off' },
+      printing: {
+        paper: 'a4', placardStyle: 'classic', placardColor: null, placardFlag: 'on', placardLogo: 'on', placardCommittee: 'on', placardQr: 'on',
+        certificateStyle: 'classic', certificateColor: null, certificateFlag: 'on', certificateLogo: 'on', certificateTitle: {}, certificateAwardTitle: {}, certificateNote: {},
+        signer1Name: {}, signer1Role: {}, signer2Name: {}, signer2Role: {}, signer3Name: {}, signer3Role: {},
+      },
       theme: {
         preset: 'flat-institutional', brand: null, accent: null, background: null, font: null, radius: null, density: null,
         uppercaseLabels: null, shadows: null, contrast: null, headerStyle: null, pageTitle: null, tabStyle: null,

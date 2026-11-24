@@ -541,24 +541,40 @@ committees), editable email texts (email phase), flags (Phase 5).
 ## Import, print and public side (Phase 11)
 
 - Import (High Command → Import, `committee.manage`): a CSV (any delimiter a spreadsheet writes),
-  an Excel file (first sheet) or a Google Sheets link shared as "anyone with the link". Sheets are
-  downloaded on the server from `docs.google.com` only (redirects followed only to Google's download
-  hosts; 2 MB and 10 seconds at most; a sign-in page is reported as "not shared"). Columns are
-  recognised by heading in English or Spanish, and can be changed. Every row is checked
-  (`src/import/plan.ts`: committee exists or may be created, label present and ≤ 160 characters,
-  no duplicate in the sheet or the committee, group valid for the committee type, at most 2,000
-  rows); the preview shows what will be imported and why other rows will not, and those rows
-  download as a CSV to fix and import again. The browser's copy of the table is checked again in
-  full before `import_apply` writes the good rows in one transaction.
+  an Excel file (every visible tab) or a Google Sheets link shared as "anyone with the link" (the
+  whole spreadsheet, downloaded as Excel on the server from `docs.google.com` only; redirects
+  followed only to Google's download hosts; size and time limits; a sign-in page is reported as
+  "not shared"). Each tab is read on its own (`src/import/plan.ts`): the headings row among the
+  first 15 rows; which column holds the committee, the country or role, the student and the group
+  (headings in English or Spanish; without headings, the column where most cells are countries);
+  and the tab's committee (a column, a title such as "Committee: IAEA" above the headings, or the
+  tab's name). Tabs with no list (a read-me, totals) are left out. Rows with nothing to import
+  (blank, totals, notes beside the list) are skipped; delegations already in their committee are
+  counted, not added again or reported. Every other row is checked (committee exists or may be
+  created, label ≤ 160 characters, no duplicate in the file, group valid for the committee type, at
+  most 2,000 rows); the preview shows per tab what will be imported, lets the person change the
+  headings row, columns and committee of each tab, and offers the rows that cannot be imported as
+  a CSV to fix. The browser's copy of the tabs is checked again in full before `import_apply`
+  writes the good rows in one transaction.
+- Templates (`/import/template`): an Excel workbook with one tab per committee of the current
+  conference ("Committee: …" in A1, headings in row 3, the delegations already there, a list to
+  pick each group from, and a read-me tab), or one CSV. Filled in and imported, it adds only the new
+  rows.
 - Undo: each import is an `import_batches` row (in the isolation matrix, audited); the delegations
   and committees it created carry its id. `import_undo` removes them (a created committee stays if
   someone added a delegation to it since) and records who undid it and when.
 - Print (High Command → Print; chairs see the parts for their committees): `/print/<kind>` returns
   a PDF built with pdf-lib in the school's primary colour, with its logo (PNG or JPEG; a WebP logo
-  is left out) and Noto Sans: placards (tent cards, each with a signed check-in QR code), sign-in
+  is left out) and Noto Sans, embedded whole (a subset dropped letters): placards (tent cards, each with a signed check-in QR code), sign-in
   sheets, the agenda, passed resolutions, certificates of participation (`committee.manage`) or of
   award (`grades.view`), and the grade report (the gradebook PDF). What appears follows what the
   person may read. The same data gives the same file.
+- Printing settings (Owner → Settings → Printing): paper size (A4 or Letter); placard style
+  (classic, bold, framed, minimal), colour, and whether the flag, logo, committee and check-in code
+  appear; certificate style (classic, modern, elegant, minimal), colour, flag, logo, titles, a line
+  under the text and up to three signatures. Flags are the app's own (flag-icons for countries, the
+  bundled US state flags, a group's uploaded logo), turned into PNG with sharp on the server, once
+  per flag per process.
 - Check-in: a placard's QR code opens `/checkin/<committee>.<delegate>.<signature>` (HMAC with a key
   derived from the server secret). Opening it changes nothing; a signed-in chair of that committee
   presses "Mark as …", which sends the console's own `attendance.set` command.

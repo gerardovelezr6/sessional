@@ -1,7 +1,17 @@
 // Reading a spreadsheet into rows of text. CSV here (any delimiter a spreadsheet program writes);
-// Excel in ./xlsx.ts; a Google Sheets link becomes its CSV download address.
+// Excel in ./read.ts; a Google Sheets link becomes the address of its Excel download. Row numbers
+// stay those of the sheet, blank rows included, so a reported line can be found in it.
 
 export type Table = string[][];
+// One tab of a workbook (a CSV is one tab, named after the file).
+export interface Sheet {
+  name: string;
+  rows: Table;
+}
+
+export const IMPORT_MAX_SHEETS = 30;
+// Rows read in all, headings, blanks and notes included.
+export const IMPORT_MAX_CELL_ROWS = 6000;
 
 export const IMPORT_MAX_ROWS = 2000;
 export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
@@ -15,7 +25,8 @@ function delimiterOf(text: string): string {
 }
 
 // RFC 4180: quoted fields may hold delimiters, line breaks and doubled quotes. A byte-order mark is
-// dropped. Blank lines are skipped. Cells are trimmed.
+// dropped. Blank lines are kept (as empty rows) so line numbers match the file; trailing ones are
+// dropped. Cells are trimmed.
 export function parseCsv(input: string): Table {
   const text = input.replace(/^﻿/, '');
   const d = delimiterOf(text);
@@ -29,7 +40,7 @@ export function parseCsv(input: string): Table {
   };
   const endRow = () => {
     endCell();
-    if (row.some((c) => c !== '')) rows.push(row);
+    rows.push(row.some((c) => c !== '') ? row : []);
     row = [];
   };
   for (let i = 0; i < text.length; i++) {
@@ -51,12 +62,13 @@ export function parseCsv(input: string): Table {
     } else cell += ch;
   }
   if (cell !== '' || row.length) endRow();
+  while (rows.length && !rows[rows.length - 1]!.length) rows.pop();
   return rows;
 }
 
-// A Google Sheets link (any of its forms) as the address of its CSV download, or null when the
-// text is not a Google Sheets link. The tab (gid) is kept when the link names one.
-export function sheetsCsvUrl(link: string): string | null {
+// A Google Sheets link (any of its forms) as the address of its download, or null when the text is
+// not a Google Sheets link. The whole spreadsheet comes as Excel, every tab.
+export function sheetsExportUrl(link: string): string | null {
   let url: URL;
   try {
     url = new URL(link.trim());
@@ -66,6 +78,5 @@ export function sheetsCsvUrl(link: string): string | null {
   if (url.protocol !== 'https:' || url.hostname !== 'docs.google.com') return null;
   const id = url.pathname.match(/^\/spreadsheets\/d\/([A-Za-z0-9_-]{20,100})(\/|$)/)?.[1];
   if (!id) return null;
-  const gid = (url.searchParams.get('gid') ?? url.hash.match(/gid=(\d+)/)?.[1] ?? '').replace(/\D/g, '');
-  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? `&gid=${gid}` : ''}`;
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx`;
 }

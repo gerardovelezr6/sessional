@@ -112,6 +112,22 @@ Remove someone with `delete from public.platform_admins where user_id = …`. Ke
 a platform admin can suspend and delete schools and sign in as any member who has signed in before
 (with a reason, for at most an hour, and always in that school's audit log).
 
+## 4c. The website's contact form
+
+The form on `sessional.app` stores every request in the database; read them in the admin console
+under **Inbox** (they are deleted after 180 days, and the sender's network address is never kept,
+only a keyed hash used to allow at most 3 messages an hour per sender).
+
+To also get each request by email, add in Vercel → Environment Variables (server only):
+
+- `RESEND_API_KEY`: from a free account at resend.com.
+- `CONTACT_TO_EMAIL`: where requests go (falls back to `LEGAL_CONTACT_EMAIL`).
+- `CONTACT_FROM_EMAIL`: leave empty until you verify a domain in Resend. Until then Resend sends
+  from `onboarding@resend.dev`, and only to the email address you signed up to Resend with, so use
+  that address as `CONTACT_TO_EMAIL`.
+
+Replies go straight to the person who wrote (their address is the email's reply-to).
+
 ## 5. Stripe (billing phase)
 
 Stay in test mode. Nothing to do yet.

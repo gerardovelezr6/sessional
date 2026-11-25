@@ -5,7 +5,6 @@ import { RETURN_COOKIE } from '@/auth/oauth';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { rootDomain, isSecureOrigin } from '@/platform/env';
-import { legalDetails } from '@/platform/legal';
 import { Landing, type PlanRow } from '@/site/landing/Landing';
 import { parseTenantKey } from '@/tenancy/route';
 
@@ -25,8 +24,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const unfinished = !!(q.code || q.error);
   const origin = `${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}`;
   const appUrl = `${isSecureOrigin() ? 'https' : 'http'}://app.${rootDomain()}/login`;
-  const legal = legalDetails();
-  const contact = process.env.LEGAL_CONTACT_EMAIL?.trim() ? legal.email : null;
   const qr = await QRCode.toString(origin, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
   // Prices come from the plans table; until billing is set up the section says so instead.
   let plans: PlanRow[] | null = null;
@@ -43,7 +40,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <p className="mt-2 text-sm">{t('home.signInUnfinished.body', { domain: rootDomain() })}</p>
         </section>
       ) : null}
-      <Landing t={t} locale={locale} appUrl={appUrl} contact={contact} qr={qr} plans={plans} />
+      <Landing t={t} locale={locale} appUrl={appUrl} qr={qr} plans={plans} />
     </div>
   );
 }

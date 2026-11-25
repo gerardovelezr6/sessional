@@ -29,7 +29,8 @@ test('an Arabic school is written right to left, with its own texts and English 
   expect(name!.x).toBeGreaterThan(width / 2);
 
   // Switching to English turns the page left to right; the choice is remembered in this browser.
-  await page.getByLabel('Language').selectOption('en');
+  await page.locator('.account-button').click();
+  await page.getByLabel('Language', { exact: true }).selectOption('en');
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign in to مدرسة كابا');
   await page.reload();
@@ -103,7 +104,8 @@ test('the translation editor: search, broken texts refused and kept, saved as a 
 test('anyone can switch to French; signed-in people keep the choice on their profile', async ({ page, browser }) => {
   // A visitor: remembered in the browser.
   await page.goto(at('lambda', '/login'));
-  await page.getByLabel('Language').selectOption('fr');
+  await page.locator('.account-button').click();
+  await page.getByLabel('Language', { exact: true }).selectOption('fr');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Connexion à Lambda School');
   await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
@@ -111,14 +113,18 @@ test('anyone can switch to French; signed-in people keep the choice on their pro
   // Signed in on one device, chosen once; another device follows the profile.
   const first = await (await browser.newContext()).newPage();
   await signIn(first, 'lambda', 'owner@lambda.test');
-  await first.getByLabel('Language').selectOption('es');
+  await first.locator('.account-button').click();
+  await first.getByLabel('Language', { exact: true }).selectOption('es');
+  await first.locator('.account-button').click();
   await expect(first.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
   const second = await (await browser.newContext()).newPage();
   await signIn(second, 'lambda', 'owner@lambda.test');
   await expect(second.locator('html')).toHaveAttribute('lang', 'es');
+  await second.locator('.account-button').click();
   await expect(second.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
   // Back to English for the next tests.
-  await second.getByLabel('Idioma').selectOption('en');
+  await second.getByLabel('Idioma', { exact: true }).selectOption('en');
+  await second.locator('.account-button').click();
   await expect(second.getByRole('button', { name: 'Sign out' })).toBeVisible();
   await first.context().close();
   await second.context().close();

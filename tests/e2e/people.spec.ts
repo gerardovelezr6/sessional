@@ -39,6 +39,7 @@ test('an owner signs in, sees their role, and signs out', async ({ page }) => {
   const cookies = await page.context().cookies();
   expect(cookies.filter((c) => c.name.startsWith('s_')).every((c) => c.httpOnly && c.sameSite === 'Lax')).toBe(true);
 
+  await page.getByRole('button', { name: 'Your account' }).click();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(at('alpha.localhost', '/login'));
   await page.goto(at('alpha.localhost'));
@@ -124,6 +125,7 @@ test('invitation: link previews do not use it up, it works once, and the person 
   await expect(guest.getByText('Welcome, Nadia New')).toBeVisible();
 
   // The link is spent.
+  await guest.getByRole('button', { name: 'Your account' }).click();
   await guest.getByRole('button', { name: 'Sign out' }).click();
   await guest.goto(link);
   await guest.getByRole('button', { name: 'Continue' }).click();

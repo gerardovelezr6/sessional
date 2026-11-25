@@ -139,6 +139,20 @@
     padding: 0.6rem max(1rem, calc((100% - 80rem) / 2 + 1rem));
   }
   .app-header img { @apply block h-9 w-auto; max-width: 12rem; }
+  /* The person's own menu: one round button in the header (initials, or a globe when signed out). */
+  .account-button {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full;
+    border: var(--s-border-width) solid currentColor;
+    transition-property: background-color;
+    transition-duration: 150ms;
+  }
+  .account-button:hover, .account-button[aria-expanded='true'] { background: color-mix(in srgb, currentColor 12%, transparent); }
+  .account-panel {
+    @apply absolute end-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-surface-raised pb-4 pt-3 text-sm font-normal text-on-surface-muted;
+    border: var(--s-border-width) solid var(--s-color-border-strong);
+    border-radius: var(--s-radius-surface);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--s-color-on-surface) 18%, transparent);
+  }
   /* The school's initials in a square of its colour, when it has no logo. */
   .brand-mark {
     @apply inline-flex shrink-0 items-center justify-center bg-primary font-bold text-on-primary;

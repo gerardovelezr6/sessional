@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { AccountMenu } from '@/components/AccountMenu';
 import { BillingBanner } from '@/site/BillingBanner';
 import { PlatformBanners } from '@/site/PlatformBanners';
 import { requestTime } from '@/platform/health';
@@ -126,25 +127,33 @@ export default async function TenantLayout({ params, children }: Props) {
       </a>
       <div className="ms-auto flex flex-wrap items-center gap-2">
         {links.length ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
-        {languages.length > 1 ? (
-          <LanguageSwitch
-            action={setLanguageAction.bind(null, key)}
-            current={own.locale}
-            // Each language is named in itself, so people can find their own.
-            options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
-            labels={{ language: own.t('language.label'), change: own.t('language.change') }}
-          />
-        ) : null}
-        {ctx ? (
-          <div className="flex items-center gap-2 text-xs font-normal">
-            {site.header.userName ? <span className="hidden opacity-75 sm:inline">{ctx.user.fullName || ctx.user.email}</span> : null}
-            {ctx.membership ? (
-              <a className="underline-offset-2 hover:underline" href={`${base}/help`}>
+        {ctx && site.header.userName ? <span className="hidden text-xs font-normal opacity-75 sm:inline">{ctx.user.fullName || ctx.user.email}</span> : null}
+        {ctx || languages.length > 1 ? (
+          <AccountMenu
+            label={own.t(ctx ? 'account.menu' : 'account.language')}
+            initials={ctx ? initialsOf(ctx.user.fullName || ctx.user.email) : null}
+            title={ctx ? ctx.user.fullName || ctx.user.email : undefined}
+            subtitle={ctx?.user.fullName ? ctx.user.email : undefined}
+          >
+            {languages.length > 1 ? (
+              <div className="flex items-center justify-between gap-3">
+                <span>{own.t('language.label')}</span>
+                <LanguageSwitch
+                  action={setLanguageAction.bind(null, key)}
+                  current={own.locale}
+                  // Each language is named in itself, so people can find their own.
+                  options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
+                  labels={{ language: own.t('language.label'), change: own.t('language.change') }}
+                />
+              </div>
+            ) : null}
+            {ctx?.membership ? (
+              <a className="font-semibold text-on-surface underline-offset-2 hover:underline" href={`${base}/help`}>
                 {own.t('help.link')}
               </a>
             ) : null}
-            <ActionButton small action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
-          </div>
+            {ctx ? <ActionButton small action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} /> : null}
+          </AccountMenu>
         ) : null}
       </div>
     </header>

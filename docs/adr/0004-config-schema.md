@@ -61,3 +61,28 @@ way reference migrations 007–011 did.
 ## Limits
 
 256 KB per section, depth and array caps, asset references restricted to the tenant's storage.
+
+## As built (Phase 16): the community gallery
+
+- A school's managers share one published section (design, words, committee types, rules of
+  procedure, grading, printing) from Owner → Community gallery → Share. What is shared is the
+  published section, never a draft. Images (logo, icon) and people's names (the signers on
+  certificates) are removed before it leaves the school. When another school installs it, that
+  school keeps its own values for those.
+- Each share is a numbered version (`gallery_versions`) of a pack (`gallery_packs`). A version waits
+  for review, and a platform admin approves or rejects it in Admin → Gallery. A rejection needs a
+  reason, which the school sees. The reviewer sees what the version changes from the defaults, what
+  changed since the last approved version, and the data itself.
+- A new submission replaces a version still waiting. A school can have at most five versions
+  waiting.
+- Other schools see only approved versions of listed packs. They install any approved version as a
+  draft, through the same check as an imported pack file: schema upgrade, validation, and the custom
+  CSS sanitizer. Nothing is live until they publish it, and the existing history rolls it back.
+- `gallery_installs` remembers the version each school installed, so a newer version is pointed
+  out. Installs are counted once per school.
+- A pack shows the sharing school's name, never a person's. The tables are reached only through
+  functions; the public page on the main website (`/gallery`) is read by the server.
+- The sharing school can take a pack out of the gallery, and so can a platform admin (the school
+  can't undo that). Schools that installed it keep their copy.
+- Not done: paid packs (see `OPEN-QUESTIONS.md`), reports from schools about a listed pack, and
+  installing a pack as a preview without making a draft.

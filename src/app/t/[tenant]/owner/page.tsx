@@ -25,6 +25,7 @@ const AREAS: { id: string; path: string; title: MessageKey; body: MessageKey; pe
   { id: 'access', path: '/settings/access', title: 'owner.area.access', body: 'owner.area.access.body', permission: 'tenant.manage' },
   { id: 'roles', path: '/people/roles', title: 'owner.area.roles', body: 'owner.area.roles.body', permission: 'roles.manage' },
   { id: 'audit', path: '/people/audit', title: 'owner.area.audit', body: 'owner.area.audit.body', permission: 'audit.view' },
+  { id: 'gallery', path: '/owner/gallery', title: 'owner.area.gallery', body: 'owner.area.gallery.body', permission: 'tenant.manage' },
   { id: 'data', path: '/owner/data', title: 'owner.area.data', body: 'owner.area.data.body', permission: 'tenant.manage' },
   { id: 'domains', path: '/owner/domains', title: 'owner.area.domains', body: 'owner.area.domains.body', permission: 'tenant.manage' },
   { id: 'email', path: '/owner/email', title: 'owner.area.email', body: 'owner.area.email.body', permission: 'tenant.manage' },

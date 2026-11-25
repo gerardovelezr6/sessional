@@ -1835,7 +1835,114 @@ function mailDomainsStandIn(method, url, body) {
   return { body: { id: m[1], name: d.name, status: d.status, records: records.map((r) => without(r, 'fullName')) } };
 }
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff', 'tenant_features_server', 'domain_server_set', 'domains_to_check', 'mail_sender_server_set', 'mail_sender_for', 'member_by_email']);
+// --- Phase 16: the community gallery. Two schools: one shares, the other installs. ---
+TENANTS.share = { kind: 'tenant', id: tid(30), slug: 'share', name: 'Sharing School', status: 'active' };
+TENANTS.take = { kind: 'tenant', id: tid(31), slug: 'take', name: 'Taking School', status: 'active' };
+seed('owner@share.test', 'Sol Share', tid(30), 'owner');
+seed('chair@share.test', 'Cy Share', tid(30), 'chair');
+seed('owner@take.test', 'Tom Take', tid(31), 'owner');
+const galleryPacks = []; // { id, section, author_tenant, author_label, name, description, hidden, hidden_by_admin, installs, updated_at }
+const galleryVersions = []; // { id, pack_id, version, data, schema_version, notes, status, review_note, submitted_at, reviewed_at }
+const galleryInstalls = []; // { tenant_id, pack_id, version }
+const approvedOf = (p) => galleryVersions.filter((v) => v.pack_id === p.id && v.status === 'approved');
+const latestApproved = (p) => Math.max(0, ...approvedOf(p).map((v) => v.version)) || null;
+const listed = (p) => !p.hidden && approvedOf(p).length > 0;
+const galleryCard = (p) => ({ id: p.id, section: p.section, author: p.author_label, name: p.name, description: p.description, installs: p.installs, updated_at: p.updated_at, version: latestApproved(p) });
+const hasText = (o) => o && Object.values(o).some((v) => String(v).trim());
+Object.assign(rpcs, {
+  gallery_submit: ({ p_tenant, p_pack, p_section, p_name, p_description, p_notes, p_data, p_schema_version }, userId) => {
+    const denied = managerOnly(userId, p_tenant);
+    if (denied) return denied;
+    const mine = galleryPacks.filter((p) => p.author_tenant === p_tenant).map((p) => p.id);
+    if (galleryVersions.filter((v) => mine.includes(v.pack_id) && v.status === 'pending').length >= 5) return { body: { error: 'queue' } };
+    let pack;
+    if (!p_pack) {
+      if (!hasText(p_name)) return { status: 400, body: { code: '22023', message: 'a name is required' } };
+      pack = { id: randomUUID(), section: p_section, author_tenant: p_tenant, author_label: tenantRow(p_tenant).name, name: p_name, description: p_description ?? {}, hidden: false, hidden_by_admin: false, installs: 0, updated_at: new Date().toISOString() };
+      galleryPacks.push(pack);
+    } else {
+      pack = galleryPacks.find((p) => p.id === p_pack && p.author_tenant === p_tenant && p.section === p_section);
+      if (!pack) return { body: { error: 'pack' } };
+      const filled = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => String(v).trim()));
+      pack.name = { ...pack.name, ...filled(p_name) };
+      pack.description = { ...pack.description, ...filled(p_description) };
+      pack.updated_at = new Date().toISOString();
+      for (const v of galleryVersions) if (v.pack_id === pack.id && v.status === 'pending') v.status = 'withdrawn';
+    }
+    const version = Math.max(0, ...galleryVersions.filter((v) => v.pack_id === pack.id).map((v) => v.version)) + 1;
+    galleryVersions.push({ id: randomUUID(), pack_id: pack.id, version, data: p_data, schema_version: p_schema_version ?? 1, notes: p_notes ?? {}, status: 'pending', review_note: '', submitted_at: new Date().toISOString(), reviewed_at: null });
+    audit(p_tenant, userId, 'gallery.submitted', `${pack.id}@${version}`);
+    return { body: { pack_id: pack.id, version } };
+  },
+  gallery_mine: ({ p_tenant }, userId) => ({
+    body: can(userId, p_tenant, 'tenant.manage')
+      ? galleryPacks.filter((p) => p.author_tenant === p_tenant).map((p) => ({ ...galleryCard(p), hidden: p.hidden, hidden_by_admin: p.hidden_by_admin,
+          versions: galleryVersions.filter((v) => v.pack_id === p.id).sort((a, b) => b.version - a.version).map((v) => ({ version: v.version, status: v.status, review_note: v.review_note, notes: v.notes, submitted_at: v.submitted_at, reviewed_at: v.reviewed_at })) }))
+      : null,
+  }),
+  gallery_set_hidden: ({ p_tenant, p_pack, p_hidden }, userId) => {
+    const denied = managerOnly(userId, p_tenant);
+    if (denied) return denied;
+    const p = galleryPacks.find((x) => x.id === p_pack && x.author_tenant === p_tenant && !x.hidden_by_admin);
+    if (!p) return { body: false };
+    p.hidden = p_hidden;
+    return { body: true };
+  },
+  gallery_list: ({ p_section }) => ({ body: galleryPacks.filter((p) => listed(p) && (!p_section || p.section === p_section)).map(galleryCard) }),
+  gallery_get: ({ p_pack }) => {
+    const p = galleryPacks.find((x) => x.id === p_pack && listed(x));
+    return { body: p ? { ...galleryCard(p), versions: approvedOf(p).sort((a, b) => b.version - a.version).map((v) => ({ version: v.version, notes: v.notes, approved_at: v.reviewed_at })) } : null };
+  },
+  gallery_version_data: ({ p_pack, p_version }) => {
+    const p = galleryPacks.find((x) => x.id === p_pack && listed(x));
+    const v = p && approvedOf(p).find((x) => x.version === p_version);
+    return { body: v ? { section: p.section, version: v.version, schema_version: v.schema_version, data: v.data } : null };
+  },
+  gallery_installed: ({ p_tenant, p_pack, p_version }, userId) => {
+    const denied = managerOnly(userId, p_tenant);
+    if (denied) return denied;
+    const p = galleryPacks.find((x) => x.id === p_pack);
+    if (!p || !approvedOf(p).some((v) => v.version === p_version)) return { body: false };
+    const had = galleryInstalls.find((i) => i.tenant_id === p_tenant && i.pack_id === p_pack);
+    if (had) had.version = p_version;
+    else {
+      galleryInstalls.push({ tenant_id: p_tenant, pack_id: p_pack, version: p_version });
+      p.installs += 1;
+    }
+    audit(p_tenant, userId, 'gallery.installed', `${p_pack}@${p_version}`);
+    return { body: true };
+  },
+  gallery_installs_of: ({ p_tenant }, userId) => ({ body: can(userId, p_tenant, 'tenant.manage') ? galleryInstalls.filter((i) => i.tenant_id === p_tenant).map((i) => ({ pack_id: i.pack_id, version: i.version })) : null }),
+  platform_gallery_queue: (_a, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    return {
+      body: galleryVersions.filter((v) => v.status === 'pending').map((v) => {
+        const p = galleryPacks.find((x) => x.id === v.pack_id);
+        const prev = approvedOf(p).sort((a, b) => b.version - a.version)[0];
+        return { id: v.id, pack_id: p.id, section: p.section, name: p.name, description: p.description, author: p.author_label, author_slug: tenantRow(p.author_tenant)?.slug ?? null, version: v.version, notes: v.notes, data: v.data, submitted_at: v.submitted_at, previous: prev?.data ?? null };
+      }),
+    };
+  },
+  platform_gallery_packs: (_a, userId) => (platformAdmins.has(userId) ? { body: galleryPacks.map((p) => ({ ...galleryCard(p), hidden: p.hidden, hidden_by_admin: p.hidden_by_admin, listed: listed(p) })) } : NOT_ADMIN),
+  platform_gallery_review: ({ p_version, p_approve, p_note }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    if (!p_approve && !String(p_note ?? '').trim()) return { status: 400, body: { code: '22023', message: 'a reason is required' } };
+    const v = galleryVersions.find((x) => x.id === p_version && x.status === 'pending');
+    if (!v) return { body: false };
+    Object.assign(v, { status: p_approve ? 'approved' : 'rejected', review_note: String(p_note ?? '').trim(), reviewed_at: new Date().toISOString() });
+    return { body: true };
+  },
+  platform_gallery_hide: ({ p_pack, p_hidden }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const p = galleryPacks.find((x) => x.id === p_pack);
+    if (!p) return { body: false };
+    Object.assign(p, { hidden: p_hidden, hidden_by_admin: p_hidden });
+    return { body: true };
+  },
+  gallery_public: () => ({ body: galleryPacks.filter(listed).map(galleryCard) }),
+});
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff', 'tenant_features_server', 'domain_server_set', 'domains_to_check', 'mail_sender_server_set', 'mail_sender_for', 'member_by_email', 'gallery_public']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {

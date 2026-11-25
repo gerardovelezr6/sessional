@@ -17,6 +17,7 @@ import { PRODUCT_NAME } from '@/platform/product';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { renderEmail } from '@/theme/email';
 import { buildTheme, visibleAdjustments } from '@/theme/engine';
+import { isShareable } from '@/gallery/sections';
 import type { ThemeChoice } from '@/theme/presets';
 import { discardDraftAction, importPackAction, installPresetAction, publishAction, removeCustomCssAction, restoreVersionAction, saveDraftAction, setPreviewAction, type SettingsState } from './actions';
 import { sectionGroups } from './build';
@@ -32,6 +33,7 @@ const DONE: Record<string, MessageKey> = {
   discarded: 'settings.saved.discarded',
   restored: 'settings.saved.restored',
   imported: 'settings.saved.imported',
+  installed: 'settings.saved.installed',
 };
 
 export default async function SettingsPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string; section?: string }> }) {
@@ -330,6 +332,16 @@ export default async function SettingsPage({ params, searchParams }: { params: P
                     <input className="text-sm" id={`${section}-pack`} name="pack" type="file" accept="application/json,.json" required />
                   </div>
                 </ActionButton>
+                {isShareable(section) ? (
+                  <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    <a className="font-semibold underline underline-offset-2" href={`${base}/owner/gallery?section=${section}`}>
+                      {t('gallery.fromSettings.browse')}
+                    </a>
+                    <a className="font-semibold underline underline-offset-2" href={`${base}/owner/gallery/share?section=${section}`}>
+                      {t('gallery.fromSettings.share')}
+                    </a>
+                  </p>
+                ) : null}
                 {library.length ? (
                   <div className="flex flex-col gap-2">
                     <h3 className="label-text">{t('settings.library.title')}</h3>

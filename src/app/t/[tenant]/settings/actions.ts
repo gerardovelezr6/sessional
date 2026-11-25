@@ -12,6 +12,7 @@ import { uploadAsset } from '@/data/storage';
 import { sanitizeCustomCss, type ProblemReason } from '@/theme/custom-css';
 import { buildTheme } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
+import { isShareable, keptOnInstall } from '@/gallery/sections';
 import type { MessageKey, Translate } from '@/messages';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 
@@ -258,14 +259,34 @@ export async function installPresetAction(tenantKey: string, section: string, pr
   return savePack(tenantKey, section, JSON.stringify(pack));
 }
 
-async function savePack(tenantKey: string, section: string, text: string): Promise<SettingsState> {
+// Installs an approved version from the community gallery as a draft, checked like any pack. The
+// school keeps its own images and people's names; the install is recorded (counted once per school).
+export async function installGalleryAction(tenantKey: string, packId: string, version: number): Promise<SettingsState> {
+  const { tenant, t, ctx } = await editor(tenantKey);
+  if (!ctx || !/^[0-9a-f-]{36}$/.test(packId) || !Number.isInteger(version) || version < 1) return { error: t('settings.error.forbidden') };
+  let found: { section: string; schema_version: number; data: Record<string, unknown> } | null;
+  try {
+    found = await rpc<{ section: string; schema_version: number; data: Record<string, unknown> } | null>('gallery_version_data', { p_pack: packId, p_version: version }, { token: ctx.token });
+  } catch (e) {
+    return failure(e, t);
+  }
+  if (!found || !isShareable(found.section)) return { error: t('gallery.error.gone') };
+  const pack = { format: 'sessional-pack', version: 1, kind: found.section, schemaVersion: found.schema_version, exportedAt: new Date(0).toISOString(), data: found.data };
+  const saved = await savePack(tenantKey, found.section, JSON.stringify(pack), keptOnInstall(found.section));
+  if (saved.error) return saved;
+  await rpc('gallery_installed', { p_tenant: tenant.id, p_pack: packId, p_version: version }, { token: ctx.token }).catch(() => null);
+  return { redirectTo: await done(found.section, 'installed') };
+}
+
+async function savePack(tenantKey: string, section: string, text: string, kept?: string[]): Promise<SettingsState> {
   const { tenant, t, ctx } = await editor(tenantKey);
   if (!ctx || !isSection(section)) return { error: t('settings.error.forbidden') };
   try {
     // The school's own images stay as they are, whatever the file says.
     const state = await rpc<Record<string, { draft: Stored | null; published: Stored | null } | undefined>>('config_editor_state', { p_tenant: tenant.id, p_conference: null }, { token: ctx.token });
     const current = resolveSection(section, state[section]?.draft ?? state[section]?.published).data as Record<string, unknown>;
-    const keep = Object.fromEntries(settingsOf(section).filter((r) => r.control.kind === 'asset').map((r) => [r.key, current[r.key]]));
+    const keys = kept ?? settingsOf(section).filter((r) => r.control.kind === 'asset').map((r) => r.key);
+    const keep = Object.fromEntries(keys.map((k) => [k, current[k]]));
     const result = readPack(text, section, keep);
     if (!result.ok) {
       const detail = result.issues?.length ? `\n${result.issues.slice(0, 6).join(', ')}` : '';

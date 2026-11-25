@@ -1694,7 +1694,148 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff']);
+// --- Phase 15: a school's own domains and sender, and what its plan lets it brand. Stand-ins for
+// the hosting provider (/vercel), public DNS (/doh, records set with POST /__test/dns) and the
+// email provider's domains (/resend/domains). ---
+PLANS.push({ key: 'institution', name: { en: 'Institution', es: 'Institución' }, description: { en: 'A school’s own brand.' }, limits: { committees: 60, delegates: 2000, staff: 200, active_conferences: 2, storage_mb: 51200 },
+  features: { custom_domain: true, own_sender: true, white_label: true, legal_pages: true }, per_school: false, public: false, sort: 3, prices: [] });
+TENANTS.brand = { kind: 'tenant', id: tid(28), slug: 'brand', name: 'Brand School', status: 'active' };
+TENANTS.plain = { kind: 'tenant', id: tid(29), slug: 'plain', name: 'Plain School', status: 'active' };
+seed('owner@brand.test', 'Bree Brand', tid(28), 'owner');
+seed('chair@brand.test', 'Cole Brand', tid(28), 'chair');
+seed('owner@plain.test', 'Pia Plain', tid(29), 'owner');
+tenantBilling[tid(28)] = { plan_key: 'institution', billing_status: 'active', limit_overrides: {}, cancel_at_period_end: false };
+tenantBilling[tid(29)] = { plan_key: 'starter', billing_status: 'active', limit_overrides: {}, cancel_at_period_end: false };
+const FEATURES = ['custom_domain', 'own_sender', 'white_label', 'legal_pages'];
+const featuresOf = (tenant) => {
+  const b = tenantBilling[tenant];
+  return Object.fromEntries(FEATURES.map((f) => [f, !b || !!planOf(b.plan_key).features[f]]));
+};
+const domains = []; // { tenant, host, status, primary, records, checked_at, problem, checks }
+const senders = {}; // tenant -> { domain, local_part, provider_id, status, records, problem }
+const dnsRecords = []; // { name, type, data }
+const hostingDomains = new Map(); // host -> { verified }
+const mailDomains = new Map(); // id -> { name, status }
+const managerOnly = (userId, tenant) => (can(userId, tenant, 'tenant.manage') ? null : { status: 403, body: { code: '42501', message: 'not allowed' } });
+const primaryOf = (tenant) => (featuresOf(tenant).custom_domain ? domains.find((d) => d.tenant === tenant && d.primary)?.host ?? null : null);
+const domainRow = (d) => ({ host: d.host, status: d.status, primary: d.primary, records: d.records, checked_at: d.checked_at, problem: d.problem });
+Object.assign(rpcs, {
+  tenant_features: ({ p_tenant }, userId) => ({ body: memberOf(userId, p_tenant) ? featuresOf(p_tenant) : null }),
+  tenant_features_server: ({ p_tenant }) => ({ body: featuresOf(p_tenant) }),
+  domain_list: ({ p_tenant }, userId) => ({ body: can(userId, p_tenant, 'tenant.manage') ? domains.filter((d) => d.tenant === p_tenant).map(domainRow) : null }),
+  domain_add: ({ p_tenant, p_host }, userId) => {
+    const denied = managerOnly(userId, p_tenant);
+    if (denied) return denied;
+    if (!featuresOf(p_tenant).custom_domain) return { body: { error: 'plan' } };
+    const other = domains.find((d) => d.host === p_host);
+    if (other && other.tenant !== p_tenant) return { body: { error: 'taken' } };
+    if (!other) {
+      if (domains.filter((d) => d.tenant === p_tenant).length >= 5) return { body: { error: 'limit' } };
+      domains.push({ tenant: p_tenant, host: p_host, status: 'pending', primary: false, records: [], checked_at: null, problem: null });
+    }
+    return { body: { host: p_host, status: 'pending' } };
+  },
+  domain_remove: ({ p_tenant, p_host }, userId) => {
+    if (managerOnly(userId, p_tenant)) return { body: false };
+    const i = domains.findIndex((d) => d.tenant === p_tenant && d.host === p_host);
+    if (i >= 0) domains.splice(i, 1);
+    return { body: i >= 0 };
+  },
+  domain_set_primary: ({ p_tenant, p_host }, userId) => {
+    if (managerOnly(userId, p_tenant)) return { body: false };
+    const d = p_host ? domains.find((x) => x.tenant === p_tenant && x.host === p_host && x.status === 'verified') : null;
+    if (p_host && !d) return { body: false };
+    for (const x of domains) if (x.tenant === p_tenant) x.primary = x === d;
+    return { body: true };
+  },
+  domain_server_set: ({ p_tenant, p_host, p_data }) => {
+    const d = domains.find((x) => x.tenant === p_tenant && x.host === p_host);
+    if (!d) return { body: false };
+    Object.assign(d, { status: p_data.status, records: p_data.records ?? [], problem: p_data.problem ?? null, checked_at: new Date().toISOString() });
+    if (d.status !== 'verified') d.primary = false;
+    return { body: true };
+  },
+  domains_to_check: () => ({ body: domains.filter((d) => featuresOf(d.tenant).custom_domain).map((d) => ({ tenant_id: d.tenant, host: d.host })) }),
+  mail_sender_get: ({ p_tenant }, userId) => ({ body: can(userId, p_tenant, 'tenant.manage') ? senders[p_tenant] ?? null : null }),
+  mail_sender_set: ({ p_tenant, p_domain, p_local }, userId) => {
+    const denied = managerOnly(userId, p_tenant);
+    if (denied) return denied;
+    if (!featuresOf(p_tenant).own_sender) return { body: { error: 'plan' } };
+    const old = senders[p_tenant];
+    senders[p_tenant] = old?.domain === p_domain ? { ...old, local_part: p_local || 'conference' } : { domain: p_domain, local_part: p_local || 'conference', provider_id: null, status: 'pending', records: [], problem: null };
+    return { body: senders[p_tenant] };
+  },
+  mail_sender_remove: ({ p_tenant }, userId) => {
+    if (managerOnly(userId, p_tenant)) return { body: false };
+    delete senders[p_tenant];
+    return { body: true };
+  },
+  mail_sender_server_set: ({ p_tenant, p_data }) => {
+    if (!senders[p_tenant]) return { body: false };
+    Object.assign(senders[p_tenant], p_data);
+    return { body: true };
+  },
+  mail_sender_for: ({ p_tenant }) => {
+    const s = senders[p_tenant];
+    return { body: s?.status === 'verified' && featuresOf(p_tenant).own_sender ? { address: `${s.local_part}@${s.domain}`, provider_id: s.provider_id } : null };
+  },
+  member_by_email: ({ p_tenant, p_email }) => {
+    const u = byEmail(String(p_email).trim().toLowerCase());
+    const m = u && memberships.find((x) => x.tenant_id === p_tenant && x.user_id === u.id && ['active', 'invited'].includes(x.status));
+    return { body: m ? { user_id: u.id, name: u.full_name, locale: u.locale ?? null } : null };
+  },
+});
+const resolveTenant = rpcs.resolve_tenant;
+rpcs.resolve_tenant = (args) => {
+  const own = args.p_host && domains.find((d) => d.host === args.p_host && d.status === 'verified' && featuresOf(d.tenant).custom_domain);
+  const r = own ? { body: tenantRow(own.tenant) } : resolveTenant(args);
+  return r.body?.kind === 'tenant' ? { body: { ...r.body, primary: primaryOf(r.body.id) } } : r;
+};
+const found = (name, type) => dnsRecords.filter((r) => r.name === name && r.type === type);
+const points = (host) => found(host, 'CNAME').some((r) => r.data === 'cname.vercel-dns.com') || found(host, 'A').some((r) => r.data === '76.76.21.21');
+function hostingStandIn(method, url) {
+  const path = url.split('?')[0];
+  let m = /^\/vercel\/v9\/projects\/[^/]+\/domains\/([^/]+)(\/verify)?$/.exec(path);
+  if (m) {
+    const host = decodeURIComponent(m[1]);
+    const d = hostingDomains.get(host);
+    if (method === 'DELETE') return hostingDomains.delete(host), { body: {} };
+    if (!d) return { status: 404, body: { error: { code: 'not_found', message: 'domain not found' } } };
+    if (m[2]) d.verified = points(host);
+    return { body: { name: host, verified: d.verified, verification: [] } };
+  }
+  if (method === 'POST' && /^\/vercel\/v10\/projects\/[^/]+\/domains$/.test(path)) return null; // body needed: handled by caller
+  m = /^\/vercel\/v6\/domains\/([^/]+)\/config$/.exec(path);
+  if (m) return { body: { misconfigured: !points(decodeURIComponent(m[1])) } };
+  return { status: 404, body: { error: { message: `no stand-in for ${method} ${url}` } } };
+}
+const DNS_TYPES = { A: 1, CNAME: 5, TXT: 16, MX: 15 };
+const DKIM = 'p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDtest';
+function mailDomainRecords(name) {
+  return [
+    { record: 'DKIM', type: 'TXT', name: 'resend._domainkey', value: DKIM },
+    { record: 'SPF', type: 'MX', name: 'send', value: 'feedback-smtp.us-east-1.amazonses.com', priority: 10 },
+    { record: 'SPF', type: 'TXT', name: 'send', value: 'v=spf1 include:amazonses.com ~all' },
+  ].map((r) => ({ ...r, fullName: `${r.name}.${name}` }));
+}
+function mailDomainsStandIn(method, url, body) {
+  if (method === 'POST' && url === '/resend/domains') {
+    const id = `dom_${randomBytes(6).toString('hex')}`;
+    mailDomains.set(id, { name: body.name, status: 'not_started' });
+    return { body: { id, name: body.name, status: 'not_started', records: mailDomainRecords(body.name).map((r) => without(r, 'fullName')) } };
+  }
+  const m = /^\/resend\/domains\/([^/]+)(\/verify)?$/.exec(url);
+  const d = m && mailDomains.get(decodeURIComponent(m[1]));
+  if (!d) return { status: 404, body: { message: 'Domain not found' } };
+  const records = mailDomainRecords(d.name);
+  if (m[2]) {
+    d.status = records.every((r) => found(r.fullName, r.type).some((x) => x.data === r.value.toLowerCase())) ? 'verified' : 'pending';
+    return { body: { object: 'domain', id: m[1] } };
+  }
+  return { body: { id: m[1], name: d.name, status: d.status, records: records.map((r) => without(r, 'fullName')) } };
+}
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff', 'tenant_features_server', 'domain_server_set', 'domains_to_check', 'mail_sender_server_set', 'mail_sender_for', 'member_by_email']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -1768,6 +1909,33 @@ createServer((req, res) => {
       if (req.headers.authorization !== 'Bearer sk_test_mock') return send({ status: 401, body: { error: { message: 'Invalid API key' } } });
       return void stripeStandIn(req.method, req.url, raw).then(send);
     }
+    // Hosting provider stand-in (domains on the project), checked with the token.
+    if ((req.url ?? '').startsWith('/vercel/')) {
+      if (req.headers.authorization !== 'Bearer vercel_test_mock') return send({ status: 403, body: { error: { message: 'Not authorized' } } });
+      if (req.method === 'POST' && /^\/vercel\/v10\/projects\/[^/]+\/domains/.test(req.url)) {
+        const name = JSON.parse(raw || '{}').name;
+        if (name.endsWith('.blocked.test')) return send({ status: 400, body: { error: { code: 'forbidden', message: 'The domain is used by another project.' } } });
+        hostingDomains.set(name, { verified: false });
+        return send({ body: { name, verified: false, verification: [] } });
+      }
+      return send(hostingStandIn(req.method, req.url));
+    }
+    // Public DNS stand-in, answering like DNS-over-HTTPS (JSON); tests publish records first.
+    if (req.method === 'GET' && (req.url ?? '').startsWith('/doh?')) {
+      const q = new URL(req.url, 'http://mock').searchParams;
+      const type = q.get('type');
+      return send({ body: { Status: 0, Answer: found(q.get('name'), type).map((r) => ({ name: r.name, type: DNS_TYPES[type], data: type === 'TXT' ? `"${r.data}"` : `${r.data}.` })) } });
+    }
+    if (req.method === 'POST' && req.url === '/__test/dns') {
+      const r = JSON.parse(raw);
+      for (let i = dnsRecords.length - 1; i >= 0; i--) if (dnsRecords[i].name === r.name && dnsRecords[i].type === r.type) dnsRecords.splice(i, 1);
+      if (r.data) dnsRecords.push({ name: r.name, type: r.type, data: String(r.data).toLowerCase() });
+      return send({ body: { ok: true } });
+    }
+    if ((req.url ?? '').startsWith('/resend/domains')) {
+      if (req.headers.authorization !== 'Bearer re_test_mock') return send({ status: 401, body: { message: 'API key is invalid' } });
+      return send(mailDomainsStandIn(req.method, req.url, raw ? JSON.parse(raw) : {}));
+    }
     // Test hook: a school's billing goes read-only (or back), as the daily job would set it.
     if (req.method === 'POST' && req.url === '/__test/billing-status') {
       const b = JSON.parse(raw);
@@ -1803,7 +1971,7 @@ createServer((req, res) => {
     // Stand-in for Resend's API: keeps what would have been sent.
     if (req.method === 'POST' && req.url === '/resend/emails') {
       if (req.headers.authorization !== 'Bearer re_test_mock') return send({ status: 401, body: { message: 'API key is invalid' } });
-      for (const to of body.to ?? []) outbox.push({ to, subject: body.subject, text: body.text, reply_to: body.reply_to ?? null });
+      for (const to of body.to ?? []) outbox.push({ to, from: body.from, subject: body.subject, text: body.text, html: body.html ?? null, reply_to: body.reply_to ?? null });
       return send({ body: { id: randomUUID() } });
     }
     if (req.method === 'GET' && (req.url ?? '').startsWith('/__test/outbox')) {

@@ -73,6 +73,13 @@ describe('custom domains', () => {
     const list = await call<Record<string, unknown>[]>('owner', `public.domain_list($1)`, [A]);
     expect(list[0]).toMatchObject({ host: host('mun'), status: 'verified', primary: true });
     expect(await call('chair', `public.domain_list($1)`, [A])).toBeNull();
+    // A plan without custom domains: it stops serving (the school's own address still works), and
+    // comes back with the plan.
+    await db.query(`insert into tenant_billing (tenant_id, plan_key, billing_status) values ($1, 'starter', 'active')`, [A]);
+    expect(await call('service', `public.resolve_tenant(null, $1)`, [host('mun')])).toEqual({ kind: 'none' });
+    expect(await call('service', `public.resolve_tenant($1, null)`, [`dm-a-${run}`])).toMatchObject({ kind: 'tenant', primary: null });
+    await db.query(`delete from tenant_billing where tenant_id = $1`, [A]);
+    expect(await call('service', `public.resolve_tenant(null, $1)`, [host('mun')])).toMatchObject({ kind: 'tenant', id: A, primary: host('mun') });
     // DNS breaks: it stops serving and stops being primary.
     await call('service', `public.domain_server_set($1, $2, $3)`, [A, host('mun'), { status: 'error', problem: 'CNAME points elsewhere' }]);
     expect(await call('service', `public.resolve_tenant(null, $1)`, [host('mun')])).toEqual({ kind: 'none' });

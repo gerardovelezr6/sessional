@@ -37,6 +37,12 @@ function parse(body: unknown): Resolution {
   return { kind: 'none' };
 }
 
+// After a school changes its domains, so this server stops serving the old answer at once (other
+// servers catch up within TTL_MS).
+export function forgetTenantAddresses(): void {
+  cache.clear();
+}
+
 export async function resolveTenant(address: { slug: string } | { host: string }): Promise<Resolution> {
   const env = databaseEnv();
   if (!env) return { kind: 'unconfigured' };

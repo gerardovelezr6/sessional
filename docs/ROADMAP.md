@@ -1,10 +1,8 @@
 # Roadmap
 
-Status: Phases 0 to 12, the website editor, the Owner area and Google and Microsoft sign-in are
-merged. Phase 13 (billing and metering) is up for review in one pull request. The degraded-mode load
-test from Phase 7 still needs staging (see `docs/LOAD-TEST.md`).
-
-Editable email texts move to the email phase.
+Status: Phases 0 to 14 are merged. Phase 15 (email, domains and white-label) is up for review in
+one pull request. Phases 16 (pack exchange) and 17 (hardening and docs) remain. The degraded-mode
+load test from Phase 7 still needs staging (see `docs/LOAD-TEST.md`).
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a
 "what to verify" checklist. Effort is in pull requests (a PR is roughly one focused working

@@ -57,3 +57,22 @@ by NS records, which is Vercel's documented way to issue a wildcard certificate 
 nameservers ([guide](https://vercel.com/kb/guide/wildcard-domain-without-vercel-nameservers)).
 Steps are in `docs/SETUP.md`. Having DNS at Cloudflare also shortens the fallback path to
 Cloudflare for SaaS (ADR-0001).
+
+## As built (Phase 15)
+
+- `tenant_domains` holds each domain's status (`pending`, `verified`, `error`), the DNS records to
+  create, what the last live lookup found, and the problem if any. Only the server
+  (`domain_server_set`) can mark a domain verified, after the hosting provider (Vercel's API)
+  reports it verified and not misconfigured.
+- The Domains page shows each record next to a DNS-over-HTTPS lookup made at check time, so the
+  guidance and the check are the same data.
+- A domain serves only while it is verified and the plan includes `custom_domain`. A downgrade stops
+  it serving; the school's subdomain keeps working.
+- The primary host is returned by `resolve_tenant`. The school layout redirects other hosts there,
+  but not path-based addresses (the base path).
+- A school can have at most 5 domains, and a domain belongs to one school.
+- Changing a domain clears the tenant cache on the server that made the change. Other servers catch
+  up within the cache's 60 seconds.
+- Not done: removing a domain from Vercel automatically on downgrade or deletion (it just stops
+  resolving). The daily job does not remove domains either.
+

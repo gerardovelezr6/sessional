@@ -4891,7 +4891,7 @@ create or replace function public.resolve_tenant(p_slug text default null, p_hos
 language sql stable set search_path = '' as $$
   select coalesce(
     (select jsonb_build_object('kind', 'tenant', 'id', t.id, 'slug', t.slug, 'name', t.name, 'status', t.status,
-       'primary', (select d.host from public.tenant_domains d where d.tenant_id = t.id and d.is_primary and d.verified_at is not null limit 1))
+       'primary', (select d.host from public.tenant_domains d where d.tenant_id = t.id and d.is_primary and d.verified_at is not null and app.has_feature(t.id, 'custom_domain') limit 1))
        from public.tenants t
       where p_slug is not null and t.slug = lower(p_slug)),
     (select jsonb_build_object('kind', 'renamed', 'slug', t.slug)
@@ -4899,10 +4899,11 @@ language sql stable set search_path = '' as $$
        join public.tenants t on t.id = h.tenant_id
       where p_slug is not null and h.slug = lower(p_slug) and h.redirect_until > now()),
     (select jsonb_build_object('kind', 'tenant', 'id', t.id, 'slug', t.slug, 'name', t.name, 'status', t.status,
-       'primary', (select p.host from public.tenant_domains p where p.tenant_id = t.id and p.is_primary and p.verified_at is not null limit 1))
+       'primary', (select p.host from public.tenant_domains p where p.tenant_id = t.id and p.is_primary and p.verified_at is not null and app.has_feature(t.id, 'custom_domain') limit 1))
        from public.tenant_domains d
        join public.tenants t on t.id = d.tenant_id
-      where p_host is not null and d.host = lower(p_host) and d.verified_at is not null),
+      -- A plan that no longer includes custom domains stops them serving (the school's address still works).
+      where p_host is not null and d.host = lower(p_host) and d.verified_at is not null and app.has_feature(t.id, 'custom_domain')),
     jsonb_build_object('kind', 'none'))
 $$;
 

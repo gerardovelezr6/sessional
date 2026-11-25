@@ -14,7 +14,8 @@ export async function checkSender(tenantId: string, domain: string, providerId: 
       const records = await Promise.all(
         s.records.map(async (r) => {
           const found = await lookup(r.name, (['TXT', 'MX', 'CNAME', 'A'].includes(r.type) ? r.type : 'TXT') as 'TXT');
-          return { ...r, found, ok: matches(found, r.type === 'MX' && r.priority !== undefined ? r.value : r.value) || found.some((f) => f.endsWith(r.value.toLowerCase())) };
+          // An MX answer reads "10 feedback-smtp…": compare the host part.
+          return { ...r, found, ok: matches(r.type === 'MX' ? found.map((f) => f.replace(/^\d+\s+/, '')) : found, r.value) };
         }),
       );
       data = { provider_id: s.providerId, records, status: s.verified ? 'verified' : s.failed ? 'error' : 'pending', problem: s.verified ? '' : 'dns' };

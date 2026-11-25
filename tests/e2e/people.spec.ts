@@ -87,7 +87,7 @@ test('invitation: link previews do not use it up, it works once, and the person 
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Role', { exact: true }).selectOption('chair');
   await page.getByRole('button', { name: 'Create invitation' }).click();
-  await expect(page.getByRole('status')).toContainText(`Copy this link and send it to ${email}`);
+  await expect(page.getByRole('status')).toContainText(`Invitation emailed to ${email}`);
   const link = await page.getByLabel('Invitation link').inputValue();
   expect(link).toMatch(/^http:\/\/alpha\.localhost:3100\/set-password\?token_hash=[0-9a-f]+&type=invite$/);
 

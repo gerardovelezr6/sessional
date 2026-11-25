@@ -171,7 +171,34 @@ Before the first real charge (open question 7):
   Until then Checkout collects the customer's tax ID and address but adds no tax.
 - Switch Vercel to Pro (Hobby is non-commercial), and create the live webhook and live prices.
 
-## 6. Email provider (later)
+## 6. Schools' emails, domains and white-label (Phase 15)
 
-Invitations are links you copy and send yourself for now. Automatic emails with your own sender
-address arrive in the email phase; a Resend account will be needed then, not before.
+Everything below is optional: without it, invitations stay links you copy, and Owner → Domains
+explains that domains are not connected yet.
+
+**Emails (invitations, password resets, "you were added").** They use the same `RESEND_API_KEY` as
+the contact form. They come from `CONTACT_FROM_EMAIL` in the school's name ("Colegio Norte
+<hello@sessional.app>"), with replies going to the school's reply-to address. So verify
+`sessional.app` in Resend before relying on them. A school whose plan includes its own sender
+(Conference and Institution) enters its domain in Owner → Email. Sessional registers it with
+Resend and shows the DNS records next to what a live lookup finds. Once Resend verifies it, that
+school's emails come from its own address.
+
+**Custom domains (Vercel).** In Vercel, create a token (Account Settings → Tokens, scoped to the
+team that owns the project). Then set these in the project's Production environment:
+- `VERCEL_TOKEN`: that token.
+- `VERCEL_PROJECT_ID`: Project → Settings → General → Project ID.
+- `VERCEL_TEAM_ID`: only if the project belongs to a team (Team Settings → General → Team ID).
+
+A school then adds `mun.school.edu` in Owner → Domains, and is asked to create a CNAME to
+`cname.vercel-dns.com`, or an A record to `76.76.21.21` for an apex domain. Sessional adds the domain
+to the project, and Vercel issues the TLS certificate once DNS points at it. The daily job
+`/api/cron/domains` (in `vercel.json`, using `CRON_SECRET`) re-checks pending and verified domains,
+so a domain whose DNS is changed stops serving.
+
+**Live DNS checks.** These use Cloudflare's public DNS-over-HTTPS. `DOH_URL` overrides it; it exists
+only for tests.
+
+**White-label and legal pages.** No setup needed. They follow the school's plan features
+(`white_label`, `legal_pages`) in Admin → Plans. A school with no plan (created by hand) has every
+feature.

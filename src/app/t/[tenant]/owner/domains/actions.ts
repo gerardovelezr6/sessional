@@ -6,6 +6,7 @@ import { checkDomain } from '@/platform/domains';
 import { rootDomain } from '@/platform/env';
 import { hostingConfigured, removeDomain } from '@/platform/hosting';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { forgetTenantAddresses } from '@/tenancy/directory';
 
 // The school's own domains: add, check, make primary, remove. The database checks the permission
 // and the plan again; the hosting provider and DNS decide when a domain serves.
@@ -49,6 +50,7 @@ export async function checkDomainAction(tenantKey: string, host: string): Promis
   const mine = await rpc<{ host: string }[] | null>('domain_list', { p_tenant: tenant.id }, { token: ctx.token });
   if (!mine?.some((d) => d.host === host)) return { error: t('domains.error.failed') };
   const outcome = await checkDomain(tenant.id, host);
+  forgetTenantAddresses();
   return { redirectTo: `${base}/owner/domains?done=${outcome.status === 'verified' ? 'verified' : 'checked'}` };
 }
 
@@ -57,6 +59,7 @@ export async function primaryDomainAction(tenantKey: string, host: string | null
   if (!ctx) return { error: t('settings.error.forbidden') };
   const ok = await rpc<boolean>('domain_set_primary', { p_tenant: tenant.id, p_host: host }, { token: ctx.token }).catch(() => false);
   if (!ok) return { error: t('domains.error.notVerified') };
+  forgetTenantAddresses();
   return { redirectTo: `${base}/owner/domains?done=primary` };
 }
 
@@ -66,5 +69,6 @@ export async function removeDomainAction(tenantKey: string, host: string): Promi
   const ok = await rpc<boolean>('domain_remove', { p_tenant: tenant.id, p_host: host }, { token: ctx.token }).catch(() => false);
   if (!ok) return { error: t('domains.error.failed') };
   if (hostingConfigured()) await removeDomain(host);
+  forgetTenantAddresses();
   return { redirectTo: `${base}/owner/domains?done=removed` };
 }

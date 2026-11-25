@@ -99,9 +99,9 @@ export default async function TenantLayout({ params, children }: Props) {
   // A school with its own primary domain is served there: its other addresses send people on.
   if (found.tenant.primary) {
     const h = await headers();
-    const here = (h.get('host') ?? '').split(':')[0];
+    const [here, port] = (h.get('host') ?? '').split(':');
     if (here && here !== found.tenant.primary && !h.get(BASE_PATH_HEADER)) {
-      redirect(`${isSecureOrigin() ? 'https' : 'http'}://${found.tenant.primary}${h.get(TENANT_PATH_HEADER) ?? '/'}`);
+      redirect(`${isSecureOrigin() ? 'https' : 'http'}://${found.tenant.primary}${port ? `:${port}` : ''}${h.get(TENANT_PATH_HEADER) ?? '/'}`);
     }
   }
   // An editor previewing their drafts always sees that they are: the banner cannot be dismissed

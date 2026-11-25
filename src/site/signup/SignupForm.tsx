@@ -77,6 +77,7 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
     );
   }
   const bad = (f: string) => state.status === 'invalid' && !!state.fields?.includes(f as never);
+  const v = state.values ?? {};
   const field = (name: string) => ({ name, id: `signup-${name}`, 'aria-invalid': bad(name) || undefined, 'aria-describedby': bad(name) ? `signup-${name}-error` : undefined });
   const err = (name: string) =>
     bad(name) ? (
@@ -95,12 +96,12 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
           {label('name', L.name)}
-          <input className="input" {...field('name')} autoComplete="name" required maxLength={120} />
+          <input className="input" {...field('name')} defaultValue={v.name} autoComplete="name" required maxLength={120} />
           {err('name')}
         </div>
         <div className="flex flex-col gap-1">
           {label('email', L.email)}
-          <input className="input" {...field('email')} type="email" autoComplete="email" spellCheck={false} required maxLength={254} />
+          <input className="input" {...field('email')} defaultValue={v.email} type="email" autoComplete="email" spellCheck={false} required maxLength={254} />
           {err('email')}
         </div>
       </div>
@@ -109,6 +110,7 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
         <input
           className="input"
           {...field('school')}
+          defaultValue={v.school}
           autoComplete="organization"
           required
           maxLength={120}
@@ -146,7 +148,7 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
         <div className="flex gap-6">
           {(['en', 'es'] as const).map((l) => (
             <label key={l} className="flex items-center gap-2" lang={l}>
-              <input type="radio" name="locale" value={l} defaultChecked={l === locale} />
+              <input type="radio" name="locale" value={l} defaultChecked={l === (v.locale || locale)} />
               {L.languages[l]}
             </label>
           ))}
@@ -154,14 +156,14 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
       </fieldset>
       <div className="flex flex-col gap-1">
         <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" {...field('adult')} className="mt-1" required />
+          <input type="checkbox" {...field('adult')} defaultChecked={v.adult === 'on'} className="mt-1" required />
           <span>{L.adult}</span>
         </label>
         {err('adult')}
       </div>
       <div className="flex flex-col gap-1">
         <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" {...field('terms')} className="mt-1" required />
+          <input type="checkbox" {...field('terms')} defaultChecked={v.terms === 'on'} className="mt-1" required />
           <span>
             {L.terms}{' '}
             <a className="underline underline-offset-4" href={termsHref} target="_blank" rel="noopener">

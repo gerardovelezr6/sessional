@@ -18,12 +18,12 @@ export async function GettingStarted({ t, base, ctx, tenantId, tenantKey, firstC
     <div className="flex flex-col gap-4">
       {ctx.can('tenant.manage') && !state.setup_completed_at ? (
         <section className="card flex flex-wrap items-center justify-between gap-3" aria-labelledby="setup-title">
-          <span>
-            <span id="setup-title" className="block font-bold text-on-surface">
+          <div>
+            <h2 id="setup-title" className="font-bold text-on-surface">
               {t('welcome.banner.title')}
-            </span>
-            <span className="block text-sm">{t('welcome.banner.body')}</span>
-          </span>
+            </h2>
+            <p className="text-sm">{t('welcome.banner.body')}</p>
+          </div>
           <a className="btn btn-primary" href={`${base}/welcome`}>
             {t('welcome.banner.button')}
           </a>

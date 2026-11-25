@@ -71,9 +71,11 @@ export function ContactForm({ L, locale, countries }: { L: ContactLabels; locale
     );
   }
   const bad = (f: string) => state.status === 'invalid' && !!state.fields?.includes(f as never);
+  const v = state.values ?? {};
   const field = (name: string) => ({
     name,
     id: `contact-${name}`,
+    defaultValue: v[name],
     'aria-invalid': bad(name) || undefined,
     'aria-describedby': bad(name) ? `contact-${name}-error` : undefined,
   });
@@ -105,7 +107,7 @@ export function ContactForm({ L, locale, countries }: { L: ContactLabels; locale
       </div>
       <div className="flex flex-col gap-1">
         {label('role', L.role)}
-        <select className="input" {...field('role')} required defaultValue="staff">
+        <select className="input" {...field('role')} required defaultValue={v.role || 'staff'}>
           {(['staff', 'student', 'other'] as const).map((r) => (
             <option key={r} value={r}>
               {L.roles[r]}
@@ -121,7 +123,7 @@ export function ContactForm({ L, locale, countries }: { L: ContactLabels; locale
       </div>
       <div className="flex flex-col gap-1">
         {label('country', L.country, true)}
-        <select className="input" {...field('country')} autoComplete="country" defaultValue="">
+        <select className="input" {...field('country')} autoComplete="country" defaultValue={v.country ?? ''}>
           <option value="">{L.chooseCountry}</option>
           {countries.map(([code, name]) => (
             <option key={code} value={code}>
@@ -158,7 +160,7 @@ export function ContactForm({ L, locale, countries }: { L: ContactLabels; locale
         <div className="flex gap-6">
           {(['en', 'es'] as const).map((l) => (
             <label key={l} className="flex items-center gap-2" lang={l}>
-              <input type="radio" name="language" value={l} defaultChecked={l === locale} />
+              <input type="radio" name="language" value={l} defaultChecked={l === (v.language || locale)} />
               {L.languages[l]}
             </label>
           ))}

@@ -30,15 +30,17 @@ export function Shell({ title, subtitle, children, wide = false, size, centered 
             </ol>
           </nav>
         ) : null}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <h1 className={quietTitle ? 'sr-only' : 'page-title text-2xl'}>{title}</h1>
-          {/* Help with this page, in the school's help topics. */}
-          {help ? (
+        {help ? (
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <h1 className={quietTitle ? 'sr-only' : 'page-title text-2xl'}>{title}</h1>
+            {/* Help with this page, in the school's help topics. */}
             <a href={help.href} className="text-sm underline-offset-2 hover:underline">
               {help.label}
             </a>
-          ) : null}
-        </div>
+          </div>
+        ) : (
+          <h1 className={quietTitle ? 'sr-only' : 'page-title text-2xl'}>{title}</h1>
+        )}
         {subtitle ? <p className="mt-1 text-on-surface-muted">{subtitle}</p> : null}
         {quietTitle ? null : <div className="mb-6" />}
         {children}

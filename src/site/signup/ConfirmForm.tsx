@@ -35,13 +35,15 @@ export function ConfirmForm({ id, link, needsPassword, slug, domain, L }: { id: 
     <form action={action} className="flex flex-col gap-4">
       {needsPassword ? (
         <>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-semibold text-on-surface">{L.password}</span>
-            <input className="input" type="password" name="password" autoComplete="new-password" required minLength={8} aria-describedby="confirm-hint" />
+          <div className="flex flex-col gap-1">
+            <label htmlFor="confirm-password" className="text-sm font-semibold text-on-surface">
+              {L.password}
+            </label>
+            <input id="confirm-password" className="input" type="password" name="password" autoComplete="new-password" required minLength={8} aria-describedby="confirm-hint" />
             <span id="confirm-hint" className="text-xs">
               {L.passwordHint}
             </span>
-          </label>
+          </div>
           <label className="flex flex-col gap-1">
             <span className="text-sm font-semibold text-on-surface">{L.repeat}</span>
             <input className="input" type="password" name="repeat" autoComplete="new-password" required minLength={8} />

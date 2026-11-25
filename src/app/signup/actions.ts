@@ -13,7 +13,12 @@ export interface SignupState {
   status: 'idle' | 'sent' | 'invalid' | 'rate' | 'failed';
   fields?: SignupField[];
   slugProblem?: 'format' | 'reserved' | 'taken';
+  // What was typed, to put back in the form (React clears a form after its action runs).
+  values?: Record<string, string>;
 }
+
+const KEEP = ['name', 'email', 'school', 'slug', 'locale', 'adult', 'terms'];
+const typed = (data: FormData) => Object.fromEntries(KEEP.map((k) => [k, String(data.get(k) ?? '')]));
 
 const scheme = () => (isSecureOrigin() ? 'https' : 'http');
 
@@ -22,7 +27,7 @@ const scheme = () => (isSecureOrigin() ? 'https' : 'http');
 export async function signupAction(_prev: SignupState, data: FormData): Promise<SignupState> {
   if (looksAutomated(data, Date.now())) return { status: 'sent' };
   const parsed = parseSignup(data);
-  if (!parsed.ok) return { status: 'invalid', fields: parsed.fields };
+  if (!parsed.ok) return { status: 'invalid', fields: parsed.fields, values: typed(data) };
   const v = parsed.value;
   const h = await headers();
   const address = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'unknown';
@@ -33,9 +38,9 @@ export async function signupAction(_prev: SignupState, data: FormData): Promise<
       { p_data: { email: v.email, name: v.name, school: v.school, slug: v.slug, locale: v.locale, terms_version: TERMS_VERSION }, p_sender: senderKey(address), p_secret_hash: hashOf(link) },
       'service',
     );
-    if (r.error === 'rate') return { status: 'rate' };
-    if (r.error?.startsWith('slug_')) return { status: 'invalid', fields: ['slug'], slugProblem: r.error.slice(5) as SignupState['slugProblem'] };
-    if (!r.id) return { status: 'failed' };
+    if (r.error === 'rate') return { status: 'rate', values: typed(data) };
+    if (r.error?.startsWith('slug_')) return { status: 'invalid', fields: ['slug'], slugProblem: r.error.slice(5) as SignupState['slugProblem'], values: typed(data) };
+    if (!r.id) return { status: 'failed', values: typed(data) };
     const t = translator(v.locale);
     const url = `${scheme()}://${rootDomain()}/signup/confirm?i=${r.id}&h=${link}`;
     const sent = await sendMail({
@@ -44,9 +49,9 @@ export async function signupAction(_prev: SignupState, data: FormData): Promise<
       text: t('signup.mail.body', { name: v.name, school: v.school, address: `${v.slug}.${rootDomain()}`, url }),
     });
     console.info(JSON.stringify({ event: 'signup_started', sent }));
-    return sent ? { status: 'sent' } : { status: 'failed' };
+    return sent ? { status: 'sent' } : { status: 'failed', values: typed(data) };
   } catch {
-    return { status: 'failed' };
+    return { status: 'failed', values: typed(data) };
   }
 }
 

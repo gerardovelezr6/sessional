@@ -1631,7 +1631,70 @@ async function stripeStandIn(method, url, raw) {
   return { status: 404, body: { error: { message: `no stand-in for ${method} ${url}` } } };
 }
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed']);
+// --- Phase 14: self-serve signup, setup and tours. A stand-in for Resend keeps every email sent
+// (GET /__test/outbox?to=…), so a test can open the link a person would get. ---
+const signups = []; // { id, email, name, school, slug, locale, sender, secret_hash, created_at, used_at, tenant_id, handoff_hash, handoff_until }
+const outbox = []; // { to, subject, text }
+const toursSeen = new Map(); // user id -> Set
+const setupDone = new Set(); // tenant ids
+const RESERVED = new Set(['admin', 'app', 'www', 'api', 'help', 'status', 'mail']);
+const slugProblem = (slug) =>
+  !/^[a-z0-9]([a-z0-9-]{1,38})[a-z0-9]$/.test(slug ?? '') || slug.includes('--') ? 'format' : RESERVED.has(slug) ? 'reserved' : TENANTS[slug] ? 'taken' : null;
+const signupLive = (id, hash) => signups.find((s) => s.id === id && s.secret_hash === hash && !s.used_at && Date.now() - Date.parse(s.created_at) < 86400000);
+Object.assign(rpcs, {
+  signup_start: ({ p_data, p_sender, p_secret_hash }) => {
+    const hour = Date.now() - 3600000;
+    const day = Date.now() - 86400000;
+    const email = String(p_data.email).trim().toLowerCase();
+    if (signups.filter((s) => s.sender === p_sender && Date.parse(s.created_at) > hour).length >= 3
+      || signups.filter((s) => s.email === email && Date.parse(s.created_at) > day).length >= 3
+      || signups.filter((s) => Date.parse(s.created_at) > hour).length >= 30) return { body: { error: 'rate' } };
+    const problem = slugProblem(p_data.slug);
+    if (problem) return { body: { error: `slug_${problem}` } };
+    const row = { id: randomUUID(), email, name: p_data.name, school: p_data.school, slug: p_data.slug, locale: p_data.locale ?? 'en', sender: p_sender, secret_hash: p_secret_hash, created_at: new Date().toISOString(), used_at: null };
+    signups.push(row);
+    return { body: { id: row.id } };
+  },
+  signup_peek: ({ p_id, p_secret_hash }) => {
+    const s = signupLive(p_id, p_secret_hash);
+    return { body: s ? { email: s.email, name: s.name, school: s.school, slug: s.slug, locale: s.locale, has_account: !!byEmail(s.email)?.password_set } : null };
+  },
+  signup_finish: ({ p_id, p_secret_hash, p_user, p_slug, p_handoff_hash }) => {
+    const s = signupLive(p_id, p_secret_hash);
+    if (!s || users.get(p_user)?.email !== s.email) return { body: { error: 'invalid' } };
+    const slug = (p_slug || s.slug).trim().toLowerCase();
+    const problem = slugProblem(slug);
+    if (problem) return { body: { error: `slug_${problem}` } };
+    const id = randomUUID();
+    TENANTS[slug] = { kind: 'tenant', id, slug, name: s.school, status: 'trialing' };
+    EXTRA_ROLES[id] = [];
+    memberships.push({ tenant_id: id, user_id: p_user, role_key: 'owner', status: 'active' });
+    tenantBilling[id] = { plan_key: 'conference', billing_status: 'trialing', trial_ends_at: new Date(Date.now() + 14 * 86400000).toISOString() };
+    Object.assign(s, { used_at: new Date().toISOString(), tenant_id: id, slug, handoff_hash: p_handoff_hash, handoff_until: Date.now() + 120000 });
+    return { body: { tenant_id: id, slug } };
+  },
+  signup_handoff: ({ p_id, p_handoff_hash }) => {
+    const s = signups.find((x) => x.id === p_id && x.handoff_hash === p_handoff_hash && x.handoff_until > Date.now());
+    if (!s) return { body: null };
+    s.handoff_hash = null;
+    return { body: { tenant_id: s.tenant_id, email: s.email } };
+  },
+  onboarding_state: ({ p_tenant }, userId) => (memberOf(userId, p_tenant) ? { body: { setup_completed_at: setupDone.has(p_tenant) ? new Date().toISOString() : null, tours_seen: [...(toursSeen.get(userId) ?? [])] } } : { body: null }),
+  setup_complete: ({ p_tenant }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { status: 403, body: { code: '42501', message: 'not allowed' } };
+    setupDone.add(p_tenant);
+    return { body: { setup_completed_at: new Date().toISOString() } };
+  },
+  tour_seen: ({ p_key }, userId) => {
+    const set = toursSeen.get(userId) ?? new Set();
+    if (p_key === '') set.clear();
+    else set.add(p_key);
+    toursSeen.set(userId, set);
+    return { body: [...set] };
+  },
+});
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -1737,6 +1800,16 @@ createServer((req, res) => {
       return send({ body: issue(u.id, 5) });
     }
 
+    // Stand-in for Resend's API: keeps what would have been sent.
+    if (req.method === 'POST' && req.url === '/resend/emails') {
+      if (req.headers.authorization !== 'Bearer re_test_mock') return send({ status: 401, body: { message: 'API key is invalid' } });
+      for (const to of body.to ?? []) outbox.push({ to, subject: body.subject, text: body.text, reply_to: body.reply_to ?? null });
+      return send({ body: { id: randomUUID() } });
+    }
+    if (req.method === 'GET' && (req.url ?? '').startsWith('/__test/outbox')) {
+      const to = new URL(req.url, 'http://mock').searchParams.get('to');
+      return send({ body: outbox.filter((m) => !to || m.to === to).slice(-20) });
+    }
     const rpc = /^\/rest\/v1\/rpc\/(\w+)$/.exec(req.url ?? '');
     if (req.method === 'POST' && rpc && rpcs[rpc[1]]) {
       if (SERVICE_ONLY.has(rpc[1])) {

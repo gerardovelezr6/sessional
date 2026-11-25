@@ -37,6 +37,8 @@ test('the contact form explains what is missing, then files the request', async 
   await expect(form.getByLabel('Your name')).toBeFocused();
   await expect(form.getByLabel('Your name')).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByText('Write an email address like name@school.edu.')).toBeVisible();
+  // What was typed stays in the form.
+  await expect(form.getByLabel('Email')).toHaveValue('not-an-email');
 
   await fill(page, 'Ana Torres', 'Colegio Contacto');
   await form.getByRole('button', { name: 'Send' }).click();

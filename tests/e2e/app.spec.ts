@@ -47,3 +47,10 @@ test('the account area cannot be reached through a school or the main address', 
   expect((await page.goto(`http://alpha.localhost:${PORT}/p/app`))?.status()).toBe(404);
   expect((await page.goto(`http://admin.localhost:${PORT}/`))?.status()).toBe(404);
 });
+
+test('the wordmark on the account sign-in page leads to the main website', async ({ page }) => {
+  await page.goto(app('/login'));
+  await page.getByRole('banner').getByRole('link', { name: 'Sessional, home' }).click();
+  await expect(page).toHaveURL(`http://localhost:${PORT}/`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Run every committee of your Model UN from the chair’s laptop.');
+});

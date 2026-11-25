@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import wordmark from '@brand/sessional-wordmark-navy.png';
 import { DEFAULT_LOCALE, translator } from '@/messages';
+import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { PRODUCT_NAME } from '@/platform/product';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <header className="app-header">
-        <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-7 w-auto" priority />
+        {/* The main website lives on another host, so this is a full address, not a client link. */}
+        <a href={`${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}/`} aria-label={t('landing.home')} className="inline-block">
+          <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-7 w-auto" priority />
+        </a>
       </header>
       {children}
     </>

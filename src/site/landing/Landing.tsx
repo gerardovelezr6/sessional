@@ -29,6 +29,8 @@ interface Props {
   appUrl: string;
   qr: string;
   plans: PlanRow[] | null;
+  // Self-serve signup works only when email can be sent (to prove the address).
+  signup: boolean;
 }
 
 const STEPS = ['rollcall', 'speakers', 'motions', 'documents', 'voting', 'after'] as const;
@@ -37,7 +39,7 @@ const ORGANIZERS = {
   during: ['analytics', 'access', 'documents', 'print'],
   after: ['grading', 'history', 'export', 'audit'],
 } as const;
-const NEXT = ['signup', 'email', 'gallery', 'help'] as const;
+const NEXT = ['email', 'gallery', 'help'] as const;
 const FAQ = ['accounts', 'wifi', 'rules', 'spanish', 'data', 'cost'] as const;
 const LIMITS = ['committees', 'delegates', 'staff', 'active_conferences'] as const;
 const NOT_COUNTRIES = new Set(['EU', 'UN']);
@@ -88,7 +90,8 @@ function contactLabels(t: Translate): ContactLabels {
   };
 }
 
-export function Landing({ t, locale, appUrl, qr, plans }: Props) {
+export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
+  const lang = locale === 'es' ? '?lang=es' : '';
   const nameOf = (p: PlanRow) => p.name[locale] ?? p.name.en ?? p.key;
   const money = (amount: number, currency: string) => `${new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
   const currency = locale === 'es' ? 'mxn' : 'usd';
@@ -140,12 +143,25 @@ export function Landing({ t, locale, appUrl, qr, plans }: Props) {
               <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
               {/* One main action. */}
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <a className="btn btn-primary normal-case tracking-normal" href="#contact">
-                  {t('landing.hero.write')}
-                </a>
-                <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
-                  {t('landing.hero.see')}
-                </a>
+                {signup ? (
+                  <>
+                    <a className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
+                      {t('landing.hero.trial')}
+                    </a>
+                    <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
+                      {t('landing.hero.write')}
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <a className="btn btn-primary normal-case tracking-normal" href="#contact">
+                      {t('landing.hero.write')}
+                    </a>
+                    <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
+                      {t('landing.hero.see')}
+                    </a>
+                  </>
+                )}
               </div>
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
@@ -307,7 +323,7 @@ export function Landing({ t, locale, appUrl, qr, plans }: Props) {
           </section>
 
           <Section id="next" title={t('landing.next.title')} intro={t('landing.next.intro')}>
-            <ul className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-x-10 md:grid-cols-3">
               {NEXT.map((n) => (
                 <li key={n} className="border-t border-border py-4">
                   <span className="font-semibold text-on-surface">{t(`landing.next.${n}.title` as MessageKey)}</span>
@@ -341,6 +357,9 @@ export function Landing({ t, locale, appUrl, qr, plans }: Props) {
             </Link>
             <Link className="underline underline-offset-4 hover:decoration-2" href="/terms">
               {t('legal.terms.title')}
+            </Link>
+            <Link className="underline underline-offset-4 hover:decoration-2" href={`/changelog${lang}`}>
+              {t('changelog.title')}
             </Link>
           </nav>
           <a className="ms-auto underline underline-offset-4 hover:decoration-2" href={appUrl}>

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { rpc } from '@/data/rpc';
 import { translator } from '@/messages';
 import { countryCodes, countryName } from '@/i18n/countries';
+import { sendMail } from './mail';
 
 // The website's contact form. A request is stored first (so nothing is lost if email fails), then
 // sent to the operator's inbox when an email service is configured. Nobody's address is published.
@@ -88,19 +89,7 @@ export function contactEmail(value: ContactRequest): { subject: string; text: st
 
 // Sent through Resend when RESEND_API_KEY is set; otherwise the request waits in Admin → Inbox.
 export async function sendContactEmail(value: ContactRequest): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY?.trim();
   const to = process.env.CONTACT_TO_EMAIL?.trim() || process.env.LEGAL_CONTACT_EMAIL?.trim();
-  if (!key || !to) return false;
-  const { subject, text } = contactEmail(value);
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ from: process.env.CONTACT_FROM_EMAIL?.trim() || 'Sessional <onboarding@resend.dev>', to: [to], reply_to: value.email, subject, text }),
-      signal: AbortSignal.timeout(8000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  if (!to) return false;
+  return sendMail({ to, replyTo: value.email, ...contactEmail(value) });
 }

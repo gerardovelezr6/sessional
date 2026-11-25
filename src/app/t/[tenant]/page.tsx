@@ -15,9 +15,10 @@ import { currentSchedule } from '@/schedule/load';
 import { Today } from '@/schedule/Today';
 import { loadOverview } from './committees/data';
 import { committeeGroups, gridLabels } from './home';
+import { GettingStarted } from '@/onboarding/GettingStarted';
 
 // The home page: the blocks the school arranged at Settings → Website, in its order.
-export default async function TenantHome({ params }: { params: Promise<{ tenant: string }> }) {
+export default async function TenantHome({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ welcome?: string }> }) {
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
   const { t, locale, config } = await tenantTranslator(tenant.id);
@@ -165,6 +166,7 @@ export default async function TenantHome({ params }: { params: Promise<{ tenant:
             {title}
           </h1>
         )}
+        <GettingStarted t={t} base={base} ctx={ctx} tenantId={tenant.id} tenantKey={key} firstCommittee={mine[0]?.id ?? committees[0]?.id ?? null} welcome={(await searchParams).welcome} />
         {blocks.map((b) => (b.node ? <div key={b.key}>{b.node}</div> : null))}
       </div>
       <PoweredBy locale={locale} />

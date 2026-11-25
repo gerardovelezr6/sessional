@@ -48,7 +48,7 @@ export default async function GradebookPage({ params, searchParams }: { params: 
   const doneKey = done && done in DONE ? DONE[done as keyof typeof DONE] : null;
 
   return (
-    <Shell title={t('grades.title')} size="full" locale={locale}>
+    <Shell title={t('grades.title')} size="full" locale={locale} help={{ href: `${base}/help#grades`, label: t('help.thisPage') }}>
       <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'grades'} />
       <div className="flex flex-col gap-6">
         {doneKey ? (

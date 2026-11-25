@@ -6,7 +6,7 @@ const config: NextConfig = {
   // Logo and icon uploads go through server actions (images are capped at 2 MB by the app itself).
   experimental: { serverActions: { bodySizeLimit: '3mb' } },
   // PDF exports read these fonts (and printables these flags) from disk at run time.
-  outputFileTracingIncludes: { '/t/[tenant]/grades/export': ['./assets/fonts/*.ttf'], '/t/[tenant]/owner/export': ['./assets/fonts/*.ttf'], '/t/[tenant]/print/[kind]': ['./assets/fonts/*.ttf', './node_modules/flag-icons/flags/4x3/*.svg', './public/flags/us/*.svg'] },
+  outputFileTracingIncludes: { '/t/[tenant]/grades/export': ['./assets/fonts/*.ttf'], '/t/[tenant]/owner/export': ['./assets/fonts/*.ttf'], '/t/[tenant]/print/[kind]': ['./assets/fonts/*.ttf', './node_modules/flag-icons/flags/4x3/*.svg', './public/flags/us/*.svg'], '/help': ['./content/help/**/*.md'], '/help/[slug]': ['./content/help/**/*.md'] },
   // Spreadsheet and PDF builders stay outside the server bundle.
   serverExternalPackages: ['exceljs', 'pdf-lib', '@pdf-lib/fontkit', 'sharp'],
   // Security headers on every response (docs/SECURITY.md). Pages may be shown in a frame only by

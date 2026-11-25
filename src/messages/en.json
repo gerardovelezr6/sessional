@@ -3025,5 +3025,16 @@
   "status.level.off": "Not set up",
   "status.checkedAt": "Last checked {when}.",
   "status.help": "During a conference, chairs’ consoles keep working through short outages: changes wait and are sent when the connection is back. Projection screens show the last state and reconnect on their own.",
-  "landing.footer.status": "Status"
+  "landing.footer.status": "Status",
+  "helpCenter.title": "Help center",
+  "helpCenter.intro": "How to set up and run a conference with Sessional, for Owners, advisors, High Command and chairs.",
+  "helpCenter.group.start": "Getting started",
+  "helpCenter.group.conference": "Running the conference",
+  "helpCenter.group.guides": "Guides",
+  "helpCenter.group.account": "Your school and account",
+  "helpCenter.more": "Can’t find what you need?",
+  "helpCenter.write": "Write to us",
+  "helpCenter.back": "All articles",
+  "landing.footer.help": "Help center",
+  "help.center": "More in the help center"
 }

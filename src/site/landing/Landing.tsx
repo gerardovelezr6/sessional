@@ -382,6 +382,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
             <Link className="underline underline-offset-4 hover:decoration-2" href={`/gallery${lang}`}>
               {t('gallery.public.title')}
             </Link>
+            <Link className="underline underline-offset-4 hover:decoration-2" href={`/help${lang}`}>
+              {t('landing.footer.help')}
+            </Link>
             <Link className="underline underline-offset-4 hover:decoration-2" href={`/status${lang}`}>
               {t('landing.footer.status')}
             </Link>

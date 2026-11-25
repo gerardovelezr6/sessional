@@ -651,3 +651,67 @@ See ADR-0009 ("As built") for the decisions. In the code:
   the events Stripe produced to a scratch database. It needs network access to api.stripe.com and a
   test key; it is not part of CI.
 
+
+## Signup and onboarding (Phase 14)
+
+- `src/app/signup/*` and `src/platform/signup.ts`: the public signup form (honeypot, a minimum fill
+  time, limits per address, per email and overall, in the database), a confirmation link by email,
+  then the school, its Owner and a 14-day trial on the Conference plan. A one-time handoff signs the
+  new Owner in on the school's own address.
+- `/welcome`: the four-step setup wizard (conference, look, rules, start). `src/onboarding/demo.ts`
+  seeds a demo conference through the same import path a school uses. Tours per role
+  (`src/onboarding/tours.ts`), in-app help (`/help` on a school) and the public changelog.
+
+## Email, domains and white-label (Phase 15)
+
+See ADR-0003 ("As built"). Schools' domains go through the Vercel API (`src/platform/hosting.ts`),
+checked against live DNS-over-HTTPS lookups (`src/platform/dns.ts`), and serve only while verified
+and on a plan with `custom_domain`. School emails (`src/platform/school-mail.ts`) use the school's
+words, design and, when verified, its own sending domain (Resend domains API). Plan features
+(`app.has_feature`) gate the own domain, own sender, white-label and legal pages.
+
+## Community gallery (Phase 16)
+
+See ADR-0004 ("As built"). `gallery_packs` and `gallery_versions` hold shared settings sections,
+reached only through functions. Admins review each version (Admin → Gallery), and schools install an
+approved version as a draft through the same checks as a pack file (`src/gallery/sections.ts`
+removes images and people's names).
+
+## Hardening (Phase 17)
+
+- **Accessibility:** personal display modes (`src/a11y/display.ts`, `DisplayOptions`), a cookie
+  read by the root layout, `data-contrast` and `data-text` on `<html>`, and the school's theme
+  rendered at `contrast: 'high'`. Automated WCAG 2.2 AA audit with axe in `tests/e2e/a11y.spec.ts`.
+  See `ACCESSIBILITY.md`.
+- **Security:** headers in `next.config.ts`; `src/platform/safe-path.ts` for every "go back to"
+  path; `tests/db/security.test.ts` (search paths, nothing callable or writable by signed-out
+  visitors, row-level security everywhere); `tests/e2e/security.spec.ts` (headers, no secret in the
+  browser bundle, cookies). See `SECURITY.md`.
+- **Restore drill:** `scripts/restore-drill.sh` (`npm run drill:restore`, in CI): backup with
+  `pg_dump`, restore into a fresh database, compare every table, check isolation and writes.
+- **Status:** `src/platform/status.ts` (database and sign-in checked live, email and payments by
+  configuration, platform notices; kept 30 seconds), the public `/status` page and `/api/health`
+  for uptime monitors (503 when the database or sign-in is down).
+- **Help center:** `/help` and `/help/[slug]` on the main website, from Markdown in
+  `content/help/{en,es}` (`src/help/`), including the High Command and advisor guides.
+- **Definition of done:** `tests/e2e/definition-of-done.spec.ts` walks the brief's definition end
+  to end on a new school, in Spanish, and is recorded. The stranger signs up, picks a design and
+  rules, invites a chair who accepts, runs a session in one of several committees, pairs a
+  projection screen, grades, exports, pays, and nowhere is there a trace of PASMUN.
+
+## Documentation map
+
+| File | For |
+|---|---|
+| `README.md` | Starting the project locally |
+| `docs/SETUP.md` | First-time setup of every service, step by step |
+| `docs/ARCHITECTURE.md` | What exists in the code (this file) |
+| `docs/adr/` | Why: the decisions, each with "As built" notes |
+| `docs/CONFIG.md` | Every setting (generated) |
+| `docs/RUNBOOK.md` | Operating in production: releases, backups, incidents |
+| `docs/SECURITY.md` | The security review and its tests |
+| `docs/ACCESSIBILITY.md` | Accessibility: what is in place, how it is checked |
+| `docs/LOAD-TEST.md` | The realtime load test |
+| `docs/DEMO-SCRIPT.md` | The sales demo |
+| `content/help/` | The customer help center, including the High Command and advisor guides |
+| `docs/ROADMAP.md`, `docs/OPEN-QUESTIONS.md` | The plan and what is still open |

@@ -3025,5 +3025,16 @@
   "status.level.off": "Sin configurar",
   "status.checkedAt": "Última revisión: {when}.",
   "status.help": "Durante una conferencia, las consolas de las mesas siguen funcionando en caídas cortas: los cambios esperan y se envían cuando vuelve la conexión. Las pantallas de proyección muestran el último estado y se reconectan solas.",
-  "landing.footer.status": "Estado"
+  "landing.footer.status": "Estado",
+  "helpCenter.title": "Centro de ayuda",
+  "helpCenter.intro": "Cómo preparar y dirigir una conferencia con Sessional, para propietarios, asesores, Alto Mando y mesas.",
+  "helpCenter.group.start": "Primeros pasos",
+  "helpCenter.group.conference": "Durante la conferencia",
+  "helpCenter.group.guides": "Guías",
+  "helpCenter.group.account": "Tu escuela y tu cuenta",
+  "helpCenter.more": "¿No encuentras lo que buscas?",
+  "helpCenter.write": "Escríbenos",
+  "helpCenter.back": "Todos los artículos",
+  "landing.footer.help": "Centro de ayuda",
+  "help.center": "Más en el centro de ayuda"
 }

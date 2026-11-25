@@ -18,6 +18,11 @@ export class RpcError extends Error {
   get forbidden() {
     return this.code === '42501' || this.status === 401 || this.status === 403;
   }
+  // A plan limit the database refused: which one, and the number allowed.
+  get limit(): { what: string; max: number } | null {
+    const m = this.code === '54000' ? this.message.match(/plan limit reached: (\w+) \((\d+)\)/) : null;
+    return m ? { what: m[1]!, max: Number(m[2]) } : null;
+  }
   get duplicate() {
     return this.code === '23505';
   }

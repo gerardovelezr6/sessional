@@ -11,6 +11,7 @@ import { isPlatformAdmin } from '@/platform/admin';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { FLAGS } from '@/platform/flags';
 import { basePath } from '@/tenancy/context';
+import { createPrice, createProduct, createPromotionCode, StripeError, stripeConfigured } from '@/billing/stripe';
 
 // Everything the admin console changes. Each action checks again that the caller is a platform
 // admin; the database checks a third time. Reasons are required where a school is affected, and
@@ -272,4 +273,141 @@ export async function findPersonAction(_s: { person?: FoundPerson | null; error?
   } catch (e) {
     return { error: failed(e).error };
   }
+}
+
+// ── Billing (Phase 13) ──
+interface PlanRow {
+  key: string;
+  name: Record<string, string>;
+  description: Record<string, string>;
+  limits: Record<string, number | null>;
+  features: Record<string, boolean>;
+  prices: { key: string; interval: string; currency: string; amount: number; stripe_price_id?: string | null }[];
+  per_school: boolean;
+  public: boolean;
+  sort: number;
+}
+const LIMIT_KEYS = ['committees', 'delegates', 'staff', 'active_conferences', 'storage_mb'] as const;
+const FEATURE_KEYS = ['custom_domain', 'own_sender', 'white_label', 'sso', 'legal_pages'] as const;
+
+// Saves one plan from its form. A price whose amount changed loses its Stripe price (Stripe prices
+// cannot change): "Create prices in Stripe" makes the new one.
+export async function savePlanAction(planKey: string, _s: FormState, form: FormData): Promise<FormState> {
+  const a = await admin();
+  if (!a || !/^[a-z][a-z0-9_]{1,30}$/.test(planKey)) return refused;
+  const plans = await rpc<PlanRow[]>('platform_plans', {}, a);
+  const old = plans.find((p) => p.key === planKey);
+  const text = (k: string, max: number) => String(form.get(k) ?? '').trim().slice(0, max);
+  const limits = Object.fromEntries(LIMIT_KEYS.map((k) => {
+    const v = text(`limit_${k}`, 10);
+    return [k, v === '' ? null : Math.max(0, Math.floor(Number(v)) || 0)];
+  }));
+  const features = Object.fromEntries(FEATURE_KEYS.map((k) => [k, form.get(`feature_${k}`) === 'on']));
+  const prices: PlanRow['prices'] = [];
+  for (let i = 0; i < 12; i++) {
+    const interval = text(`price_${i}_interval`, 12);
+    const currency = text(`price_${i}_currency`, 3);
+    const amount = Math.round(Number(text(`price_${i}_amount`, 12).replace(',', '.')) * 100);
+    if (!['month', 'year', 'conference'].includes(interval) || !['mxn', 'usd'].includes(currency) || !(amount > 0)) continue;
+    const key = `${interval === 'conference' ? 'pass' : interval}_${currency}`;
+    if (prices.some((p) => p.key === key)) continue;
+    const was = old?.prices.find((p) => p.key === key);
+    prices.push({ key, interval, currency, amount, stripe_price_id: was && was.amount === amount ? (was.stripe_price_id ?? null) : null });
+  }
+  const name = { ...(text('name_en', 60) ? { en: text('name_en', 60) } : {}), ...(text('name_es', 60) ? { es: text('name_es', 60) } : {}) };
+  if (!Object.keys(name).length) return { error: t('platform.error.presetName') };
+  try {
+    await rpc('platform_plan_save', {
+      p_plan: {
+        key: planKey, name,
+        description: { ...(text('description_en', 200) ? { en: text('description_en', 200) } : {}), ...(text('description_es', 200) ? { es: text('description_es', 200) } : {}) },
+        limits, features, prices, per_school: form.get('per_school') === 'on', public: form.get('public') === 'on', sort: Number(text('sort', 4)) || 0,
+      },
+    }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back('/plans?done=saved');
+}
+
+// Creates, in Stripe, the product of each plan and the prices that have no Stripe price yet.
+export async function syncPricesAction(): Promise<FormState> {
+  const a = await admin();
+  if (!a) return refused;
+  if (!stripeConfigured()) return { error: t('billing.error.unconfigured') };
+  const plans = await rpc<PlanRow[]>('platform_plans', {}, a);
+  let made = 0;
+  try {
+    for (const p of plans) {
+      const missing = p.prices.filter((x) => !x.stripe_price_id);
+      if (!missing.length) continue;
+      const product = await createProduct(`Sessional ${p.name.en ?? p.key}`, p.key);
+      for (const x of missing) {
+        x.stripe_price_id = (await createPrice(product.id, x, p.key)).id;
+        made++;
+      }
+      await rpc('platform_plan_save', { p_plan: p }, a);
+    }
+  } catch (e) {
+    if (e instanceof StripeError) return { error: t('platform.error.invalid', { detail: e.message.slice(0, 120) }) };
+    return failed(e);
+  }
+  return back(`/plans?done=synced&n=${made}`);
+}
+
+// A school's plan, goodwill limits and trial.
+export async function tenantBillingAction(tenantId: string, _s: FormState, form: FormData): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(tenantId)) return refused;
+  const plan = String(form.get('plan') ?? '');
+  const overrides = Object.fromEntries(
+    LIMIT_KEYS.flatMap((k) => {
+      const v = String(form.get(`override_${k}`) ?? '').trim();
+      return v === '' ? [] : [[k, Math.max(0, Math.floor(Number(v)) || 0)]];
+    }),
+  );
+  const trialDays = Number(form.get('trial_days'));
+  try {
+    await rpc('platform_billing_set', {
+      p_tenant: tenantId,
+      p_data: { plan_key: plan, limit_overrides: overrides, ...(trialDays > 0 && trialDays <= 365 ? { trial_ends_at: new Date(Date.now() + trialDays * 86400_000).toISOString() } : {}) },
+    }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/tenants/${tenantId}?done=billing`);
+}
+
+// Puts a school in a parent organisation (one invoice for all its schools), new or existing.
+export async function organisationAction(tenantId: string, _s: FormState, form: FormData): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(tenantId)) return refused;
+  const existing = String(form.get('organisation') ?? '');
+  const name = String(form.get('name') ?? '').trim().slice(0, 120);
+  if (!UUID.test(existing) && !name) return { error: t('platform.error.presetName') };
+  try {
+    await rpc('platform_organisation_attach', { p_tenant: tenantId, p_organisation: UUID.test(existing) ? existing : null, p_name: name || 'x' }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/tenants/${tenantId}?done=billing`);
+}
+
+// A referral partner: a code people type at checkout (a Stripe promotion code) with its discount.
+export async function referralAction(_s: FormState, form: FormData): Promise<FormState> {
+  const a = await admin();
+  if (!a) return refused;
+  const code = String(form.get('code') ?? '').trim().toUpperCase();
+  const name = String(form.get('name') ?? '').trim().slice(0, 120);
+  const percent = Math.floor(Number(form.get('percent_off')));
+  if (!/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(code) || !name || !(percent >= 0 && percent <= 100)) return { error: t('platform.billing.referralInvalid') };
+  let promo: string | null = null;
+  try {
+    if (percent > 0 && stripeConfigured()) promo = (await createPromotionCode(code, percent)).id;
+    await rpc('platform_referral_save', { p_data: { code, name, percent_off: percent, stripe_promotion_code_id: promo } }, a);
+  } catch (e) {
+    if (e instanceof StripeError) return { error: t('platform.error.invalid', { detail: e.message.slice(0, 120) }) };
+    return failed(e);
+  }
+  return back('/billing?done=referral');
 }

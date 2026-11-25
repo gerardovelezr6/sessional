@@ -19,7 +19,8 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run schema:check && npm run check:secrets && npm run build",
     "config:doc": "WRITE_CONFIG_DOC=1 vitest run tests/unit/config-doc.test.ts",
-    "load:screens": "node scripts/load-test.mjs"
+    "load:screens": "node scripts/load-test.mjs",
+    "test:stripe": "VITEST_CONFIG=vitest.stripe.config.mts bash scripts/db-test.sh"
   },
   "dependencies": {
     "@expo-google-fonts/noto-sans": "0.4.2",

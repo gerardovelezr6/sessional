@@ -1,7 +1,7 @@
 // A small in-memory stand-in for the Supabase endpoints the server uses (tenant lookup, sign-in,
 // invitations, people), so browser tests run without a database. The real SQL behind these
 // functions is tested separately in tests/db. It also checks which key the server sends where.
-import { createHash, randomUUID, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomUUID, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const PORT = Number(process.env.MOCK_SUPABASE_PORT ?? 3199);
@@ -1408,7 +1408,202 @@ Object.assign(rpcs, {
   },
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live']);
+// --- Phase 13: billing. Bill School has an owner and High Command; plans carry Stripe price ids;
+// a stand-in for Stripe answers under /stripe and sends signed webhooks back to the app. ---
+TENANTS.bill = { kind: 'tenant', id: tid(27), slug: 'bill', name: 'Bill School', status: 'active' };
+seed('owner@bill.test', 'Bea Bill', tid(27), 'owner');
+seed('hc@bill.test', 'Hugh Bill', tid(27), 'high_command');
+conferences.push({ id: randomUUID(), tenant_id: tid(27), name: 'Bill MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() });
+committees.push({ id: randomUUID(), tenant_id: tid(27), conference_id: conferences.at(-1).id, name: 'General Assembly', abbreviation: 'GA', topic: '', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: new Date().toISOString() });
+const priceId = (plan, key) => `price_${plan}_${key}`;
+const PLANS = [
+  { key: 'starter', name: { en: 'Starter', es: 'Inicial' }, description: { en: 'A class or club simulation.' }, limits: { committees: 6, delegates: 150, staff: 10, active_conferences: 1, storage_mb: 1024 }, features: {}, per_school: false, public: true, sort: 1,
+    prices: [{ key: 'month_usd', interval: 'month', currency: 'usd', amount: 1900 }, { key: 'month_mxn', interval: 'month', currency: 'mxn', amount: 34900 }] },
+  { key: 'conference', name: { en: 'Conference', es: 'Conferencia' }, description: { en: 'One real conference.' }, limits: { committees: 25, delegates: 750, staff: 60, active_conferences: 1, storage_mb: 10240 }, features: { custom_domain: true }, per_school: false, public: true, sort: 2,
+    prices: [{ key: 'year_usd', interval: 'year', currency: 'usd', amount: 59000 }, { key: 'year_mxn', interval: 'year', currency: 'mxn', amount: 1069000 }] },
+].map((p) => ({ ...p, prices: p.prices.map((x) => ({ ...x, stripe_price_id: priceId(p.key, x.key) })) }));
+const tenantBilling = {}; // tenant -> billing row
+const billingAccounts = []; // { id, name, customer, organisation }
+const stripeEvents = new Set();
+const referralPartners = [];
+const planOf = (key) => PLANS.find((p) => p.key === key) ?? PLANS[0];
+const billingUsage = (tenant) => {
+  const conf = activeConference(tenant);
+  const cs = conf ? committees.filter((c) => c.conference_id === conf.id).map((c) => c.id) : [];
+  return {
+    committees: cs.length, delegates: delegates.filter((d) => cs.includes(d.committee_id)).length,
+    staff: memberships.filter((m) => m.tenant_id === tenant && ['active', 'invited'].includes(m.status)).length,
+    active_conferences: conferences.filter((f) => f.tenant_id === tenant && f.status === 'active').length,
+  };
+};
+const entitlementsOf = (tenant) => {
+  const b = tenantBilling[tenant];
+  const t = tenantRow(tenant);
+  if (!b) return { metered: false, status: t?.status, limits: {}, features: {} };
+  return { metered: true, plan: b.plan_key, status: t?.status, billing_status: b.billing_status, limits: { ...planOf(b.plan_key).limits, ...b.limit_overrides }, features: planOf(b.plan_key).features,
+    trial_ends_at: b.trial_ends_at, grace_until: b.grace_until, pass_until: b.pass_until ?? null, current_period_end: b.current_period_end, cancel_at_period_end: b.cancel_at_period_end, scheduled_plan_key: b.scheduled_plan_key };
+};
+const overLimit = (tenant, what) => {
+  const e = entitlementsOf(tenant);
+  const max = e.metered ? e.limits[what] : null;
+  return typeof max === 'number' && billingUsage(tenant)[what] >= max ? { status: 400, body: { code: '54000', message: `plan limit reached: ${what} (${max})` } } : null;
+};
+const accountOf = (tenant) => billingAccounts.find((a) => a.id === tenantBilling[tenant]?.account_id);
+const applyBillingState = (tenant) => {
+  const b = tenantBilling[tenant];
+  const t = tenantRow(tenant);
+  if (!b || !t || ['suspended', 'deleted'].includes(t.status)) return;
+  t.status = b.billing_status === 'trialing' ? (Date.parse(b.trial_ends_at ?? 0) > Date.now() ? 'trialing' : 'read_only')
+    : b.billing_status === 'active' ? 'active'
+    : ['past_due', 'unpaid'].includes(b.billing_status) ? (Date.parse(b.grace_until ?? 0) > Date.now() ? 'past_due' : 'read_only') : 'read_only';
+};
+Object.assign(rpcs, {
+  plans_public: () => ({ body: PLANS.filter((p) => p.public).map((p) => without(p, 'public', 'sort')) }),
+  tenant_limits: ({ p_tenant }, userId) => (memberOf(userId, p_tenant) ? { body: { ...entitlementsOf(p_tenant), usage: billingUsage(p_tenant) } } : { body: null }),
+  billing_state: ({ p_tenant }, userId) => {
+    if (!can(userId, p_tenant, 'tenant.manage')) return { body: null };
+    const b = tenantBilling[p_tenant];
+    return { body: { ...entitlementsOf(p_tenant), usage: billingUsage(p_tenant), organisation: accountOf(p_tenant)?.organisation ?? null, has_customer: !!accountOf(p_tenant)?.customer, has_subscription: !!b?.subscription } };
+  },
+  billing_server_get: ({ p_tenant }) => {
+    const t = tenantRow(p_tenant);
+    const b = tenantBilling[p_tenant];
+    const a = accountOf(p_tenant);
+    return { body: { tenant_id: t.id, slug: t.slug, name: t.name, status: t.status, plan_key: b?.plan_key ?? null, price_key: b?.price_key ?? null, billing_status: b?.billing_status ?? null, account_id: a?.id ?? null, customer: a?.customer ?? null, organisation: a?.organisation ?? false, subscription: b?.subscription ?? null, schools: 1 } };
+  },
+  billing_server_set: ({ p_tenant, p_data }) => {
+    const b = (tenantBilling[p_tenant] ??= { plan_key: null, billing_status: 'trialing', limit_overrides: {}, cancel_at_period_end: false });
+    if (p_data.customer && !accountOf(p_tenant)) {
+      const a = { id: randomUUID(), name: tenantRow(p_tenant).name, customer: p_data.customer, organisation: false };
+      billingAccounts.push(a);
+      b.account_id = a.id;
+    }
+    if ('scheduled_plan_key' in p_data) b.scheduled_plan_key = p_data.scheduled_plan_key || null;
+    if ('cancel_at_period_end' in p_data) b.cancel_at_period_end = p_data.cancel_at_period_end;
+    return { body: true };
+  },
+  billing_stripe_event: ({ p_event }) => {
+    if (stripeEvents.has(p_event.id)) return { body: 'duplicate' };
+    stripeEvents.add(p_event.id);
+    const o = p_event.data.object;
+    const tenant = o.metadata?.tenant_id ?? o.client_reference_id ?? Object.keys(tenantBilling).find((k) => tenantBilling[k].subscription === (o.subscription ?? o.id));
+    const b = tenantBilling[tenant];
+    if (!b) return { body: 'no school' };
+    let result = 'ignored';
+    if (p_event.type === 'checkout.session.completed') {
+      b.subscription = o.subscription ?? b.subscription;
+      if (o.metadata?.referral_code) b.referral_code = o.metadata.referral_code;
+      result = 'linked';
+    } else if (p_event.type.startsWith('customer.subscription.')) {
+      const plan = PLANS.find((p) => p.prices.some((x) => x.stripe_price_id === o.items.data[0].price.id));
+      Object.assign(b, { subscription: o.id, billing_status: p_event.type.endsWith('deleted') ? 'canceled' : o.status, plan_key: plan?.key ?? b.plan_key,
+        current_period_end: new Date(o.items.data[0].current_period_end * 1000).toISOString(), cancel_at_period_end: !!o.cancel_at_period_end, grace_until: ['active', 'trialing'].includes(o.status) ? null : b.grace_until });
+      if (plan?.key === b.scheduled_plan_key) b.scheduled_plan_key = null;
+      result = 'subscription';
+    } else if (p_event.type === 'invoice.payment_failed') {
+      Object.assign(b, { billing_status: 'past_due', grace_until: b.grace_until ?? new Date(Date.now() + 7 * 86400000).toISOString() });
+      result = 'payment failed';
+    }
+    applyBillingState(tenant);
+    return { body: result };
+  },
+  billing_tick: () => ({ body: 0 }),
+  billing_subscriptions: () => ({ body: Object.entries(tenantBilling).filter(([, b]) => b.subscription).map(([tenant_id, b]) => ({ tenant_id, subscription: b.subscription })) }),
+  referral_of_promotion: ({ p_promotion }) => ({ body: referralPartners.find((r) => r.stripe_promotion_code_id === p_promotion)?.code ?? null }),
+  platform_plans: (_b, userId) => (platformAdmins.has(userId) ? { body: PLANS } : NOT_ADMIN),
+  platform_plan_save: ({ p_plan }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const i = PLANS.findIndex((p) => p.key === p_plan.key);
+    if (i >= 0) PLANS[i] = { ...PLANS[i], ...p_plan };
+    else PLANS.push(p_plan);
+    return { body: true };
+  },
+  platform_billing_set: ({ p_tenant, p_data }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const b = (tenantBilling[p_tenant] ??= { plan_key: p_data.plan_key ?? 'conference', billing_status: 'trialing', trial_ends_at: new Date(Date.now() + 14 * 86400000).toISOString(), limit_overrides: {}, cancel_at_period_end: false });
+    if (p_data.plan_key) b.plan_key = p_data.plan_key;
+    if (p_data.limit_overrides) b.limit_overrides = p_data.limit_overrides;
+    if (p_data.trial_ends_at) b.trial_ends_at = p_data.trial_ends_at;
+    platformAudit(p_tenant, userId, 'platform.billing', p_tenant, p_data);
+    applyBillingState(p_tenant);
+    return { body: entitlementsOf(p_tenant) };
+  },
+  platform_tenant_billing: ({ p_tenant }, userId) => (platformAdmins.has(userId) ? { body: { ...entitlementsOf(p_tenant), overrides: tenantBilling[p_tenant]?.limit_overrides ?? null, usage: billingUsage(p_tenant) } } : NOT_ADMIN),
+  platform_organisation_attach: ({ p_tenant, p_organisation, p_name }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    let a = billingAccounts.find((x) => x.id === p_organisation && x.organisation);
+    if (!a) {
+      a = { id: randomUUID(), name: p_name, customer: null, organisation: true };
+      billingAccounts.push(a);
+    }
+    (tenantBilling[p_tenant] ??= { plan_key: 'conference', billing_status: 'trialing', trial_ends_at: new Date(Date.now() + 14 * 86400000).toISOString(), limit_overrides: {}, cancel_at_period_end: false }).account_id = a.id;
+    return { body: a.id };
+  },
+  platform_billing_overview: (_b, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const byStatus = {};
+    for (const b of Object.values(tenantBilling)) byStatus[b.billing_status] = (byStatus[b.billing_status] ?? 0) + 1;
+    return { body: { organisations: billingAccounts.filter((a) => a.organisation).map((a) => ({ id: a.id, name: a.name, schools: Object.entries(tenantBilling).filter(([, b]) => b.account_id === a.id).map(([id]) => ({ id, slug: tenantRow(id)?.slug, status: tenantRow(id)?.status })) })), by_status: byStatus, events: [...stripeEvents].map((id) => ({ id, type: '', result: '', received_at: new Date().toISOString() })) } };
+  },
+  platform_referrals: (_b, userId) => (platformAdmins.has(userId) ? { body: referralPartners.map((r) => ({ ...r, schools: Object.values(tenantBilling).filter((b) => b.referral_code === r.code).length, paying: 0 })) } : NOT_ADMIN),
+  platform_referral_save: ({ p_data }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    referralPartners.push({ code: p_data.code, name: p_data.name, percent_off: p_data.percent_off, active: true, stripe_promotion_code_id: p_data.stripe_promotion_code_id });
+    return { body: true };
+  },
+});
+// Plan limits on committees made from the committee page.
+{
+  const save = rpcs.committee_save;
+  rpcs.committee_save = (args, userId) => (!args.p_data?.id && overLimit(args.p_tenant, 'committees')) || save(args, userId);
+}
+
+// The Stripe stand-in: form-encoded requests in, JSON out, and webhooks to the app signed with
+// the test secret, sent before answering (as Stripe would, shortly after).
+const WEBHOOK_SECRET = 'whsec_test';
+const stripeSubs = new Map();
+const formOf = (raw) => Object.fromEntries(new URLSearchParams(raw));
+async function webhook(type, object) {
+  const payload = JSON.stringify({ id: `evt_${randomBytes(8).toString('hex')}`, type, data: { object } });
+  const t = Math.floor(Date.now() / 1000);
+  const sig = createHmac('sha256', WEBHOOK_SECRET).update(`${t}.${payload}`).digest('hex');
+  await fetch('http://localhost:3100/api/stripe/webhook', { method: 'POST', headers: { 'content-type': 'application/json', 'stripe-signature': `t=${t},v1=${sig}` }, body: payload }).catch(() => null);
+}
+async function stripeStandIn(method, url, raw) {
+  const f = formOf(raw);
+  const id = (prefix) => `${prefix}_${randomBytes(6).toString('hex')}`;
+  if (method === 'POST' && url === '/stripe/v1/customers') return { body: { id: id('cus') } };
+  if (method === 'POST' && url === '/stripe/v1/checkout/sessions') {
+    const tenant = f.client_reference_id;
+    const sub = { id: id('sub'), object: 'subscription', customer: f.customer, status: 'active', cancel_at_period_end: false, metadata: { tenant_id: tenant }, items: { data: [{ id: id('si'), price: { id: f['line_items[0][price]'] }, quantity: Number(f['line_items[0][quantity]'] ?? 1), current_period_end: Math.floor(Date.now() / 1000) + 365 * 86400 }] } };
+    stripeSubs.set(sub.id, sub);
+    await webhook('checkout.session.completed', { object: 'checkout.session', mode: f.mode, customer: f.customer, subscription: sub.id, client_reference_id: tenant, metadata: { tenant_id: tenant } });
+    await webhook('customer.subscription.created', sub);
+    return { body: { id: id('cs'), url: f.success_url } };
+  }
+  if (method === 'POST' && url === '/stripe/v1/billing_portal/sessions') return { body: { id: id('bps'), url: `${f.return_url}?portal=1` } };
+  if (method === 'GET' && url.startsWith('/stripe/v1/invoices')) {
+    const customer = new URL(url, 'http://x').searchParams.get('customer');
+    const has = [...stripeSubs.values()].some((s) => s.customer === customer);
+    return { body: { data: has ? [{ id: id('in'), number: 'SESS-0001', status: 'paid', amount_due: 59000, amount_paid: 59000, currency: 'usd', created: Math.floor(Date.now() / 1000), hosted_invoice_url: 'https://invoice.stripe.test/x', invoice_pdf: null }] : [] } };
+  }
+  const subUrl = /^\/stripe\/v1\/subscriptions\/(sub_\w+)$/.exec(url);
+  if (subUrl) {
+    const sub = stripeSubs.get(subUrl[1]);
+    if (!sub) return { status: 404, body: { error: { message: 'No such subscription' } } };
+    if (method === 'POST') {
+      if ('cancel_at_period_end' in f) sub.cancel_at_period_end = f.cancel_at_period_end === 'true';
+      if (f['items[0][price]']) sub.items.data[0].price.id = f['items[0][price]'];
+      await webhook('customer.subscription.updated', sub);
+    }
+    return { body: sub };
+  }
+  if (method === 'POST' && url.startsWith('/stripe/v1/subscription_schedules')) return { body: { id: id('sub_sched') } };
+  if (method === 'POST' && ['/stripe/v1/products', '/stripe/v1/prices', '/stripe/v1/coupons', '/stripe/v1/promotion_codes'].includes(url)) return { body: { id: id(url.split('/').pop().slice(0, 4)) } };
+  return { status: 404, body: { error: { message: `no stand-in for ${method} ${url}` } } };
+}
+
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -1478,6 +1673,16 @@ createServer((req, res) => {
     }
 
     const raw = bytes.toString('utf8');
+    if ((req.url ?? '').startsWith('/stripe/')) {
+      if (req.headers.authorization !== 'Bearer sk_test_mock') return send({ status: 401, body: { error: { message: 'Invalid API key' } } });
+      return void stripeStandIn(req.method, req.url, raw).then(send);
+    }
+    // Test hook: a school's billing goes read-only (or back), as the daily job would set it.
+    if (req.method === 'POST' && req.url === '/__test/billing-status') {
+      const b = JSON.parse(raw);
+      tenantRow(b.tenant).status = b.status;
+      return send({ body: { ok: true } });
+    }
     const body = raw ? JSON.parse(raw) : {};
     const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
     const key = req.headers.apikey;

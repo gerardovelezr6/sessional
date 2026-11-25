@@ -96,7 +96,7 @@ test('safe mode shows the page without custom CSS, and the CSS can be removed', 
 test('a design is exported as a file and imported into another school as a draft', async ({ page, browser }, testInfo) => {
   const design = await openSettings(page, 'theta');
   await choose(design, 'Design preset', 'Playful school');
-  await design.getByLabel('Brand colour, colour code').fill('#0F766E');
+  await design.getByLabel('Brand color, color code').fill('#0F766E');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await page.waitForURL(/done=draft/);
 
@@ -120,7 +120,7 @@ test('a design is exported as a file and imported into another school as a draft
   const imported = other.locator('section#theme');
   await expect(imported.getByRole('status')).toHaveText('Imported as a draft. Check it, then publish it.');
   await expect(imported.getByRole('radio', { name: /Playful school/ })).toBeChecked();
-  await expect(imported.getByLabel('Brand colour, colour code')).toHaveValue('#0F766E');
+  await expect(imported.getByLabel('Brand color, color code')).toHaveValue('#0F766E');
   await expect(imported.getByText(/^You have unpublished changes/)).toBeVisible();
   // Not live for that school until published.
   expect(await style(other, 'header.app-header', 'background-color')).not.toBe('rgb(15, 118, 110)');

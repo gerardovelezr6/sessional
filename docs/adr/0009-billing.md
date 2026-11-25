@@ -1,6 +1,6 @@
 # ADR-0009 — Billing, plans and limits
 
-Status: proposed · Date: 2026-11-10
+Status: accepted (Phase 13) · Date: 2026-11-10, built 2026-11-24
 
 ## Decision
 
@@ -68,3 +68,28 @@ truth for subscription state; a nightly job reconciles.
 A parent organisation owns several tenants and receives one invoice. Referral links map to Stripe
 promotion codes and are reported per partner. A paid pack marketplace needs payouts, moderation and
 tax handling through Stripe Connect; I recommend launching the free gallery first (open question).
+
+## As built (Phase 13)
+
+- `plans` rows hold limits (null = unlimited), features and prices per currency and interval with
+  their Stripe price ids; edited in Admin → Plans, which also creates the Stripe products and prices.
+- Limits are enforced by triggers on committees and delegations (current conference only), people
+  with accounts and active conferences: an insert past the limit fails with SQLSTATE 54000
+  (`plan limit reached: <what> (<max>)`), which the app shows as the plan's limit. Goodwill overrides
+  per school sit on top of the plan. A school with no billing row is unmetered (schools created
+  before billing, internal ones).
+- Stripe events are stored once each (`stripe_events`) and applied by `billing_stripe_event`; the
+  webhook only verifies the signature and passes the event on. There is no jobs queue yet: events are
+  applied in the request, and the daily `/api/cron/billing` reconciles subscriptions and runs
+  `billing_tick`.
+- Read-only uses the existing rule that writes need a school in trialing, active or past_due status;
+  `billing_apply` sets that status from billing and the time, and never during a conference (an open
+  session, or one closed less than 48 hours ago).
+- Storage and emails are not metered yet (storage needs the file store's sizes; emails arrive with the
+  email phase).
+- Upgrades prorate immediately (`always_invoice`); downgrades are a subscription schedule at the end
+  of the period, refused with the list of limits the school is above.
+- A conference pass is a one-time Checkout payment: active 90 days, then read-only.
+- Parent organisations are billing accounts with several schools; a per-school plan's quantity is
+  their number. Referral partners are Stripe promotion codes; the webhook maps a code used at checkout
+  to its partner.

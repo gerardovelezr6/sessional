@@ -131,7 +131,7 @@ export function Landing({ t, locale, appUrl, qr, plans }: Props) {
 
       <Scene>
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          <section className="grid grid-cols-1 items-start gap-10 py-12 lg:grid-cols-[1fr_1.05fr]" aria-labelledby="hero-title">
+          <section className="grid grid-cols-1 items-start gap-10 py-12 lg:items-center lg:grid-cols-[1fr_1.05fr]" aria-labelledby="hero-title">
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">

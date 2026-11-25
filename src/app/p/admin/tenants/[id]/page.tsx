@@ -9,7 +9,7 @@ import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { FLAGS } from '@/platform/flags';
 import { healthOf, isPast, LEVEL_TONE, type Usage } from '@/platform/health';
 import { basePath } from '@/tenancy/context';
-import { deleteAction, flagOverrideAction, impersonateAction, purgeAction, restoreAction, suspendAction } from '../../actions';
+import { deleteAction, flagOverrideAction, impersonateAction, organisationAction, purgeAction, restoreAction, suspendAction, tenantBillingAction } from '../../actions';
 
 // Admin → a school: status, usage and health, its members (and signing in as one of them, for a
 // stated reason and a limited time), flags, recent activity and the diagnostic bundle.
@@ -34,7 +34,7 @@ interface Detail {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DONE: Record<string, MessageKey> = {
-  suspended: 'platform.done.suspended', unsuspended: 'platform.done.unsuspended', deleted: 'platform.done.deleted', restored: 'platform.done.restored', flag: 'platform.done.flag',
+  billing: 'platform.done.billing', suspended: 'platform.done.suspended', unsuspended: 'platform.done.unsuspended', deleted: 'platform.done.deleted', restored: 'platform.done.restored', flag: 'platform.done.flag',
 };
 
 export default async function AdminSchool({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ done?: string }> }) {
@@ -50,6 +50,9 @@ export default async function AdminSchool({ params, searchParams }: { params: Pr
   const h = healthOf(s.usage, s.status);
   const open = s.status !== 'suspended' && s.status !== 'deleted';
   const address = `${isSecureOrigin() ? 'https' : 'http'}://${s.slug}.${rootDomain()}/`;
+  const bill = await rpc<{ metered: boolean; plan: string | null; billing_status: string | null; overrides?: Record<string, number> } | null>('platform_tenant_billing', { p_tenant: s.id }, a).catch(() => null);
+  const plans = await rpc<{ key: string; name: Record<string, string> }[]>('platform_plans', {}, a);
+  const orgs = (await rpc<{ organisations: { id: string; name: string }[] }>('platform_billing_overview', {}, a)).organisations;
 
   return (
     <Shell title={s.name} subtitle={`${s.slug} · ${t(`platform.status.${s.status}` as MessageKey)}`} size="full" crumbs={[{ href: `${base}/`, label: t('platform.nav.schools') }, { label: s.name }]}>
@@ -174,6 +177,62 @@ export default async function AdminSchool({ params, searchParams }: { params: Pr
               </ActionForm>
             </div>
           )}
+        </section>
+
+        <section className="card flex flex-col gap-3" aria-labelledby="billing-title">
+          <h2 id="billing-title" className="text-lg font-bold text-on-surface">
+            {t('platform.school.billing')}
+          </h2>
+          <p className="text-sm">
+            {bill?.metered
+              ? t('platform.school.billingLine', { plan: bill.plan ?? '—', status: bill.billing_status ?? '—' })
+              : t('platform.school.unmetered')}
+          </p>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ActionForm action={tenantBillingAction.bind(null, s.id)} submitLabel={t('platform.flags.save')} variant="secondary">
+              <label className="flex flex-col gap-1">
+                <span className="label">{t('platform.school.plan')}</span>
+                <select className="input w-auto" name="plan" defaultValue={bill?.plan ?? 'conference'}>
+                  {plans.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.name.en ?? p.key}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <fieldset className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                <legend className="label">{t('platform.school.overrides')}</legend>
+                {(['committees', 'delegates', 'staff', 'active_conferences'] as const).map((k) => (
+                  <label key={k} className="flex flex-col gap-1">
+                    <span className="text-xs">{t(`platform.plans.limit.${k}` as MessageKey)}</span>
+                    <input className="input" name={`override_${k}`} inputMode="numeric" defaultValue={bill?.overrides?.[k] ?? ''} />
+                  </label>
+                ))}
+              </fieldset>
+              <label className="flex flex-col gap-1">
+                <span className="label">{t('platform.school.trialDays')}</span>
+                <input className="input w-24" name="trial_days" type="number" min={0} max={365} />
+              </label>
+            </ActionForm>
+            <ActionForm action={organisationAction.bind(null, s.id)} submitLabel={t('platform.school.attach')} variant="secondary">
+              <p className="text-sm">{t('platform.school.organisationHelp')}</p>
+              <label className="flex flex-col gap-1">
+                <span className="label">{t('platform.school.organisation')}</span>
+                <select className="input w-auto" name="organisation" defaultValue="">
+                  <option value="">{t('platform.school.newOrganisation')}</option>
+                  {orgs.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="label">{t('platform.school.organisationName')}</span>
+                <input className="input" name="name" maxLength={120} />
+              </label>
+            </ActionForm>
+          </div>
         </section>
 
         <section className="card flex flex-col gap-3" aria-labelledby="flags-title">

@@ -3,7 +3,9 @@ import { cookies, headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
+import { BillingBanner } from '@/site/BillingBanner';
 import { PlatformBanners } from '@/site/PlatformBanners';
+import { requestTime } from '@/platform/health';
 import { NavLinks } from '@/components/NavLinks';
 import { localize } from '@/messages';
 import { enabledLocales, tenantConfig, tenantTranslator } from '@/config/store';
@@ -168,7 +170,10 @@ export default async function TenantLayout({ params, children }: Props) {
     }
   }
   const banners = (
-    <PlatformBanners tenantId={found.tenant.id} base={base} locale={own.locale} t={own.t} manager={!!ctx?.can('tenant.manage')} name={ctx ? ctx.user.fullName || ctx.user.email : null} />
+    <>
+      <PlatformBanners tenantId={found.tenant.id} base={base} locale={own.locale} t={own.t} manager={!!ctx?.can('tenant.manage')} name={ctx ? ctx.user.fullName || ctx.user.email : null} />
+      <BillingBanner tenantId={found.tenant.id} status={found.tenant.status} token={ctx?.token ?? null} manager={!!ctx?.can('tenant.manage')} base={base} locale={own.locale} t={own.t} now={requestTime()} />
+    </>
   );
   if (!own.preview) {
     return (

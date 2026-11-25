@@ -13,6 +13,8 @@ export const metadata: Metadata = { title: `${PRODUCT_NAME} admin`, robots: { in
 
 const NAV: { path: string; word: MessageKey }[] = [
   { path: '/', word: 'platform.nav.schools' },
+  { path: '/plans', word: 'platform.nav.plans' },
+  { path: '/billing', word: 'platform.nav.billing' },
   { path: '/flags', word: 'platform.nav.flags' },
   { path: '/announcements', word: 'platform.nav.announcements' },
   { path: '/presets', word: 'platform.nav.presets' },

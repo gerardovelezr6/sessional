@@ -1,4 +1,5 @@
 'use server';
+import { limitError } from '@/billing/limits';
 import type { FormState } from '@/components/ActionForm';
 import { tenantTranslator } from '@/config/store';
 import { rpc, RpcError } from '@/data/rpc';
@@ -207,6 +208,8 @@ export async function applyImportAction(tenantKey: string, _s: FormState, form: 
     console.info(JSON.stringify({ event: 'import_applied', tenant: tenant.id, rows: out.imported, skipped: plan.bad.length, existing: plan.existing, tabs: sheets.length, source }));
     return { redirectTo: `${base}/import?done=imported&n=${out.imported}` };
   } catch (e) {
+    const limit = limitError(e, t);
+    if (limit) return { error: limit };
     if (e instanceof RpcError && e.forbidden) return { error: t('committees.error.forbidden') };
     if (e instanceof RpcError) {
       console.error(JSON.stringify({ event: 'import_failed', reason: e.message.slice(0, 200) }));

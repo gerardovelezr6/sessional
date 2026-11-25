@@ -1,4 +1,6 @@
 'use server';
+import { limitError } from '@/billing/limits';
+import type { Translate } from '@/messages';
 import type { FormState } from '@/components/ActionForm';
 import { tenantTranslator } from '@/config/store';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
@@ -15,7 +17,9 @@ async function setup(tenantKey: string) {
   return { tenant, t, ctx, base: await basePath() };
 }
 
-function failure(e: unknown, t: (k: 'committees.error.forbidden' | 'committees.error.failed') => string, what: string): FormState {
+function failure(e: unknown, t: Translate, what: string): FormState {
+  const limit = limitError(e, t);
+  if (limit) return { error: limit };
   if (e instanceof RpcError && e.forbidden) return { error: t('committees.error.forbidden') };
   if (e instanceof RpcError || e instanceof WriteNotApplied) {
     console.error(JSON.stringify({ event: 'conference_write_failed', what, reason: e.message.slice(0, 200) }));

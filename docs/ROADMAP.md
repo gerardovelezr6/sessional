@@ -1,7 +1,7 @@
 # Roadmap
 
-Status: Phases 0 to 11, the website editor, the Owner area and Google and Microsoft sign-in are
-merged. Phase 12 (the control plane) is up for review in one pull request. The degraded-mode load
+Status: Phases 0 to 12, the website editor, the Owner area and Google and Microsoft sign-in are
+merged. Phase 13 (billing and metering) is up for review in one pull request. The degraded-mode load
 test from Phase 7 still needs staging (see `docs/LOAD-TEST.md`).
 
 Editable email texts move to the email phase.

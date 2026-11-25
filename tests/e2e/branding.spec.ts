@@ -57,9 +57,9 @@ test('the live preview follows the form before anything is saved', async ({ page
   // Half-typed colors are ignored instead of breaking the preview.
   await design.getByLabel('Brand color, color code').fill('#0F7');
   await expect.poll(background).toBe(before);
-  // "Use the design's color" goes back to the preset's.
+  // "Use the design’s color" goes back to the preset's.
   await design.getByLabel('Brand color, color code').fill('#0F766E');
-  await design.getByRole('button', { name: "Use the design's color" }).first().click();
+  await design.getByRole('button', { name: "Use the design’s color" }).first().click();
   await expect.poll(background).toBe(before);
 
   // Dark sample.

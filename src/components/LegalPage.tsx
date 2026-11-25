@@ -17,7 +17,7 @@ export function LegalPage({ kind, lang }: { kind: 'privacy' | 'terms'; lang: str
     .map((k) => k.slice(0, -'.title'.length));
   const other = kind === 'privacy' ? 'terms' : 'privacy';
   return (
-    <main lang={locale} className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
+    <main id="main" lang={locale} className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
       <Link href="/" className="self-start">
         <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-8 w-auto" />
       </Link>

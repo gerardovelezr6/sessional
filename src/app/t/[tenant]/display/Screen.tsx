@@ -279,7 +279,7 @@ export function Screen({ initial, stateUrl, schoolName, logoUrl, L, Lpaired }: {
       <header className="flex items-center gap-[2vh]">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="h-[5vh] w-auto" />
+          <img src={logoUrl} alt="" width={240} height={80} className="h-[5vh] w-auto" />
         ) : null}
         <div className="min-w-0 flex-1">
           {paired ? (

@@ -35,7 +35,7 @@ export default async function Dashboard({ params }: { params: Promise<{ tenant: 
   const adminTitle = localize(site.admin.title, locale) || t('nav.admin');
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-8">
+    <main id="main" className="flex flex-1 flex-col items-center px-4 py-8">
       <div className="flex w-full max-w-7xl flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

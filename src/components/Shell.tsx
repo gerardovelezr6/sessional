@@ -10,7 +10,7 @@ const WIDTH = { narrow: 'max-w-md', wide: 'max-w-3xl', full: 'max-w-7xl' } as co
 // `help`: a link to the help topic about this page.
 export function Shell({ title, subtitle, children, wide = false, size, centered = false, locale, quietTitle = false, crumbs, help }: { title: string; subtitle?: string; children: React.ReactNode; wide?: boolean; size?: keyof typeof WIDTH; centered?: boolean; locale?: Locale; quietTitle?: boolean; crumbs?: { href?: string; label: string }[]; help?: { href: string; label: string } }) {
   return (
-    <main className={`flex flex-1 flex-col items-center px-4 py-6 ${centered ? 'justify-center' : 'pt-8'}`}>
+    <main id="main" className={`flex flex-1 flex-col items-center px-4 py-6 ${centered ? 'justify-center' : 'pt-8'}`}>
       <div className={`w-full ${WIDTH[size ?? (wide ? 'wide' : 'narrow')]}`}>
         {crumbs?.length ? (
           <nav aria-label={translator(locale ?? DEFAULT_LOCALE)('nav.breadcrumb')} className="mb-3 text-sm">

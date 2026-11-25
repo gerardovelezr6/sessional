@@ -27,7 +27,7 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
   const tagline = localize(config.identity.tagline, locale);
   const follow = !!(await loadPublicSite(tenant.id, config).catch(() => null));
   return (
-    <main className="flex flex-1 flex-col items-center justify-center p-4">
+    <main id="main" className="flex flex-1 flex-col items-center justify-center p-4">
       <div className="card w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <BrandMark logo={logo} initials={site.header.mark === 'initials' ? site.header.initials || initialsOf(tenant.name) : null} size={52} />

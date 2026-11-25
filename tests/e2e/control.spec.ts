@@ -130,17 +130,17 @@ test('suspending needs a reason and is in the school’s audit log; lifting it r
   await adminSignIn(page);
   await page.goto(admin(`/tenants/${CTL}`));
   const status = page.getByRole('region', { name: 'Suspend or delete' });
-  await status.getByLabel('Reason (noted in the school\'s audit log)').first().fill('Unpaid invoice 2026-11');
+  await status.getByLabel('Reason (noted in the school’s audit log)').first().fill('Unpaid invoice 2026-11');
   await status.getByRole('button', { name: 'Suspend' }).click();
   await expect(page.getByText('Suspended.', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 }).locator('..')).toContainText('Suspended');
   await expect(page.getByRole('region', { name: 'Recent activity (actions only)' })).toContainText('platform.suspend · by platform support');
-  await status.getByLabel('Reason (noted in the school\'s audit log)').first().fill('Paid on 2026-11-24');
+  await status.getByLabel('Reason (noted in the school’s audit log)').first().fill('Paid on 2026-11-24');
   await status.getByRole('button', { name: 'Lift the suspension' }).click();
   await expect(page.getByText('Suspension lifted.')).toBeVisible();
   // Deleting needs the address typed.
   await status.getByLabel('Type ctl to confirm').fill('wrong');
-  await status.getByLabel('Reason (noted in the school\'s audit log)').last().fill('Testing the guard');
+  await status.getByLabel('Reason (noted in the school’s audit log)').last().fill('Testing the guard');
   await status.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByText('The address typed does not match.')).toBeVisible();
 });

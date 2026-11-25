@@ -5,7 +5,7 @@ import { enterAccessCodeAction } from './actions';
 // The page in front of everything when a school asks for a conference access code.
 export function AccessGate({ tenantKey, name, logo, initials, hint, next, L }: { tenantKey: string; name: string; logo: string | null; initials: string | null; hint: string; next: string; L: { intro: string; code: string; enter: string; provided: string } }) {
   return (
-    <main className="gate flex min-h-screen flex-1 items-center justify-center p-4">
+    <main id="main" className="gate flex min-h-screen flex-1 items-center justify-center p-4">
       <div className="card w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <BrandMark logo={logo} initials={initials} size={56} />

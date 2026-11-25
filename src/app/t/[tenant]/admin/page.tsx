@@ -79,7 +79,7 @@ export default async function AdminPage({ params }: { params: Promise<{ tenant: 
   ];
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-8">
+    <main id="main" className="flex flex-1 flex-col items-center px-4 py-8">
       <AutoRefresh seconds={15} />
       <div className="w-full max-w-7xl">
         <h1 className="page-title text-2xl">{localize(site.admin.title, locale) || t('nav.admin')}</h1>

@@ -307,3 +307,29 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 /* The landing page's header stays on screen; anchors and focus land below it. */
 html:has(.landing-page) { scroll-padding-top: 7rem; }
 @media (min-width: 48rem) { html:has(.landing-page) { scroll-padding-top: 5rem; } }
+
+/* ── Interface guidelines, everywhere ──────────────────────────────────────────────────────────
+   Hover and press feedback on every button, a visible keyboard focus on every link, balanced
+   headings, numbers that line up, no double-tap zoom delay, sticky headers that never hide what has
+   focus, and no motion for people who ask for less. */
+.btn { transition-property: background-color, border-color, color, box-shadow; transition-duration: 120ms; }
+.btn-primary:not(:disabled):hover { background: color-mix(in srgb, var(--s-color-primary) 86%, var(--s-color-on-primary)); }
+.btn-danger:not(:disabled):hover { background: color-mix(in srgb, var(--s-color-danger) 86%, var(--s-color-on-danger)); }
+.btn-secondary:not(:disabled):hover { background: color-mix(in srgb, var(--s-color-on-surface) 7%, var(--s-color-surface-raised)); border-color: var(--s-color-on-surface); }
+.btn:not(:disabled):active { transform: translateY(1px); }
+a:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--s-color-accent); outline-offset: 2px; }
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li, dd { text-wrap: pretty; }
+table, .font-mono, .stat-value, time { font-variant-numeric: tabular-nums; }
+a, button, summary, label, input, select, textarea, [role='tab'] { touch-action: manipulation; }
+html { -webkit-tap-highlight-color: color-mix(in srgb, var(--s-color-accent) 25%, transparent); }
+html:has(.app-header) { scroll-padding-top: 5rem; }
+:target { scroll-margin-top: 5rem; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+/* Pages arrive with a short fade, for a calmer change between screens. */
+@media (prefers-reduced-motion: no-preference) {
+  main { animation: page-in 180ms ease-out both; }
+  @keyframes page-in { from { opacity: 0.001; } to { opacity: 1; } }
+}

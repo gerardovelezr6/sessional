@@ -9,11 +9,11 @@ export function Flag({ choice, logoUrl, className = '' }: { choice: FlagChoice; 
   if (choice.kind === 'country' && /^[a-z]{2}$/.test(choice.code)) return <span className={`fi fi-${choice.code} ${box} bg-cover`} aria-hidden="true" />;
   if (choice.kind === 'us' && /^[a-z]{2}$/.test(choice.code)) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={`/flags/us/${choice.code}.svg`} alt="" className={`${box} object-cover`} loading="lazy" />;
+    return <img src={`/flags/us/${choice.code}.svg`} alt="" width={24} height={16} className={`${box} object-cover`} loading="lazy" />;
   }
   if (choice.kind === 'logo' && logoUrl) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logoUrl} alt="" className={`${box} bg-surface-raised object-contain`} loading="lazy" />;
+    return <img src={logoUrl} alt="" width={24} height={16} className={`${box} bg-surface-raised object-contain`} loading="lazy" />;
   }
   return <span className={`${box} border-dashed`} aria-hidden="true" />;
 }

@@ -3,7 +3,7 @@ export function BrandMark({ logo, initials, size = 34 }: { logo: string | null; 
   if (logo) {
     // The name is written beside it, so the image needs no text of its own.
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logo} alt="" className="block w-auto object-contain" style={{ height: size, maxWidth: size * 3 }} />;
+    return <img src={logo} alt="" width={size * 3} height={size} className="block w-auto object-contain" style={{ height: size, maxWidth: size * 3 }} />;
   }
   if (!initials) return null;
   return (

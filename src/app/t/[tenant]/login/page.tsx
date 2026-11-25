@@ -11,6 +11,7 @@ import { localize, type MessageKey } from '@/messages';
 import { SIGN_IN_PROBLEMS } from '@/auth/oauth-errors';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { signInAction } from '../actions';
+import { loadPublicSite } from '@/public/site';
 
 export default async function LoginPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ error?: string }> }) {
   const { tenant: key } = await params;
@@ -24,6 +25,7 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
   const providers = (['google', 'microsoft'] as const).filter((p) => config.people[`${p}SignIn`] === 'on');
   const logo = assetUrl(tenant.id, config.theme.logo);
   const tagline = localize(config.identity.tagline, locale);
+  const follow = !!(await loadPublicSite(tenant.id, config).catch(() => null));
   return (
     <main className="flex flex-1 flex-col items-center justify-center p-4">
       <div className="card w-full max-w-sm">
@@ -52,6 +54,18 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
         ) : null}
         <p className="mt-4 text-center text-xs">{t('auth.signIn.accounts')}</p>
       </div>
+      {/* Delegates don't have accounts: when the school publishes its pages or live view, send them there. */}
+      {follow ? (
+        <a href={`${base}/public`} className="card mt-4 flex w-full max-w-sm items-center justify-between gap-3 hover:border-border-strong">
+          <span>
+            <span className="block font-semibold text-on-surface">{t('auth.follow.title')}</span>
+            <span className="block text-sm">{t(config.publicSite.live === 'on' ? 'auth.follow.live' : 'auth.follow.pages')}</span>
+          </span>
+          <span aria-hidden="true" className="text-xl text-on-surface">
+            →
+          </span>
+        </a>
+      ) : null}
       <PoweredBy locale={locale} />
     </main>
   );

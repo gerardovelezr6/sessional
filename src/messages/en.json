@@ -2694,5 +2694,13 @@
   "announcements.board.errorEnd": "Pick an end date and time.",
   "announcements.board.errorOrder": "It has to end after it starts.",
   "account.menu": "Your account",
-  "account.language": "Choose a language"
+  "account.language": "Choose a language",
+  "auth.follow.title": "Following a committee?",
+  "auth.follow.live": "Delegates don’t need an account. Open your committee’s live view.",
+  "auth.follow.pages": "Delegates don’t need an account. See the conference’s public pages.",
+  "public.staff": "Staff or chair?",
+  "committee.share.title": "Share the live view with delegates",
+  "committee.share.body": "Delegates open this on their phones, with no account, to follow the speakers list, the timer and votes. Show the code on the projector or print it.",
+  "committee.share.off": "Delegates can follow this committee on their phones once the live view is on.",
+  "committee.share.turnOn": "Turn it on in Settings → Public pages"
 }

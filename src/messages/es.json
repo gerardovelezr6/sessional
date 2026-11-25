@@ -2694,5 +2694,13 @@
   "announcements.board.errorEnd": "Elige fecha y hora de fin.",
   "announcements.board.errorOrder": "Tiene que terminar después de empezar.",
   "account.menu": "Tu cuenta",
-  "account.language": "Elige un idioma"
+  "account.language": "Elige un idioma",
+  "auth.follow.title": "¿Sigues un comité?",
+  "auth.follow.live": "Los delegados no necesitan cuenta. Abre la vista en vivo de tu comité.",
+  "auth.follow.pages": "Los delegados no necesitan cuenta. Consulta las páginas públicas de la conferencia.",
+  "public.staff": "¿Eres del personal o de la mesa?",
+  "committee.share.title": "Compartir la vista en vivo con los delegados",
+  "committee.share.body": "Los delegados la abren en su celular, sin cuenta, para seguir la lista de oradores, el cronómetro y las votaciones. Muestra el código en el proyector o imprímelo.",
+  "committee.share.off": "Los delegados podrán seguir este comité en su celular cuando la vista en vivo esté activada.",
+  "committee.share.turnOn": "Actívala en Configuración → Páginas públicas"
 }

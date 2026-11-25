@@ -53,9 +53,20 @@ export default async function AdminPage({ params }: { params: Promise<{ tenant: 
   const grades = rows.some((c) => c.grades !== null) ? rows.reduce((n, c) => n + (c.grades ?? 0), 0) : null;
   const minutes = (s: number) => Math.round(s / 60);
   const time = new Intl.DateTimeFormat(regional(locale), { timeStyle: 'medium', timeZone: config.identity.timeZone });
-  const ago = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const ago = new Intl.RelativeTimeFormat(regional(locale), { numeric: 'auto' });
   const at = data ? Date.parse(data.at) : 0;
   const sinceText = (iso: string | null) => (iso ? ago.format(-Math.max(0, Math.round((at - Date.parse(iso)) / 60000)), 'minute') : '—');
+  // While a committee sits, "3 minutes ago" says it is alive; once paused or over, the moment it
+  // stopped is fixed, so it is shown as a time that doesn't keep counting.
+  const sameDay = new Intl.DateTimeFormat('en-CA', { timeZone: config.identity.timeZone });
+  const stamp = new Intl.DateTimeFormat(regional(locale), { hour: 'numeric', minute: '2-digit', timeZone: config.identity.timeZone });
+  const stampDay = new Intl.DateTimeFormat(regional(locale), { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: config.identity.timeZone });
+  const lastText = (c: CommitteeLive) => {
+    if (!c.last_activity) return '—';
+    if (c.status?.status === 'in_session') return sinceText(c.last_activity);
+    const when = new Date(c.last_activity);
+    return (sameDay.format(when) === sameDay.format(new Date(at)) ? stamp : stampDay).format(when).replace(/[\u202f\u2009]/g, '\u00a0');
+  };
   const stats: { label: string; value: string }[] = [
     { label: t('admin.stat.inSession'), value: `${live} / ${rows.length}` },
     { label: t('admin.stat.present'), value: `${sum('present')} / ${sum('members')}` },
@@ -125,7 +136,7 @@ export default async function AdminPage({ params }: { params: Promise<{ tenant: 
                       <td className="p-2 text-end font-mono">{`${c.passed} / ${c.votes}`}</td>
                       <td className="p-2 text-end font-mono">{c.warnings}</td>
                       {grades !== null ? <td className="p-2 text-end font-mono">{c.grades ?? 0}</td> : null}
-                      <td className="p-2">{sinceText(c.last_activity)}</td>
+                      <td className="p-2">{lastText(c)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -2,6 +2,13 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { choose, openSection, saveAndPublish } from './support/settings';
 
+// The account menu stays open across a language change; open it only when it is closed.
+const openMenu = async (p: import('@playwright/test').Page) => {
+  const b = p.locator('.account-button');
+  await expect(b).toBeVisible();
+  if ((await b.getAttribute('aria-expanded')) !== 'true') await b.click();
+};
+
 test.describe.configure({ mode: 'serial' });
 
 const PORT = 3100;
@@ -115,7 +122,7 @@ test('anyone can switch to French; signed-in people keep the choice on their pro
   await signIn(first, 'lambda', 'owner@lambda.test');
   await first.locator('.account-button').click();
   await first.getByLabel('Language', { exact: true }).selectOption('es');
-  await first.locator('.account-button').click();
+  await openMenu(first);
   await expect(first.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
   const second = await (await browser.newContext()).newPage();
   await signIn(second, 'lambda', 'owner@lambda.test');
@@ -124,7 +131,7 @@ test('anyone can switch to French; signed-in people keep the choice on their pro
   await expect(second.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
   // Back to English for the next tests.
   await second.getByLabel('Idioma', { exact: true }).selectOption('en');
-  await second.locator('.account-button').click();
+  await openMenu(second);
   await expect(second.getByRole('button', { name: 'Sign out' })).toBeVisible();
   await first.context().close();
   await second.context().close();

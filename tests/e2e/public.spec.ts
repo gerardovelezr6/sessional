@@ -99,9 +99,9 @@ test('public pages are off until the Owner turns them on, then show whitelisted 
 
   await visitor.goto(at('/public'));
   await expect(visitor.getByRole('heading', { level: 1 })).toHaveText('Pub MUN 2026');
-  await expect(visitor.getByRole('link', { name: /SC · Security Council/ })).toContainText('Space debris');
+  await expect(visitor.getByRole('listitem').filter({ hasText: 'SC · Security Council' })).toContainText('Space debris');
   // A confidential topic is not shown.
-  await expect(visitor.getByRole('link', { name: /CC · Crisis Cabinet/ })).not.toContainText('Secret plot');
+  await expect(visitor.getByRole('listitem').filter({ hasText: 'CC · Crisis Cabinet' })).not.toContainText('Secret plot');
   await expect(visitor.getByText('Opening ceremony')).toBeVisible();
 
   await visitor.getByRole('link', { name: /SC · Security Council/ }).click();
@@ -114,7 +114,7 @@ test('public pages are off until the Owner turns them on, then show whitelisted 
     await expect(visitor.locator('body')).not.toContainText('Bea Student');
   }
 
-  await visitor.getByRole('link', { name: 'Follow live' }).click();
+  await visitor.getByRole('link', { name: 'Follow live' }).first().click();
   await expect(visitor.getByText('Security Council').first()).toBeVisible();
   // Route handlers keep their own copy of the settings for up to 30 seconds after a publish.
   const fetchState = () => visitor.evaluate(async (url) => { const r = await fetch(url); return { status: r.status, body: await r.text() }; }, `/public/committees/${SC}/live/state`);
@@ -125,6 +125,26 @@ test('public pages are off until the Owner turns them on, then show whitelisted 
   expect(body).not.toContain('Bea Student');
   expect(JSON.parse(body).realtime).toBeNull();
   await visitor.context().close();
+});
+
+test('delegates without accounts reach the public pages and the live view, never a sign-in wall', async ({ page, browser }) => {
+  const visitor = await (await browser.newContext()).newPage();
+  // The school's own address takes someone signed out to what the school publishes.
+  await visitor.goto(at('/'));
+  await expect(visitor).toHaveURL(/\/public$/);
+  await expect(visitor.getByRole('heading', { level: 1 })).toHaveText('Pub MUN 2026');
+  // Staff still find the sign-in page; it points delegates back to the live view.
+  await visitor.getByRole('link', { name: 'Sign in' }).click();
+  await visitor.getByRole('link', { name: /Following a committee\?/ }).click();
+  await expect(visitor).toHaveURL(/\/public$/);
+  await visitor.getByRole('listitem').filter({ hasText: 'SC · Security Council' }).getByRole('link', { name: 'Follow live' }).click();
+  await expect(visitor).toHaveURL(new RegExp(`/public/committees/${SC}/live$`));
+  await visitor.context().close();
+  // A chair can share it: the address and a code to scan, from the committee page.
+  await signIn(page, 'chair@pub.test');
+  await page.goto(at(`/committees/${SC}`));
+  await page.getByText('Share the live view with delegates').click();
+  await expect(page.getByRole('link', { name: new RegExp(`/public/committees/${SC}/live$`) })).toBeVisible();
 });
 
 test('a chair checks a delegation in by scanning its placard; others and forged codes cannot', async ({ page, browser }) => {

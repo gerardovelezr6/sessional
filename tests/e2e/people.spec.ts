@@ -56,7 +56,7 @@ test('a session on one school does not exist on another', async ({ page }) => {
 test('someone who is not a member gets no access', async ({ page }) => {
   await signIn(page, 'alpha.localhost', 'stranger@else.test');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('No access to this conference');
-  await expect(page.getByText('stranger@else.test')).toBeVisible();
+  await expect(page.getByRole('main').getByText('stranger@else.test')).toBeVisible();
   await page.goto(at('alpha.localhost', '/people'));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('You do not have access to this page');
 });

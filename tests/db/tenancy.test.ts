@@ -67,6 +67,7 @@ const TENANT_TABLES: Record<string, { insert: string; params: (tenant: string) =
   memberships: { insert: `insert into memberships (tenant_id, user_id, role_key, status) values ($1, $2, 'chair', 'active')`, params: (t) => [t, people.outsider] },
   conferences: { insert: `insert into conferences (tenant_id, name) values ($1, 'Intruder')`, params: (t) => [t] },
   tenant_domains: { insert: `insert into tenant_domains (tenant_id, host) values ($1, 'intruder-${run}.example.org')`, params: (t) => [t] },
+  gallery_installs: { insert: `insert into gallery_installs (tenant_id, pack_id, version) values ($1, gen_random_uuid(), 1)`, params: (t) => [t] },
   tenant_mail: { insert: `insert into tenant_mail (tenant_id, domain) values ($1, 'mail-${run}.example.org')`, params: (t) => [t] },
   tenant_slug_history: { insert: `insert into tenant_slug_history (tenant_id, slug, redirect_until, reserved_until) values ($1, 'intruder-${run}', now(), now())`, params: (t) => [t] },
   audit_log: { insert: `insert into audit_log (tenant_id, action) values ($1, 'intruder')`, params: (t) => [t] },

@@ -33,4 +33,4 @@ done
 run supabase/schema.sql
 echo "schema.sql on top: ok"
 
-npx vitest run --config vitest.db.config.mts
+npx vitest run --config "${VITEST_CONFIG:-vitest.db.config.mts}"

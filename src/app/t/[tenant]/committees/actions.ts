@@ -1,4 +1,5 @@
 'use server';
+import { limitError } from '@/billing/limits';
 import type { FormState } from '@/components/ActionForm';
 import { enabledLocales, tenantTranslator } from '@/config/store';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
@@ -18,6 +19,8 @@ async function setup(tenantKey: string) {
 }
 
 function failure(e: unknown, t: Translate, what: string): FormState {
+  const limit = limitError(e, t);
+  if (limit) return { error: limit };
   if (e instanceof RpcError && e.forbidden) return { error: t('committees.error.forbidden') };
   if (e instanceof RpcError || e instanceof WriteNotApplied) {
     // No names or topics in logs: only what failed and the database's reason.

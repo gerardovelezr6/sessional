@@ -630,3 +630,24 @@ committees), editable email texts (email phase), flags (Phase 5).
 - Also fixed here: settings section names may be camelCase in the database (`publicSite` could not
   be saved before).
 
+## Billing and metering (Phase 13)
+
+See ADR-0009 ("As built") for the decisions. In the code:
+
+- `src/billing/stripe.ts`: a small REST client (no SDK), the webhook signature check (HMAC-SHA256 of
+  `t.payload`, five minutes' tolerance, any `v1` may match), Checkout, the customer portal,
+  upgrades, scheduled downgrades, cancellation, invoices, and the admin's products, prices and
+  promotion codes. `src/billing/plans.ts`: meters (warning from 80%), downgrade blockers, up or down.
+- Owner → Billing (`tenant.manage`): plan and status in one sentence, usage meters, plans by currency,
+  Checkout, the customer portal, invoices, cancellation at the end of the period (export offered
+  first, the school's name typed) and taking it back. Payment details never pass through Sessional.
+- Banners: read-only for everyone (with the way out for people who manage the school), a failed
+  payment with its deadline and a trial ending within three days for them only.
+- Admin console: Plans (edit, create missing Stripe prices), Billing (schools by status, parent
+  organisations, referral partners and their schools, last Stripe events) and, per school, the plan,
+  goodwill limits, trial and organisation.
+- Acceptance: `npm run test:stripe` drives a Stripe test clock (trial, a card that is declined,
+  past due, read-only after the grace, a working card paying the open invoice, active) and applies
+  the events Stripe produced to a scratch database. It needs network access to api.stripe.com and a
+  test key; it is not part of CI.
+

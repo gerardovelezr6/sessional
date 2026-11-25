@@ -24,6 +24,9 @@ import { assetUrl } from '@/data/storage';
 import { buildTheme, themeCss } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
 import { setLanguageAction, signOutAction } from './actions';
+import { displayPrefs } from '@/a11y/display';
+import { DisplayOptions } from '@/components/DisplayOptions';
+import { setDisplayAction } from '@/app/display-actions';
 import { setPreviewAction, type SettingsState } from './settings/actions';
 import { ActionButton } from './settings/SectionForm';
 import { BrandMark } from '@/components/BrandMark';
@@ -109,7 +112,9 @@ export default async function TenantLayout({ params, children }: Props) {
   const own = await tenantTranslator(found.tenant.id);
   // The school's design, as CSS variables. React places this in <head> with the first HTML, so the
   // product's default colours never flash.
-  const css = themeCss(own.config.theme);
+  // A person who asked for more contrast gets the school's design at high contrast.
+  const display = await displayPrefs();
+  const css = themeCss(display.contrast ? { ...own.config.theme, contrast: 'high' } : own.config.theme);
   // Custom CSS: only the sanitised result, and never in safe mode.
   const safeMode = (await headers()).get(SAFE_MODE_HEADER) === '1';
   const custom = !safeMode && own.config.theme.customCss ? sanitizeCustomCss(own.config.theme.customCss, buildTheme(own.config.theme)).css : '';
@@ -154,33 +159,37 @@ export default async function TenantLayout({ params, children }: Props) {
       <div className="ms-auto flex flex-wrap items-center gap-2">
         {links.length ? <NavLinks label={own.t('nav.main')} links={links} /> : null}
         {ctx && site.header.userName ? <span className="hidden text-xs font-normal opacity-75 sm:inline">{ctx.user.fullName || ctx.user.email}</span> : null}
-        {ctx || languages.length > 1 ? (
-          <AccountMenu
-            label={own.t(ctx ? 'account.menu' : 'account.language')}
-            initials={ctx ? initialsOf(ctx.user.fullName || ctx.user.email) : null}
-            title={ctx ? ctx.user.fullName || ctx.user.email : undefined}
-            subtitle={ctx?.user.fullName ? ctx.user.email : undefined}
-          >
-            {languages.length > 1 ? (
-              <div className="flex items-center justify-between gap-3">
-                <span>{own.t('language.label')}</span>
-                <LanguageSwitch
-                  action={setLanguageAction.bind(null, key)}
-                  current={own.locale}
-                  // Each language is named in itself, so people can find their own.
-                  options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
-                  labels={{ language: own.t('language.label'), change: own.t('language.change') }}
-                />
-              </div>
-            ) : null}
-            {ctx?.membership ? (
-              <a className="font-semibold text-on-surface underline-offset-2 hover:underline" href={`${base}/help`}>
-                {own.t('help.link')}
-              </a>
-            ) : null}
-            {ctx ? <ActionButton small action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} /> : null}
-          </AccountMenu>
-        ) : null}
+        <AccountMenu
+          label={own.t(ctx ? 'account.menu' : 'account.options')}
+          initials={ctx ? initialsOf(ctx.user.fullName || ctx.user.email) : null}
+          title={ctx ? ctx.user.fullName || ctx.user.email : undefined}
+          subtitle={ctx?.user.fullName ? ctx.user.email : undefined}
+        >
+          {languages.length > 1 ? (
+            <div className="flex items-center justify-between gap-3">
+              <span>{own.t('language.label')}</span>
+              <LanguageSwitch
+                action={setLanguageAction.bind(null, key)}
+                current={own.locale}
+                // Each language is named in itself, so people can find their own.
+                options={languages.map((l) => ({ value: l, label: languageName(l, l), lang: l }))}
+                labels={{ language: own.t('language.label'), change: own.t('language.change') }}
+              />
+            </div>
+          ) : null}
+          <DisplayOptions
+            action={setDisplayAction}
+            contrast={display.contrast}
+            large={display.large}
+            labels={{ title: own.t('display.title'), contrast: own.t('display.contrast'), large: own.t('display.large'), save: own.t('display.save') }}
+          />
+          {ctx?.membership ? (
+            <a className="font-semibold text-on-surface underline-offset-2 hover:underline" href={`${base}/help`}>
+              {own.t('help.link')}
+            </a>
+          ) : null}
+          {ctx ? <ActionButton small action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} /> : null}
+        </AccountMenu>
       </div>
     </header>
   );

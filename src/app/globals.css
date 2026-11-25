@@ -346,3 +346,22 @@ html:has(.app-header) { scroll-padding-top: 5rem; }
   .tab-panel-in > * > :nth-child(4) { animation-delay: 120ms; }
   @keyframes tab-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 }
+
+/* A person's own display needs (Account menu → Display), or the system asking for more contrast.
+   On school pages the school's design is also rendered at high contrast. Here: muted text as strong
+   as body text, strong borders everywhere, underlined links and a thicker focus ring. */
+:root:root[data-contrast='more'] {
+  --s-color-on-surface-muted: var(--s-color-on-surface);
+  --s-color-border: var(--s-color-border-strong);
+  --s-border-width: 2px;
+}
+:root[data-contrast='more'] a:not(.btn) { text-decoration-line: underline; text-underline-offset: 0.2em; }
+:root[data-contrast='more'] :focus-visible { outline-width: 3px; outline-style: solid; }
+@media (prefers-contrast: more) {
+  :root:root:not([data-contrast]) {
+    --s-color-on-surface-muted: var(--s-color-on-surface);
+    --s-color-border: var(--s-color-border-strong);
+  }
+}
+/* Larger text: every size is in rem, so the whole page scales with the root. */
+:root[data-text='large'] { font-size: 125%; }

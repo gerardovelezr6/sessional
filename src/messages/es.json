@@ -2996,5 +2996,10 @@
   "platform.gallery.done.approved": "Aprobado. Ya está en la galería.",
   "platform.gallery.done.rejected": "No aprobado. La escuela ve el motivo.",
   "platform.gallery.done.hidden": "Quitado de la galería.",
-  "platform.gallery.done.listed": "De vuelta en la galería."
+  "platform.gallery.done.listed": "De vuelta en la galería.",
+  "account.options": "Idioma y visualización",
+  "display.title": "Visualización",
+  "display.contrast": "Alto contraste",
+  "display.large": "Texto más grande",
+  "display.save": "Guardar"
 }

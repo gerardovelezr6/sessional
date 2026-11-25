@@ -2996,5 +2996,10 @@
   "platform.gallery.done.approved": "Approved. It’s in the gallery.",
   "platform.gallery.done.rejected": "Not approved. The school sees why.",
   "platform.gallery.done.hidden": "Removed from the gallery.",
-  "platform.gallery.done.listed": "Back in the gallery."
+  "platform.gallery.done.listed": "Back in the gallery.",
+  "account.options": "Language and display",
+  "display.title": "Display",
+  "display.contrast": "High contrast",
+  "display.large": "Larger text",
+  "display.save": "Save"
 }

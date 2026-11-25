@@ -115,7 +115,7 @@ export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Reco
               steps.current[i] = el;
             }}
             aria-current={i === step ? 'step' : undefined}
-            className="flex min-h-[36vh] flex-col justify-center gap-2 border-t border-border py-6 transition-opacity duration-300 motion-reduce:transition-none lg:min-h-[42vh] [&:not([aria-current])]:opacity-60"
+            className="flex min-h-[36vh] flex-col justify-center gap-2 border-s-4 border-t border-s-transparent border-t-border py-6 ps-4 transition-colors duration-300 motion-reduce:transition-none lg:min-h-[42vh] aria-[current=step]:border-s-accent"
           >
             <span className="flex items-baseline gap-3">
               <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>

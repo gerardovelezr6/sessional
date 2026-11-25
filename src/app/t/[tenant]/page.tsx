@@ -16,6 +16,7 @@ import { Today } from '@/schedule/Today';
 import { loadOverview } from './committees/data';
 import { committeeGroups, gridLabels } from './home';
 import { GettingStarted } from '@/onboarding/GettingStarted';
+import { loadPublicSite } from '@/public/site';
 
 // The home page: the blocks the school arranged at Settings → Website, in its order.
 export default async function TenantHome({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ welcome?: string }> }) {
@@ -24,7 +25,8 @@ export default async function TenantHome({ params, searchParams }: { params: Pro
   const { t, locale, config } = await tenantTranslator(tenant.id);
   const base = await basePath();
   const ctx = await tenantContext(tenant.id);
-  if (!ctx) redirect(`${base}/login`);
+  // Someone without an account (a delegate) goes to what the school publishes, if anything.
+  if (!ctx) redirect((await loadPublicSite(tenant.id, config).catch(() => null)) ? `${base}/public` : `${base}/login`);
 
   if (!ctx.membership) {
     return (
@@ -158,7 +160,7 @@ export default async function TenantHome({ params, searchParams }: { params: Pro
   const blocks = site.home.filter((b) => b.visible).map((b) => ({ key: b.key, node: render(b) }));
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-8">
+    <main id="main" className="flex flex-1 flex-col items-center px-4 py-8">
       <div className="flex w-full max-w-7xl flex-col gap-6">
         {/* Every page has one main heading, even when the school hides its banner. */}
         {titled ? null : (

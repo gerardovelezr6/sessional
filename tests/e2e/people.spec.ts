@@ -39,6 +39,7 @@ test('an owner signs in, sees their role, and signs out', async ({ page }) => {
   const cookies = await page.context().cookies();
   expect(cookies.filter((c) => c.name.startsWith('s_')).every((c) => c.httpOnly && c.sameSite === 'Lax')).toBe(true);
 
+  await page.getByRole('button', { name: 'Your account' }).click();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(at('alpha.localhost', '/login'));
   await page.goto(at('alpha.localhost'));
@@ -55,7 +56,7 @@ test('a session on one school does not exist on another', async ({ page }) => {
 test('someone who is not a member gets no access', async ({ page }) => {
   await signIn(page, 'alpha.localhost', 'stranger@else.test');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('No access to this conference');
-  await expect(page.getByText('stranger@else.test')).toBeVisible();
+  await expect(page.getByRole('main').getByText('stranger@else.test')).toBeVisible();
   await page.goto(at('alpha.localhost', '/people'));
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('You do not have access to this page');
 });
@@ -124,6 +125,7 @@ test('invitation: link previews do not use it up, it works once, and the person 
   await expect(guest.getByText('Welcome, Nadia New')).toBeVisible();
 
   // The link is spent.
+  await guest.getByRole('button', { name: 'Your account' }).click();
   await guest.getByRole('button', { name: 'Sign out' }).click();
   await guest.goto(link);
   await guest.getByRole('button', { name: 'Continue' }).click();

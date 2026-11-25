@@ -76,7 +76,7 @@ export function standardGrading(): Grading {
     awards: [
       { key: 'best', name: { en: 'Best Delegate', es: 'Mejor Delegado' }, count: 1, rule: 'top_total' },
       { key: 'outstanding', name: { en: 'Outstanding Delegate', es: 'Delegado Sobresaliente' }, count: 1, rule: 'top_total' },
-      { key: 'mention', name: { en: 'Honourable Mention', es: 'Mención Honorífica' }, count: 2, rule: 'top_total' },
+      { key: 'mention', name: { en: 'Honorable Mention', es: 'Mención Honorífica' }, count: 2, rule: 'top_total' },
       { key: 'position_paper', name: { en: 'Best Position Paper', es: 'Mejor Documento de Posición' }, count: 1, rule: 'manual' },
     ],
   };

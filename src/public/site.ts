@@ -43,13 +43,16 @@ const pick = <T extends object>(row: Record<string, unknown>, keys: (keyof T)[])
 
 export async function loadPublicSite(tenantId: string, config: TenantConfig): Promise<PublicSite | null> {
   const p = config.publicSite;
-  if (p.enabled !== 'on' || !(await flagOn(tenantId, 'public_pages'))) return null;
+  // "Live view" alone is enough for delegates to follow their committee; the rest of the public
+  // pages (delegations, schedule, resolutions) come with "Public pages".
+  const pages = p.enabled === 'on';
+  if ((!pages && p.live !== 'on') || !(await flagOn(tenantId, 'public_pages'))) return null;
   const row = await rpc<{ conference: { name: string }; committees: Record<string, unknown>[]; schedule: Record<string, unknown>[] } | null>('public_site', { p_tenant: tenantId }, 'service');
   if (!row) return null;
   const show = {
-    delegations: p.delegations === 'on',
-    schedule: p.schedule === 'on' && moduleOn(config, 'schedule'),
-    resolutions: p.resolutions === 'on' && moduleOn(config, 'documents'),
+    delegations: pages && p.delegations === 'on',
+    schedule: pages && p.schedule === 'on' && moduleOn(config, 'schedule'),
+    resolutions: pages && p.resolutions === 'on' && moduleOn(config, 'documents'),
     live: p.live === 'on',
   };
   return {

@@ -11,7 +11,9 @@ import { languageName } from '@/i18n/locales';
 import { localize, messageFor, type MessageKey } from '@/messages';
 import { flagFor, US_STATE_CODES, usStateName } from '@/structure/flags';
 import { typeOf } from '@/structure/schema';
-import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { basePath, requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
+import QRCode from 'qrcode';
+import { loadPublicSite } from '@/public/site';
 import { loadPeople } from '../../people/data';
 import { addDelegatesAction, deleteCommitteeAction, deleteDelegateAction, saveCommitteeAction, setChairsAction, setSecretAction, updateDelegateAction } from '../actions';
 import { CommitteeFields } from '../CommitteeFields';
@@ -49,6 +51,9 @@ export default async function CommitteePage({ params, searchParams }: { params: 
   const committeeLocale = committee.language ?? config.locale.defaultLocale;
 
   const canRun = await rpc<boolean>('committee_can_run', { p_committee: committee.id }, { token: ctx.token }).catch(() => false);
+  const liveOn = !!(await loadPublicSite(tenant.id, config).catch(() => null))?.show.live;
+  const liveUrl = `${await tenantOrigin()}/public/committees/${committee.id}/live`;
+  const liveQr = liveOn ? await QRCode.toString(liveUrl, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }) : '';
   const people = manage ? await loadPeople(tenant.id, ctx.token).catch(() => null) : null;
   const candidates = (people?.members ?? []).filter((m) => m.status !== 'disabled');
 
@@ -113,6 +118,30 @@ export default async function CommitteePage({ params, searchParams }: { params: 
             </div>
           ) : null}
         </section>
+        {/* Delegates follow the committee on their phones: the address and a code to scan. */}
+        {canRun || manage ? (
+          liveOn ? (
+            <details className="card">
+              <summary className="cursor-pointer font-semibold text-on-surface">{t('committee.share.title')}</summary>
+              <div className="mt-3 flex flex-wrap items-center gap-5">
+                <span className="block h-32 w-32 shrink-0" aria-hidden="true" dangerouslySetInnerHTML={{ __html: liveQr }} />
+                <div className="flex min-w-0 flex-1 flex-col gap-2 text-sm">
+                  <p>{t('committee.share.body')}</p>
+                  <a className="break-all font-mono font-semibold text-on-surface underline underline-offset-2" href={liveUrl} target="_blank" rel="noreferrer">
+                    {liveUrl}
+                  </a>
+                </div>
+              </div>
+            </details>
+          ) : manage ? (
+            <p className="text-sm">
+              {t('committee.share.off')}{' '}
+              <Link className="font-semibold underline underline-offset-2" href={`${base}/settings?section=publicSite`}>
+                {t('committee.share.turnOn')}
+              </Link>
+            </p>
+          ) : null
+        ) : null}
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
             {done}

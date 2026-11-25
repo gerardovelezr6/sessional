@@ -539,6 +539,8 @@ export function StructureEditor({
                                 <img
                                   src={logoUrls[g.logo]}
                                   alt=""
+                                  width={96}
+                                  height={32}
                                   className="h-8 w-auto rounded-control border border-border"
                                 />
                               ) : null}

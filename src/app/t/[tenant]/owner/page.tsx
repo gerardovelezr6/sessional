@@ -52,7 +52,7 @@ export default async function OwnerPage({ params }: { params: Promise<{ tenant: 
   const staffRoles = (matrix?.roles ?? []).filter((r) => r.all_permissions || r.permissions.some((p) => staffKeys.includes(p)));
 
   return (
-    <main className="flex flex-1 flex-col items-center px-4 py-8">
+    <main id="main" className="flex flex-1 flex-col items-center px-4 py-8">
       <div className="w-full max-w-7xl">
         <h1 className="page-title text-2xl">{t('owner.title')}</h1>
         <p className="mb-5 mt-3 text-sm">{t('owner.subtitle')}</p>

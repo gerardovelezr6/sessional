@@ -192,6 +192,8 @@ export interface CertificateItem {
   // The student's name, or the delegation when no name is on record.
   name: string;
   line: string;
+  // This certificate's own heading (an award's name: "Best Delegate"); else the shared one.
+  heading?: string;
   // The flag of the delegation represented, or null.
   flag: Uint8Array | null;
 }
@@ -245,7 +247,7 @@ export async function certificates(brand: Brand, title: string, heading: string,
       y -= logo.height + 30;
     }
     y -= 34;
-    put(page, heading, k.bold, 34, y, st.style === 'minimal' ? k.ink : colour);
+    put(page, it.heading || heading, k.bold, 34, y, st.style === 'minimal' ? k.ink : colour);
     y -= 70;
     const flag = await embedImage(k, it.flag);
     let nameX = 0;

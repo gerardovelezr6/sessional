@@ -69,12 +69,10 @@ test('the menu is renamed and reordered; header initials and an urgent announcem
   await page.waitForURL(/done=published&part=header/);
   // Announcements have their own page, under High Command.
   await page.goto(at('/announcements'));
-  await page.getByRole('button', { name: 'Add' }).click();
-  const a = page.getByRole('list', { name: 'Announcements' }).getByRole('listitem').last();
-  await a.getByLabel('Message, English').fill('Room change: the council meets in hall B.');
-  await a.getByLabel('Kind').selectOption({ label: 'Urgent' });
-  await page.getByRole('button', { name: 'Publish announcements' }).click();
-  await expect(page.getByText('Published. They show now.')).toBeVisible();
+  await page.getByLabel('Message, English').fill('Room change: the council meets in hall B.');
+  await page.getByLabel('Kind').selectOption({ label: 'Urgent' });
+  await page.getByRole('button', { name: 'Post now' }).click();
+  await expect(page.getByText('Posted. It shows now.')).toBeVisible();
 
   await page.goto(at('/'));
   await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'My desk', 'High Command', 'Owner', 'Settings']);
@@ -103,4 +101,36 @@ test('an unsafe link is refused with a reason, and nothing is saved', async ({ p
   await expect(page.getByText(/^Some website settings need fixing. Check: .*links/)).toBeVisible();
   await page.goto(at('/'));
   await expect(menu(page).getByRole('link')).toHaveText(['Committees', 'My desk', 'High Command', 'Owner', 'Settings']);
+});
+
+test('announcements: scheduled for later, ended and deleted at once, and gone everywhere', async ({ page }) => {
+  await signIn(page, 'owner@site.test');
+  await page.goto(at('/announcements'));
+  // Later, for an hour: listed as scheduled, not shown yet.
+  await page.getByLabel('Message, English').fill('Awards at 5.');
+  await page.getByLabel('Later').check();
+  await page.getByLabel('Start date').fill('2099-01-15');
+  await page.getByLabel('Start time').fill('17:00');
+  await page.getByLabel('Shows for').selectOption({ label: '1 hour' });
+  await page.getByRole('button', { name: 'Schedule' }).click();
+  await expect(page.getByText('Scheduled.', { exact: true })).toBeVisible();
+  const scheduled = page.getByRole('region', { name: /^Scheduled/ });
+  await expect(scheduled).toContainText('Awards at 5.');
+  await expect(scheduled).toContainText(/Starts Thu, Jan 15, 5:00\sPM, ends Thu, Jan 15, 6:00\sPM/);
+  // Posted now, then ended: it leaves the home page at once.
+  await page.getByLabel('Message, English').fill('Buses leave at 4.');
+  await page.getByRole('button', { name: 'Post now' }).click();
+  await expect(page.getByRole('region', { name: /^Showing now/ })).toContainText('Buses leave at 4.');
+  await page.getByRole('region', { name: /^Showing now/ }).getByRole('listitem').filter({ hasText: 'Buses leave at 4.' }).getByRole('button', { name: 'End now' }).click();
+  await expect(page.getByText('Ended. It no longer shows.')).toBeVisible();
+  await expect(page.getByRole('region', { name: /^Ended/ })).toContainText('Buses leave at 4.');
+  // Deleted: gone from the list after a reload too, and from the home page.
+  await page.getByRole('region', { name: /^Scheduled/ }).getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('button', { name: 'Delete all ended' }).click();
+  await expect(page.getByText('Ended announcements deleted.')).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Awards at 5.')).toHaveCount(0);
+  await expect(page.getByText('Buses leave at 4.')).toHaveCount(0);
+  await page.goto(at('/'));
+  await expect(page.getByText('Buses leave at 4.')).toHaveCount(0);
 });

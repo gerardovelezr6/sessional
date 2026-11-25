@@ -86,7 +86,7 @@ export function ThemePreview({ formId, saved, logoUrl, schoolName, labels }: { f
         <div className="app-header">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt={schoolName} />
+            <img src={logo} alt={schoolName} width={160} height={48} />
           ) : (
             <span>{schoolName}</span>
           )}

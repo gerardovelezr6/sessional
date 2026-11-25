@@ -209,10 +209,9 @@ test('High Command (students) runs the conference and posts announcements, but h
   await expect(tabs.getByRole('link', { name: 'Website' })).toHaveCount(0);
   await expect(tabs.getByRole('link', { name: 'Audit log' })).toHaveCount(0);
   await tabs.getByRole('link', { name: 'Announcements' }).click();
-  await page.getByRole('button', { name: 'Add' }).click();
-  await page.getByRole('list', { name: 'Announcements' }).getByRole('listitem').last().getByLabel('Message, English').fill('Lunch is served in the gym.');
-  await page.getByRole('button', { name: 'Publish announcements' }).click();
-  await expect(page.getByText('Published. They show now.')).toBeVisible();
+  await page.getByLabel('Message, English').fill('Lunch is served in the gym.');
+  await page.getByRole('button', { name: 'Post now' }).click();
+  await expect(page.getByText('Posted. It shows now.')).toBeVisible();
   await page.goto(at('/'));
   await expect(page.getByText('Lunch is served in the gym.')).toBeVisible();
   for (const path of ['/owner', '/settings', '/settings/site', '/settings/access', '/people/audit']) {

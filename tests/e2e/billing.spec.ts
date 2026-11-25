@@ -71,10 +71,10 @@ test('cancelling: the export is offered first, the name is typed, and it can be 
   await page.goto(school('/owner/billing'));
   const cancel = page.getByRole('region', { name: 'Cancel' });
   await expect(cancel.getByRole('link', { name: 'Download a full export' })).toHaveAttribute('href', /\/owner\/data$/);
-  await cancel.getByLabel(/Type the school's name/).fill('wrong');
+  await cancel.getByLabel(/Type the school’s name/).fill('wrong');
   await cancel.getByRole('button', { name: 'Cancel at the end of the period' }).click();
   await expect(page.getByText('The name does not match.')).toBeVisible();
-  await cancel.getByLabel(/Type the school's name/).fill('Bill School');
+  await cancel.getByLabel(/Type the school’s name/).fill('Bill School');
   await cancel.getByRole('button', { name: 'Cancel at the end of the period' }).click();
   await expect(page.getByText('Canceled at the end of the period.')).toBeVisible();
   await expect(page.getByText(/^Canceled: active until /)).toBeVisible();

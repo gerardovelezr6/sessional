@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { PRESETS } from '@/theme/presets';
 import '@fontsource-variable/montserrat';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/source-serif-4';
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
   icons: { icon: appIcon.src, apple: appIcon.src },
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: PRESETS.sessional.background };
 
 // The language and direction of the whole document. On a school's pages they follow the school's
 // language (right-to-left for Arabic, Hebrew …); elsewhere the product's own.

@@ -156,7 +156,7 @@ function AssetField({ view, valueOf, labels }: { view: Extract<FieldView, { kind
       <input type="hidden" name={view.name} value={valueOf(view.name, view.value)} />
       {view.currentUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={view.currentUrl} alt="" className="h-12 w-auto rounded-control border border-border bg-surface p-1" />
+        <img src={view.currentUrl} alt="" width={144} height={48} className="h-12 w-auto rounded-control border border-border bg-surface p-1" />
       ) : (
         <span className="text-xs text-on-surface-muted">{labels.none}</span>
       )}

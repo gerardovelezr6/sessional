@@ -27,9 +27,9 @@ export default async function AnnouncementsPage({ params, searchParams }: { para
       .filter((k) => k.startsWith('siteEditor.'))
       .map((k) => [k.slice('siteEditor.'.length), t(k as MessageKey)]),
   );
-  for (const k of ['add', 'up', 'down', 'remove'] as const) L[k] = t(`rules.${k}` as MessageKey);
-  L.publish = t('announcements.publish');
+  for (const k of Object.keys(catalogs.en).filter((k) => k.startsWith('announcements.board.'))) L[k.slice('announcements.board.'.length)] = t(k as MessageKey);
   L.failed = t('committees.error.failed');
+  const now = Date.parse(new Date().toISOString());
   const { done } = await searchParams;
 
   return (
@@ -42,11 +42,14 @@ export default async function AnnouncementsPage({ params, searchParams }: { para
           </p>
         ) : null}
         <p className="text-sm">{t('siteEditor.announcementsHelp')}</p>
-        <div className="card">
+        <div>
           <AnnouncementsEditor
             initial={config.announcements.items ?? config.site.page?.announcements ?? []}
             locales={enabledLocales(config).map((l) => ({ code: l, label: languageName(l, locale), dir: directionOf(l) }))}
             save={saveAnnouncementsAction.bind(null, key)}
+            timeZone={config.identity.timeZone}
+            locale={locale}
+            serverNow={now}
             L={L}
           />
         </div>

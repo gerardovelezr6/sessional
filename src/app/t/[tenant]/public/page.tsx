@@ -18,6 +18,7 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
   const site = await loadPublicSite(tenant.id, config);
   if (!site) notFound();
   const base = await basePath();
+  const pagesOn = config.publicSite.enabled === 'on';
   const tz = config.identity.timeZone;
   const dayName = new Intl.DateTimeFormat(regional(locale), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   const days = [...new Set(site.schedule.map((s) => dayIn(s.starts_at, tz)))].sort();
@@ -32,12 +33,18 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
           {site.committees.length === 0 ? <p className="placeholder text-sm">{t('public.committees.none')}</p> : null}
           <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {site.committees.map((c) => (
-              <li key={c.id}>
-                <a href={`${base}/public/committees/${c.id}`} className="card flex h-full flex-col gap-1 hover:border-border-strong">
-                  <span className="font-bold text-on-surface">{c.abbreviation ? `${c.abbreviation} · ${c.name}` : c.name}</span>
-                  {c.topic ? <span className="text-sm">{c.topic}</span> : null}
-                  {site.show.delegations ? <span className="text-xs">{t('public.delegations.count', { count: c.delegations.length })}</span> : null}
+              <li key={c.id} className="card flex h-full flex-col gap-2">
+                {/* With only the live view published, the committee's name leads straight to it. */}
+                <a href={pagesOn ? `${base}/public/committees/${c.id}` : `${base}/public/committees/${c.id}/live`} className="font-bold text-on-surface underline-offset-2 hover:underline">
+                  {c.abbreviation ? `${c.abbreviation} · ${c.name}` : c.name}
                 </a>
+                {c.topic ? <span className="text-sm">{c.topic}</span> : null}
+                {site.show.delegations ? <span className="text-xs">{t('public.delegations.count', { count: c.delegations.length })}</span> : null}
+                {site.show.live ? (
+                  <a href={`${base}/public/committees/${c.id}/live`} className="btn btn-primary btn-sm mt-auto self-start">
+                    {t('public.live.open')}
+                  </a>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -65,6 +72,12 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
             ))}
           </section>
         ) : null}
+        <p className="text-sm">
+          {t('public.staff')}{' '}
+          <a className="font-semibold underline underline-offset-2" href={`${base}/login`}>
+            {t('auth.signIn')}
+          </a>
+        </p>
       </div>
     </Shell>
   );

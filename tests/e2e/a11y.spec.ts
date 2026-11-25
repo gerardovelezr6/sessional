@@ -29,6 +29,7 @@ const ROOT = [
   ['the changelog', '/changelog'],
   ['the gallery', '/gallery'],
   ['the privacy policy', '/privacy'],
+  ['the status page', '/status'],
   ['the home page in Spanish', '/?lang=es'],
 ] as const;
 

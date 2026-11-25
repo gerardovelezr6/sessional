@@ -46,6 +46,8 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run test:db
+      # Backup → restore into a fresh database → identical tables, still sealed per school.
+      - run: npm run drill:restore
 
   e2e:
     name: End-to-end (Playwright)

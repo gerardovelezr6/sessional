@@ -22,7 +22,7 @@ Each control below names the test that keeps it true. A control without a test i
 
 **Tenant isolation**
 - Every public table has row-level security, and every table owned by a school appears in the isolation matrix. The matrix tries to read, insert, update and delete across schools as every role. (`tests/db/tenancy.test.ts`, `tests/db/foundation.test.ts`, `tests/db/security.test.ts`)
-- Realtime channels are private and named per school. Subscribing to another school's channel is refused. (`tests/db/live.test.ts`, `tests/db/displays.test.ts`)
+- Realtime channels are private and named per school. Subscribing to another school's channel is refused. (`tests/db/displays.test.ts`)
 - Storage paths start with the school's id, and policies are keyed to it. (`tests/db/storage.test.ts`)
 
 **Database functions**

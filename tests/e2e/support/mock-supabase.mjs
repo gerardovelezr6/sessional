@@ -1990,6 +1990,8 @@ createServer((req, res) => {
     res.end(status === 204 ? undefined : JSON.stringify(body));
   };
   if (req.method === 'GET' && req.url === '/health') return send({ body: { ok: true } });
+  // Supabase Auth's health endpoint (the status page checks sign-in with it).
+  if (req.method === 'GET' && req.url === '/auth/v1/health') return send({ body: { name: 'GoTrue' } });
   const chunks = [];
   req.on('data', (c) => chunks.push(c));
   req.on('end', () => {

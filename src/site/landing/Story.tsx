@@ -30,9 +30,12 @@ export interface StoryLabels {
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-export function Story({ L, names }: { L: StoryLabels; names: Record<string, string> }) {
+// `lead` is the page's opening (headline and actions) and `heading` the section's title: both sit in
+// the left column above the steps, so the stage stands beside the headline from the top of the page.
+export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Record<string, string>; lead: React.ReactNode; heading: React.ReactNode }) {
   const [step, setStep] = useState(0);
   const [p, setP] = useState(0);
+  const [started, setStarted] = useState(false);
   const steps = useRef<(HTMLLIElement | null)[]>([]);
 
   useEffect(() => {
@@ -46,14 +49,17 @@ export function Story({ L, names }: { L: StoryLabels; names: Record<string, stri
       const line = window.innerHeight * (window.innerWidth < 1024 ? 0.85 : 0.65);
       let current = 0;
       let progress = 0;
+      let any = false;
       steps.current.forEach((el, i) => {
         if (!el) return;
         const r = el.getBoundingClientRect();
         if (r.top <= line) {
+          any = true;
           current = i;
           progress = Math.min(1, Math.max(0, (line - r.top) / r.height));
         }
       });
+      setStarted(any);
       setStep(current);
       setP(Math.round(progress * 50) / 50);
     };
@@ -73,15 +79,17 @@ export function Story({ L, names }: { L: StoryLabels; names: Record<string, stri
   const S = L.stage;
   const key = STORY_STEPS[step]!;
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
-      {/* The pinned stage: first on phones (pinned under the header), on the right on wide screens. */}
-      <div className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:order-2 lg:top-24">
+    <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[1fr_1.1fr]">
+      <div className="lg:col-start-1">{lead}</div>
+      <div className="lg:col-start-1">{heading}</div>
+      {/* The pinned stage: beside the headline on wide screens; under the section title on phones. */}
+      <div className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:top-24 lg:mt-12">
         <div className="landing-frame bg-surface-raised" aria-hidden="true">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs">
             <span className="font-semibold text-on-surface">{S.committee}</span>
-            <span className="font-mono">{fill(L.progress, { n: step + 1, total: STORY_STEPS.length })}</span>
+            <span className="font-mono">{started ? fill(L.progress, { n: step + 1, total: STORY_STEPS.length }) : S.scrollHint}</span>
           </div>
-          <div key={key} className="story-stage min-h-[17rem] p-4 sm:min-h-[19rem]">
+          <div key={key} className="story-stage min-h-[16rem] p-4 sm:min-h-[18rem]">
             {key === 'rollcall' ? <RollCall p={p} S={S} names={names} /> : null}
             {key === 'speakers' ? <Speakers p={p} S={S} names={names} /> : null}
             {key === 'motions' ? <Motions p={p} S={S} names={names} /> : null}
@@ -99,7 +107,7 @@ export function Story({ L, names }: { L: StoryLabels; names: Record<string, stri
         </div>
       </div>
 
-      <ol className="story-steps flex flex-col lg:order-1">
+      <ol className="story-steps flex flex-col lg:col-start-1">
         {STORY_STEPS.map((s, i) => (
           <li
             key={s}
@@ -107,7 +115,7 @@ export function Story({ L, names }: { L: StoryLabels; names: Record<string, stri
               steps.current[i] = el;
             }}
             aria-current={i === step ? 'step' : undefined}
-            className="flex min-h-[55vh] flex-col justify-center gap-2 border-t border-border py-8 transition-opacity duration-300 motion-reduce:transition-none lg:min-h-[70vh] [&:not([aria-current])]:opacity-60"
+            className="flex min-h-[36vh] flex-col justify-center gap-2 border-t border-border py-6 transition-opacity duration-300 motion-reduce:transition-none lg:min-h-[42vh] [&:not([aria-current])]:opacity-60"
           >
             <span className="flex items-baseline gap-3">
               <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>

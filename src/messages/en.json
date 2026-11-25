@@ -2205,17 +2205,6 @@
   "landing.faq.cost.q": "Can a class try it first?",
   "landing.faq.cost.a": "Yes. A class or club simulation fits the smallest plan, and every plan can start with a trial.",
   "landing.footer.made": "Sessional, conference software for Model UN.",
-  "landing.mock.console.label": "The chair’s console during a general debate",
-  "landing.mock.console.title": "Security Council · Session 2",
-  "landing.mock.console.mode": "Formal debate",
-  "landing.mock.console.speaking": "Speaking now",
-  "landing.mock.console.of": "of {total}",
-  "landing.mock.console.yieldChair": "Yield to chair",
-  "landing.mock.console.yieldQuestions": "Yield to questions",
-  "landing.mock.console.next": "Next speaker",
-  "landing.mock.console.list": "Speakers list",
-  "landing.mock.console.motion": "Motion pending: moderated caucus, 10 min, by {by}",
-  "landing.mock.console.quorum": "15 present · 9 votes to pass",
   "landing.mock.projector.label": "The projector screen in the committee room",
   "landing.mock.projector.committee": "Security Council",
   "landing.mock.projector.topic": "Topic B: Water security in the Sahel",
@@ -2743,5 +2732,6 @@
   "landing.story.awardsTitle": "Awards",
   "landing.story.award_best": "Best Delegate",
   "landing.story.award_outstanding": "Outstanding Delegate",
-  "landing.story.award_mention": "Honorable Mention"
+  "landing.story.award_mention": "Honorable Mention",
+  "landing.story.scrollHint": "Scroll to start ↓"
 }

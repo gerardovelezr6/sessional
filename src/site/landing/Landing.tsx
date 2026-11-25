@@ -5,7 +5,7 @@ import { countryCodes, countryName } from '@/i18n/countries';
 import { regional } from '@/i18n/regional';
 import { messageFor, type MessageKey, type Translate } from '@/messages';
 import { ContactForm, type ContactLabels } from './ContactForm';
-import { ConsoleMock, PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
+import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
 import { Reveal } from './Reveal';
 import { Scene } from './Scene';
 import { Story, type StoryLabels } from './Story';
@@ -93,7 +93,7 @@ function contactLabels(t: Translate): ContactLabels {
 
 const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
-const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention'] as const;
+const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
 // The story's words, with ICU placeholders left for the client to fill.
 function storyLabels(t: Translate, locale: string): StoryLabels {
   const raw = (k: string) => messageFor(k, locale).text;
@@ -148,7 +148,13 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
 
       <Scene>
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          <section className="grid grid-cols-1 items-start gap-10 py-12 lg:items-center lg:grid-cols-[1fr_1.05fr]" aria-labelledby="hero-title">
+          {/* The opening and "How a session runs" are one story: the stage stands beside the headline
+              and plays the session as you scroll down through the steps. */}
+          <section className="pt-12" aria-labelledby="hero-title">
+            <Story
+              names={storyNames(locale)}
+              L={storyLabels(t, locale)}
+              lead={
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
@@ -179,12 +185,17 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
               </div>
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-            <ConsoleMock t={t} locale={locale} />
+              }
+              heading={
+                <div id="session" className="landing-rule flex scroll-mt-24 flex-col gap-3 pt-10">
+                  <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
+                    {t('landing.session.title')}
+                  </h2>
+                  <p className="max-w-xl text-base">{t('landing.session.intro')}</p>
+                </div>
+              }
+            />
           </section>
-
-          <Section id="session" title={t('landing.session.title')} intro={t('landing.session.intro')} reveal={false}>
-            <Story names={storyNames(locale)} L={storyLabels(t, locale)} />
-          </Section>
 
           <Section id="screens" title={t('landing.screens.title')} intro={t('landing.screens.intro')}>
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">

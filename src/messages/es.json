@@ -2205,17 +2205,6 @@
   "landing.faq.cost.q": "¿Puede probarlo primero un grupo?",
   "landing.faq.cost.a": "Sí. Una simulación de clase o club cabe en el plan más pequeño, y todos los planes pueden empezar con una prueba.",
   "landing.footer.made": "Sessional, software para conferencias de Modelo de la ONU.",
-  "landing.mock.console.label": "La consola de la mesa durante el debate general",
-  "landing.mock.console.title": "Consejo de Seguridad · Sesión 2",
-  "landing.mock.console.mode": "Debate formal",
-  "landing.mock.console.speaking": "Hablando ahora",
-  "landing.mock.console.of": "de {total}",
-  "landing.mock.console.yieldChair": "Ceder a la mesa",
-  "landing.mock.console.yieldQuestions": "Ceder a preguntas",
-  "landing.mock.console.next": "Siguiente orador",
-  "landing.mock.console.list": "Lista de oradores",
-  "landing.mock.console.motion": "Moción pendiente: caucus moderado, 10 min, de {by}",
-  "landing.mock.console.quorum": "15 presentes · 9 votos para aprobar",
   "landing.mock.projector.label": "La pantalla del proyector en la sala del comité",
   "landing.mock.projector.committee": "Consejo de Seguridad",
   "landing.mock.projector.topic": "Tema B: Seguridad hídrica en el Sahel",
@@ -2743,5 +2732,6 @@
   "landing.story.awardsTitle": "Premios",
   "landing.story.award_best": "Mejor Delegado",
   "landing.story.award_outstanding": "Delegado Sobresaliente",
-  "landing.story.award_mention": "Mención Honorífica"
+  "landing.story.award_mention": "Mención Honorífica",
+  "landing.story.scrollHint": "Desplázate para empezar ↓"
 }

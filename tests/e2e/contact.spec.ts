@@ -99,9 +99,9 @@ const scrollThrough = (step: import('@playwright/test').Locator, fraction: numbe
 test('“How a session runs” is told by scrolling: the pinned stage plays each step', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  const steps = page.locator('#session ol.story-steps > li');
+  const steps = page.locator('ol.story-steps > li');
   await expect(steps).toHaveCount(6);
-  const stage = page.locator('#session .story-stage');
+  const stage = page.locator('.story-stage');
   // Roll call: delegations answer as you scroll through the step.
   await steps.nth(0).scrollIntoViewIfNeeded();
   await page.mouse.wheel(0, 300);
@@ -122,13 +122,23 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   await scrollThrough(steps.nth(1), 0.05);
   await expect(stage).toContainText('Speaking now');
   // The stage stays pinned while the steps scroll past.
-  const top = await page.locator('#session .sticky').evaluate((el) => el.getBoundingClientRect().top);
+  const top = await page.locator('.story-stage').locator('xpath=ancestor::div[contains(@class,"sticky")][1]').evaluate((el) => el.getBoundingClientRect().top);
   expect(top).toBeLessThan(200);
 });
 
-test('the pictures above and below hold still: nothing moves unless you scroll', async ({ page }) => {
+test('the opening shows the story’s stage beside the headline, not a second console; the rest holds still', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  const timer = page.getByRole('figure', { name: 'The chair’s console during a general debate' }).locator('.font-mono.text-4xl');
+  await expect(page.getByRole('figure', { name: 'The chair’s console during a general debate' })).toHaveCount(0);
+  const stage = page.locator('.story-stage');
+  await expect(stage).toBeVisible();
+  await expect(page.getByText('Scroll to start ↓')).toBeVisible();
+  // The stage starts level with the headline.
+  const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
+  const box = await stage.boundingBox();
+  expect(Math.abs(box!.y - h1!.y)).toBeLessThan(160);
+  // The projector further down is a picture: it does not tick.
+  const timer = page.getByRole('figure', { name: 'The projector screen in the committee room' }).locator('.font-mono');
   const at = await timer.textContent();
   await page.waitForTimeout(1500);
   await expect(timer).toHaveText(at!);

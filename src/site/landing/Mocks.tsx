@@ -1,7 +1,7 @@
 import { Flag } from '@/components/Flag';
 import { countryName } from '@/i18n/countries';
 import type { Translate } from '@/messages';
-import { ConsoleLive, PhoneLive, ProjectorLive } from './Scene';
+import { PhoneLive, ProjectorLive } from './Scene';
 
 // Pictures of the product, drawn with the product's own pieces (flags, words, colors) rather than
 // screenshots, so they stay true as the product changes and read in either language. The console,
@@ -9,27 +9,6 @@ import { ConsoleLive, PhoneLive, ProjectorLive } from './Scene';
 
 const CODES = ['fr', 'br', 'ke', 'jp', 'mx', 'de', 'in', 'za'];
 const names = (locale: string) => Object.fromEntries(CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
-
-export function ConsoleMock({ t, locale }: { t: Translate; locale: string }) {
-  return (
-    <ConsoleLive
-      names={names(locale)}
-      L={{
-        label: t('landing.mock.console.label'),
-        title: t('landing.mock.console.title'),
-        mode: t('landing.mock.console.mode'),
-        speaking: t('landing.mock.console.speaking'),
-        of: t('landing.mock.console.of', { total: '0:45' }),
-        yieldChair: t('landing.mock.console.yieldChair'),
-        yieldQuestions: t('landing.mock.console.yieldQuestions'),
-        next: t('landing.mock.console.next'),
-        list: t('landing.mock.console.list'),
-        motion: t('landing.mock.console.motion', { by: countryName('MX', locale) }),
-        quorum: t('landing.mock.console.quorum'),
-      }}
-    />
-  );
-}
 
 export function ProjectorMock({ t, locale }: { t: Translate; locale: string }) {
   return (

@@ -39,7 +39,7 @@ export default async function PeoplePage({ params, searchParams }: { params: Pro
   const resultLabels = { link: t('people.invite.link'), copy: t('people.invite.copy'), copied: t('people.invite.copied') };
 
   return (
-    <Shell title={t('people.title')} size="full" locale={locale}>
+    <Shell title={t('people.title')} size="full" locale={locale} help={{ href: `${base}/help#people`, label: t('help.thisPage') }}>
       <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current={'people'} />
       <div className="flex flex-col gap-6">
         {done && DONE[done] ? (

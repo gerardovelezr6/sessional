@@ -36,7 +36,7 @@ export default async function SchedulePage({ params, searchParams }: { params: P
   const firstDay = days[0] ?? new Date().toISOString().slice(0, 10);
 
   return (
-    <Shell title={t('schedule.title')} size="full" locale={locale}>
+    <Shell title={t('schedule.title')} size="full" locale={locale} help={{ href: `${base}/help#schedule`, label: t('help.thisPage') }}>
       {ADMIN_PERMISSIONS.some((p) => ctx.can(p)) ? <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current="schedule" /> : null}
       <div className="flex flex-col gap-6">
         {done && DONE[done] ? (

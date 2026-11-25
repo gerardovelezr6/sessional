@@ -52,7 +52,7 @@ export default async function ImportPage({ params, searchParams }: { params: Pro
   const L = Object.fromEntries(WORDS.map((w) => [w, t(`import.${w}` as MessageKey)])) as Record<(typeof WORDS)[number], string>;
 
   return (
-    <Shell title={t('import.title')} size="full" locale={locale}>
+    <Shell title={t('import.title')} size="full" locale={locale} help={{ href: `${base}/help#committees`, label: t('help.thisPage') }}>
       <AdminTabs base={base} t={t} can={(x) => ctx.can(x)} current="import" />
       <div className="flex max-w-5xl flex-col gap-6">
         {done && DONE[done] ? (

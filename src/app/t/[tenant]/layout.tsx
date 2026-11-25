@@ -138,6 +138,11 @@ export default async function TenantLayout({ params, children }: Props) {
         {ctx ? (
           <div className="flex items-center gap-2 text-xs font-normal">
             {site.header.userName ? <span className="hidden opacity-75 sm:inline">{ctx.user.fullName || ctx.user.email}</span> : null}
+            {ctx.membership ? (
+              <a className="underline-offset-2 hover:underline" href={`${base}/help`}>
+                {own.t('help.link')}
+              </a>
+            ) : null}
             <ActionButton small action={signOutAction.bind(null, key) as unknown as (state: SettingsState, data: FormData) => Promise<SettingsState>} label={own.t('auth.signOut')} />
           </div>
         ) : null}

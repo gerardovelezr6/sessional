@@ -48,7 +48,7 @@ export default async function PrintPage({ params }: { params: Promise<{ tenant: 
   const mine = ctx.can('committee.manage') ? committees : committees.filter((c) => c.is_chair);
 
   return (
-    <Shell title={t('print.title')} size="full" locale={locale}>
+    <Shell title={t('print.title')} size="full" locale={locale} help={{ href: `${base}/help#printing`, label: t('help.thisPage') }}>
       {ADMIN_PERMISSIONS.some(can) ? <AdminTabs base={base} t={t} can={can} current="print" /> : null}
       <p className="mb-2 max-w-3xl text-sm">{t('print.help')}</p>
       {ctx.can('tenant.manage') ? (

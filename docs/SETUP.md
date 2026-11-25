@@ -128,6 +128,21 @@ To also get each request by email, add in Vercel → Environment Variables (serv
 
 Replies go straight to the person who wrote (their address is the email's reply-to).
 
+## 4d. Self-serve signup (Phase 14)
+
+Schools can sign up on their own at `sessional.app/signup` once email works (step 4c: at least
+`RESEND_API_KEY`). Without it, the page says to write to us instead, and the home page's main
+button stays "Write to us".
+
+- Nothing is created until the person opens the link we email (24 hours, once). Then they choose a
+  password, the school is created with them as Owner, a 14-day trial of the Conference plan starts
+  (no card), and they land in the setup wizard on their school's own address.
+- Abuse limits: 3 signups an hour per network, 3 a day per email address, 30 an hour in all; a
+  hidden field and a minimum fill time stop simple bots. Unused signups are deleted after 7 days.
+- The confirmation email comes from `CONTACT_FROM_EMAIL`. Until a domain is verified in Resend it
+  can only reach your own Resend address, so verify `sessional.app` in Resend before opening signup
+  to the public.
+
 ## 5. Stripe (Phase 13)
 
 Stay in **test mode** until the checklist at the end is done.

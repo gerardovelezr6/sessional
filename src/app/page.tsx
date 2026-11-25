@@ -5,6 +5,7 @@ import { RETURN_COOKIE } from '@/auth/oauth';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { rootDomain, isSecureOrigin } from '@/platform/env';
+import { mailConfigured } from '@/platform/mail';
 import { Landing, type PlanRow } from '@/site/landing/Landing';
 import { parseTenantKey } from '@/tenancy/route';
 
@@ -40,7 +41,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <p className="mt-2 text-sm">{t('home.signInUnfinished.body', { domain: rootDomain() })}</p>
         </section>
       ) : null}
-      <Landing t={t} locale={locale} appUrl={appUrl} qr={qr} plans={plans} />
+      <Landing t={t} locale={locale} appUrl={appUrl} qr={qr} plans={plans} signup={mailConfigured()} />
     </div>
   );
 }

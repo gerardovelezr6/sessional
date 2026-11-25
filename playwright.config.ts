@@ -44,6 +44,9 @@ export default defineConfig({
         STRIPE_API_BASE: `http://localhost:${MOCK_PORT}/stripe`,
         STRIPE_WEBHOOK_SECRET: 'whsec_test',
         CRON_SECRET: 'cron-test-secret',
+        // Email (signup links) through the Resend stand-in, which keeps what was sent.
+        RESEND_API_KEY: 're_test_mock',
+        RESEND_API_URL: `http://localhost:${MOCK_PORT}/resend`,
       },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

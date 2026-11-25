@@ -87,7 +87,8 @@ test('2. picks their language, design and protocol preset in the setup wizard', 
 test('3. invites their team', async ({ browser }) => {
   await page.goto(at('/people'));
   await page.getByRole('button', { name: es('Add standard roles') }).click();
-  await page.waitForURL(at('/people'));
+  // The page reloads with the new roles; wait for it before filling the form.
+  await expect(page.getByLabel(key('people.role'), { exact: true }).locator('option[value="chair"]')).toHaveCount(1);
   await page.getByLabel(key('people.name')).first().fill(chair.name);
   await page.getByLabel(key('people.email')).first().fill(chair.email);
   await page.getByLabel(key('people.role'), { exact: true }).selectOption('chair');

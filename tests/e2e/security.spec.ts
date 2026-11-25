@@ -65,7 +65,9 @@ test('a sign-in failure says the same thing whether or not the account exists', 
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password').fill('wrong-password-1');
     await page.getByRole('button', { name: 'Sign in' }).click();
-    return page.getByRole('alert').first().innerText();
+    const alert = page.getByRole('alert').filter({ hasText: /\S/ }).first();
+    await expect(alert).toBeVisible();
+    return alert.innerText();
   };
   expect(await message('owner@alpha.test')).toBe(await message('nobody-here@alpha.test'));
 });

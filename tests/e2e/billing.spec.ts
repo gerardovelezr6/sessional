@@ -76,8 +76,8 @@ test('cancelling: the export is offered first, the name is typed, and it can be 
   await expect(page.getByText('The name does not match.')).toBeVisible();
   await cancel.getByLabel(/Type the school's name/).fill('Bill School');
   await cancel.getByRole('button', { name: 'Cancel at the end of the period' }).click();
-  await expect(page.getByText('Cancelled at the end of the period.')).toBeVisible();
-  await expect(page.getByText(/^Cancelled: active until /)).toBeVisible();
+  await expect(page.getByText('Canceled at the end of the period.')).toBeVisible();
+  await expect(page.getByText(/^Canceled: active until /)).toBeVisible();
   await page.getByRole('region', { name: 'Cancel' }).getByRole('button', { name: 'Keep the plan' }).click();
   await page.getByRole('button', { name: 'Take back the cancellation' }).click();
   await expect(page.getByText('The cancellation is taken back.')).toBeVisible();

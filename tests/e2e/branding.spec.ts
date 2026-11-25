@@ -32,34 +32,34 @@ test('every school page has a header with the school name until a logo is upload
 
 test('the live preview follows the form before anything is saved', async ({ page }) => {
   const design = await openDesign(page);
-  // The default design needs no correction, so no note about adjusted colours.
-  await expect(design.getByText('Some colours were adjusted')).toHaveCount(0);
+  // The default design needs no correction, so no note about adjusted colors.
+  await expect(design.getByText('Some colors were adjusted')).toHaveCount(0);
   const preview = page.getByTestId('theme-preview');
   const button = preview.locator('.btn-primary');
   const before = await button.evaluate((el) => getComputedStyle(el).backgroundColor);
 
   const background = () => button.evaluate((el) => getComputedStyle(el).backgroundColor);
 
-  // Three ways to choose a colour: a suggested swatch, the colour picker, or a typed code.
+  // Three ways to choose a color: a suggested swatch, the color picker, or a typed code.
   await design.getByLabel('Use #B91C1C').click();
   await expect.poll(background).toBe('rgb(185, 28, 28)');
-  await design.getByLabel('Brand colour', { exact: true }).fill('#6d28d9');
+  await design.getByLabel('Brand color', { exact: true }).fill('#6d28d9');
   await expect.poll(background).toBe('rgb(109, 40, 217)');
-  await design.getByLabel('Brand colour, colour code').fill('#0F766E');
+  await design.getByLabel('Brand color, color code').fill('#0F766E');
   await expect.poll(background).toBe('rgb(15, 118, 110)');
   await choose(design, 'Corners', 'Square');
   await expect.poll(() => button.evaluate((el) => getComputedStyle(el).borderRadius)).toBe('0px');
-  await choose(design, 'Page header', 'In the brand colour');
+  await choose(design, 'Page header', 'In the brand color');
   await expect.poll(() => preview.locator('.app-header').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(15, 118, 110)');
   await choose(design, 'Tabs', 'Filled');
   await expect.poll(() => preview.locator('[aria-selected="true"]').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(15, 118, 110)');
 
-  // Half-typed colours are ignored instead of breaking the preview.
-  await design.getByLabel('Brand colour, colour code').fill('#0F7');
+  // Half-typed colors are ignored instead of breaking the preview.
+  await design.getByLabel('Brand color, color code').fill('#0F7');
   await expect.poll(background).toBe(before);
-  // "Use the design's colour" goes back to the preset's.
-  await design.getByLabel('Brand colour, colour code').fill('#0F766E');
-  await design.getByRole('button', { name: "Use the design's colour" }).first().click();
+  // "Use the design's color" goes back to the preset's.
+  await design.getByLabel('Brand color, color code').fill('#0F766E');
+  await design.getByRole('button', { name: "Use the design's color" }).first().click();
   await expect.poll(background).toBe(before);
 
   // Dark sample.
@@ -91,8 +91,8 @@ test('a logo and a browser icon are uploaded, previewed, published and shown on 
   // The preview shows the chosen file at once.
   await expect(page.getByTestId('theme-preview').locator('.app-header img')).toHaveAttribute('src', /^blob:/);
   await design.getByLabel('Browser icon: Choose a file').setInputFiles(png(64, 64));
-  await choose(design, 'Page header', 'In the brand colour');
-  await choose(design, 'Page titles', 'With a coloured bar');
+  await choose(design, 'Page header', 'In the brand color');
+  await choose(design, 'Page titles', 'With a colored bar');
   await saveAndPublish(page);
 
   // Stored under the school's own folder, named by content, and actually served.
@@ -108,7 +108,7 @@ test('a logo and a browser icon are uploaded, previewed, published and shown on 
   expect(await headerLogo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(240);
   const icon = await visitor.locator('link[rel="icon"]').first().getAttribute('href');
   expect(icon).toMatch(/public-assets\/00000000-0000-4000-8000-000000000008\/favicon-[0-9a-f]{16}\.png$/);
-  // Brand-coloured header and a title bar.
+  // Brand-colored header and a title bar.
   expect(await style(visitor, 'header.app-header', 'color')).toBe('rgb(255, 255, 255)');
   await visitor.context().close();
   // The sign-in card has a plain heading; other pages carry the title bar.

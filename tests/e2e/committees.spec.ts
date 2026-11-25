@@ -124,7 +124,7 @@ test('chairs are assigned and a confidential topic is kept from them until shown
   await expect(chair.getByText('The fleet has been seized.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Hide again' }).click();
-  await expect(page.getByText('Hidden from Chairs. Only the organisers can read them.')).toBeVisible();
+  await expect(page.getByText('Hidden from Chairs. Only the organizers can read them.')).toBeVisible();
   await chair.reload();
   await expect(chair.getByText('The fleet has been seized.')).toHaveCount(0);
   await chair.close();
@@ -185,7 +185,7 @@ test('one delegate is added with a country flag in a standard committee', async 
 test('a member without committee rights sees committees but not who is in them', async ({ page }) => {
   await signIn(page, 'hc@mu.test');
   await openCommittee(page, 'DISEC', /^Delegates/);
-  await expect(page.getByText("Only the organisers and this committee's Chairs see who is in it.")).toBeVisible();
+  await expect(page.getByText("Only the organizers and this committee's Chairs see who is in it.")).toBeVisible();
   await expect(page.getByText('Lia Ortiz')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add committee' })).toHaveCount(0);
 });

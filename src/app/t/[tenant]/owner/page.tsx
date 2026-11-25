@@ -26,6 +26,10 @@ const AREAS: { id: string; path: string; title: MessageKey; body: MessageKey; pe
   { id: 'roles', path: '/people/roles', title: 'owner.area.roles', body: 'owner.area.roles.body', permission: 'roles.manage' },
   { id: 'audit', path: '/people/audit', title: 'owner.area.audit', body: 'owner.area.audit.body', permission: 'audit.view' },
   { id: 'data', path: '/owner/data', title: 'owner.area.data', body: 'owner.area.data.body', permission: 'tenant.manage' },
+  { id: 'domains', path: '/owner/domains', title: 'owner.area.domains', body: 'owner.area.domains.body', permission: 'tenant.manage' },
+  { id: 'email', path: '/owner/email', title: 'owner.area.email', body: 'owner.area.email.body', permission: 'tenant.manage' },
+  { id: 'whitelabel', path: '/settings?section=branding', title: 'owner.area.whitelabel', body: 'owner.area.whitelabel.body', permission: 'tenant.manage' },
+  { id: 'legal', path: '/settings?section=legal', title: 'owner.area.legal', body: 'owner.area.legal.body', permission: 'tenant.manage' },
   { id: 'billing', path: '/owner/billing', title: 'owner.area.billing', body: 'owner.area.billing.body', permission: 'tenant.manage' },
   { id: 'reset', path: '/owner/reset', title: 'owner.area.reset', body: 'owner.area.reset.body', permission: 'tenant.manage' },
 ];

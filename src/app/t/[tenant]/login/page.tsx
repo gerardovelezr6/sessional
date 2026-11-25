@@ -12,6 +12,7 @@ import { SIGN_IN_PROBLEMS } from '@/auth/oauth-errors';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { signInAction } from '../actions';
 import { loadPublicSite } from '@/public/site';
+import { mailConfigured } from '@/platform/mail';
 
 export default async function LoginPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ error?: string }> }) {
   const { tenant: key } = await params;
@@ -31,8 +32,9 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
       <div className="card w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <BrandMark logo={logo} initials={site.header.mark === 'initials' ? site.header.initials || initialsOf(tenant.name) : null} size={52} />
-          <h1 className="mt-2 text-xl font-bold text-on-surface">{t('auth.signIn.title', { name: tenant.name })}</h1>
-          {tagline ? <p className="text-sm">{tagline}</p> : null}
+          {/* The school can word its sign-in page itself (Settings → Branding). */}
+          <h1 className="mt-2 text-xl font-bold text-on-surface">{localize(config.branding.loginTitle, locale) || t('auth.signIn.title', { name: tenant.name })}</h1>
+          {localize(config.branding.loginMessage, locale) ? <p className="whitespace-pre-line text-sm">{localize(config.branding.loginMessage, locale)}</p> : tagline ? <p className="text-sm">{tagline}</p> : null}
         </div>
         <ActionForm action={signInAction.bind(null, key)} submitLabel={t('auth.signIn')}>
           <Field label={t('auth.email')} name="email" type="email" autoComplete="username" />
@@ -51,6 +53,13 @@ export default async function LoginPage({ params, searchParams }: { params: Prom
               </a>
             ))}
           </div>
+        ) : null}
+        {mailConfigured() ? (
+          <p className="mt-3 text-center text-sm">
+            <a className="underline underline-offset-2" href={`${base}/forgot`}>
+              {t('forgot.link')}
+            </a>
+          </p>
         ) : null}
         <p className="mt-4 text-center text-xs">{t('auth.signIn.accounts')}</p>
       </div>

@@ -67,10 +67,13 @@ export function readForm(section: SectionName, form: FormData, locales: string[]
         data[setting.key] = form.get(`${fieldName(setting)}.remove`) === 'on' || current === '' ? null : current;
         break;
       }
+      case 'text':
+        data[setting.key] = String(form.get(fieldName(setting)) ?? '').trim();
+        break;
       case 'localizedText': {
         const text: Record<string, string> = {};
         for (const locale of locales) {
-          const value = String(form.get(fieldName(setting, locale)) ?? '').trim();
+          const value = String(form.get(fieldName(setting, locale)) ?? '').replace(/\r\n/g, '\n').trim();
           if (value) text[locale] = value;
         }
         data[setting.key] = text;

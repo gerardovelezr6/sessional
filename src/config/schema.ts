@@ -177,6 +177,38 @@ export const sections = {
   access: z.object({
     gate: gateSchema.nullable().default(null),
   }),
+  // The school's emails: who they come from, where replies go, the footer, and the words of each
+  // one. Empty texts use Sessional's own; {name}, {school}, {role} and {link} are filled in.
+  email: z.object({
+    fromName: localizedText(60).default({}),
+    replyTo: z.string().max(254).regex(/^$|^[^@\s]+@[^@\s]+\.[^@\s]+$/, 'not an email address').default(''),
+    footer: localizedText(300).default({}),
+    inviteSubject: localizedText(150).default({}),
+    inviteBody: localizedText(2000).default({}),
+    resetSubject: localizedText(150).default({}),
+    resetBody: localizedText(2000).default({}),
+    addedSubject: localizedText(150).default({}),
+    addedBody: localizedText(2000).default({}),
+  }),
+  // White-label: "Powered by Sessional" (removable on eligible plans) and the sign-in page.
+  branding: z.object({
+    poweredBy: z.enum(['on', 'off']).default('on'),
+    loginTitle: localizedText(80).default({}),
+    loginMessage: localizedText(400).default({}),
+  }),
+  // The school's own privacy policy and terms (on eligible plans); empty: Sessional's.
+  legal: z.object({
+    privacy: localizedText(20000).default({}),
+    terms: localizedText(20000).default({}),
+  }),
+  // Words people agree to or are told: when accepting an invitation, on the public pages, and the
+  // cookie notice (Sessional only uses cookies needed to sign in and remember choices).
+  consent: z.object({
+    invite: localizedText(600).default({}),
+    publicNotice: localizedText(600).default({}),
+    cookieNotice: z.enum(['on', 'off']).default('off'),
+    cookieText: localizedText(400).default({}),
+  }),
 } as const;
 
 export type SectionName = keyof typeof sections;

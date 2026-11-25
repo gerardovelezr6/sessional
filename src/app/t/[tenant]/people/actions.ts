@@ -3,7 +3,10 @@ import { limitError } from '@/billing/limits';
 import { generateLink } from '@/auth/gotrue';
 import { rpc, RpcError, verifiedWrite, WriteNotApplied } from '@/data/rpc';
 import type { FormState } from '@/components/ActionForm';
-import { enabledLocales, tenantTranslator } from '@/config/store';
+import { enabledLocales, tenantConfig, tenantTranslator } from '@/config/store';
+import { localize } from '@/messages';
+import { mailConfigured } from '@/platform/mail';
+import { sendSchoolEmail, type EmailKind } from '@/platform/school-mail';
 import { starterRoles } from '@/presets/roles';
 import { basePath, requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
 import { loadPeople } from './data';
@@ -56,6 +59,18 @@ async function invite(tenantKey: string, input: { email: string; fullName: strin
       if (!people.roles.some((r) => r.key === roleKey)) return { error: t('people.invite.error.role') };
     }
 
+    // With email set up, the school's own email goes out (the link is still shown, to copy).
+    const config = await tenantConfig(tenant.id);
+    const roleOf = (key: string) => {
+      const r = people.roles.find((x) => x.key === key) ?? people.roles.find((x) => x.key === people.members.find((m) => m.email === email)?.roleKey);
+      return r ? localize(r.name, config.locale.defaultLocale, r.key) : '';
+    };
+    const deliver = async (kind: EmailKind, link: string, fallback: InviteState): Promise<InviteState> => {
+      if (!mailConfigured()) return fallback;
+      const sent = await sendSchoolEmail(tenant.id, kind, email, config.locale.defaultLocale, { name: fullName || email, school: tenant.name, role: roleOf(roleKey), link });
+      return sent ? { message: t(kind === 'added' ? 'people.invite.addedSent' : 'people.invite.sent', { email }), link } : fallback;
+    };
+
     const account = await rpc<{ id: string; password_set: boolean } | null>('find_account', { p_email: email }, 'service');
     const add = async (userId: string, status: 'invited' | 'active') =>
       verifiedWrite(
@@ -66,7 +81,8 @@ async function invite(tenantKey: string, input: { email: string; fullName: strin
     if (account?.password_set) {
       // Already uses the product (another school, or an earlier year): access starts now.
       if (!resend) await add(account.id, 'active');
-      return { message: t('people.invite.existing', { email }), link: `${await tenantOrigin()}/login` };
+      const login = `${await tenantOrigin()}/login`;
+      return deliver('added', login, { message: t('people.invite.existing', { email }), link: login });
     }
 
     if (account && !resend) await add(account.id, 'invited');
@@ -74,14 +90,12 @@ async function invite(tenantKey: string, input: { email: string; fullName: strin
       const created = await generateLink('invite', email, { full_name: fullName });
       if (!created.ok) return { error: t('people.invite.error.failed') };
       await add(created.value.userId, 'invited');
-      return {
-        message: t('people.invite.ready', { email }),
-        link: `${await tenantOrigin()}/set-password?token_hash=${encodeURIComponent(created.value.tokenHash)}&type=invite`,
-      };
+      const link = `${await tenantOrigin()}/set-password?token_hash=${encodeURIComponent(created.value.tokenHash)}&type=invite`;
+      return deliver('invite', link, { message: t('people.invite.ready', { email }), link });
     }
     const link = await setPasswordLink(email, fullName);
     if (!link) return { error: t('people.invite.error.failed') };
-    return { message: t('people.invite.ready', { email }), link };
+    return deliver('invite', link, { message: t('people.invite.ready', { email }), link });
   } catch (e) {
     const limit = limitError(e, t);
     if (limit) return { error: limit };

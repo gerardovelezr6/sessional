@@ -11,6 +11,8 @@ export interface Tenant {
   slug: string;
   name: string;
   status: TenantStatus;
+  // The school's own domain, when it chose one and it is verified: the address everything uses.
+  primary?: string | null;
 }
 
 export type Resolution =
@@ -27,9 +29,9 @@ const MAX_ENTRIES = 5_000;
 const cache = new Map<string, { at: number; value: Resolution }>();
 
 function parse(body: unknown): Resolution {
-  const b = body as { kind?: string; id?: string; slug?: string; name?: string; status?: TenantStatus } | null;
+  const b = body as { kind?: string; id?: string; slug?: string; name?: string; status?: TenantStatus; primary?: string | null } | null;
   if (b?.kind === 'tenant' && b.id && b.slug && b.name && b.status) {
-    return { kind: 'tenant', tenant: { id: b.id, slug: b.slug, name: b.name, status: b.status } };
+    return { kind: 'tenant', tenant: { id: b.id, slug: b.slug, name: b.name, status: b.status, primary: b.primary ?? null } };
   }
   if (b?.kind === 'renamed' && b.slug) return { kind: 'renamed', slug: b.slug };
   return { kind: 'none' };

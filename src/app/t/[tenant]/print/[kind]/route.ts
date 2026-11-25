@@ -142,7 +142,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
       const list = await committees();
       title = t(awards ? 'print.certificates.awards' : 'print.certificates.participation');
       const flags = pr.certificateFlag === 'on';
-      const items: { name: string; line: string; flag: Uint8Array | null }[] = [];
+      const items: { name: string; line: string; heading?: string; flag: Uint8Array | null }[] = [];
       if (awards) {
         const rules = gradingRulesOf(config);
         for (const d of list) {
@@ -150,7 +150,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
           if (!data) continue;
           for (const s of standingsOf(rules, data, locale)) {
             const who = d.delegates.find((x) => x.id === s.delegateId);
-            for (const a of s.awards) items.push({ name: s.name || s.label, line: t('print.certificates.awardLine', { award: a, delegation: s.label, committee: d.committee.name }), flag: flags && who ? await flagOf(d, who) : null });
+            for (const a of s.awards) items.push({ name: s.name || s.label, heading: a, line: t('print.certificates.participationLine', { delegation: s.label, committee: d.committee.name }), flag: flags && who ? await flagOf(d, who) : null });
           }
         }
       } else {

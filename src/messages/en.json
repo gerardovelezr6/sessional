@@ -1774,7 +1774,6 @@
   "print.certificates.heading": "Certificate of Participation",
   "print.certificates.awardHeading": "Certificate of Award",
   "print.certificates.participationLine": "for representing {delegation} in {committee}",
-  "print.certificates.awardLine": "{award} · {delegation} · {committee}",
   "print.grades.title": "Grade report",
   "print.grades.body": "The gradebook of every committee you may read, as a PDF.",
   "checkin.title": "Check in {delegation}",

@@ -1774,7 +1774,6 @@
   "print.certificates.heading": "Diploma de participación",
   "print.certificates.awardHeading": "Diploma de reconocimiento",
   "print.certificates.participationLine": "por representar a {delegation} en {committee}",
-  "print.certificates.awardLine": "{award} · {delegation} · {committee}",
   "print.grades.title": "Reporte de calificaciones",
   "print.grades.body": "Las calificaciones de cada comité que puedes ver, en PDF.",
   "checkin.title": "Registrar a {delegation}",

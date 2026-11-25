@@ -434,3 +434,29 @@ export async function referralAction(_s: FormState, form: FormData): Promise<For
   }
   return back('/billing?done=referral');
 }
+
+// ───────── Community gallery: review ─────────
+export async function reviewGalleryAction(versionId: string, approve: boolean, _s: FormState, form: FormData): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(versionId)) return refused;
+  const note = String(form.get('note') ?? '').trim().slice(0, 1000);
+  if (!approve && !note) return { error: t('platform.gallery.error.reason') };
+  try {
+    const ok = await rpc<boolean>('platform_gallery_review', { p_version: versionId, p_approve: approve, p_note: note }, a);
+    if (!ok) return { error: t('platform.gallery.error.reviewed') };
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/gallery?done=${approve ? 'approved' : 'rejected'}`);
+}
+
+export async function hideGalleryAction(packId: string, hidden: boolean): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(packId)) return refused;
+  try {
+    await rpc('platform_gallery_hide', { p_pack: packId, p_hidden: hidden }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/gallery?done=${hidden ? 'hidden' : 'listed'}`);
+}

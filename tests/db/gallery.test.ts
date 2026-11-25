@@ -99,12 +99,13 @@ describe('sharing', () => {
 
   it('a new version is reviewed against the last approved one; approved versions are listed and installable', async () => {
     expect(await submit('other', B, pack, null, theme('#000000'))).toEqual({ error: 'pack' });
-    expect(await submit('owner', A, pack, null, theme('#1B2A4A'))).toMatchObject({ pack_id: pack, version: 2 });
+    expect(await call('owner', `public.gallery_submit($1, $2, 'theme', '{"es":"Marino"}', '{"es":"Sobrio"}', '{}', $3, 1)`, [A, pack, theme('#1B2A4A')])).toMatchObject({ pack_id: pack, version: 2 });
     let queue = await call<{ id: string; pack_id: string; version: number }[]>('admin', `public.platform_gallery_queue()`);
     expect(await call('admin', `public.platform_gallery_review($1, true, '')`, [queue.find((q) => q.pack_id === pack)!.id])).toBe(true);
 
     const list = await call<Record<string, unknown>[]>('other', `public.gallery_list('theme')`);
-    expect(list).toEqual([expect.objectContaining({ id: pack, author: 'Gallery School', version: 2, installs: 0, name: { en: 'Navy classic', es: 'Clásico marino' } })]);
+    // What was written in one language replaced that language only.
+    expect(list).toEqual([expect.objectContaining({ id: pack, author: 'Gallery School', version: 2, installs: 0, name: { en: 'Navy classic', es: 'Marino' }, description: { es: 'Sobrio' } })]);
     expect(JSON.stringify(list)).not.toContain('gl-owner');
     expect(await call('other', `public.gallery_list('grading')`)).toEqual([]);
     expect(await call('other', `public.gallery_version_data($1, 1)`, [pack])).toBeNull(); // rejected
@@ -125,6 +126,8 @@ describe('sharing', () => {
     expect(await call('other', `public.gallery_installed($1, $2, 2)`, [B, pack])).toBe(true);
     expect(await call('other', `public.gallery_get($1)`, [pack])).toMatchObject({ installs: 1 });
     expect(await call('other', `(select jsonb_agg(version) from public.gallery_installs where tenant_id = $1)`, [B])).toEqual([2]);
+    expect(await call('other', `public.gallery_installs_of($1)`, [B])).toEqual([{ pack_id: pack, version: 2 }]);
+    expect(await call('owner', `public.gallery_installs_of($1)`, [B])).toBeNull();
     expect(await call('owner', `(select count(*)::int from public.gallery_installs where tenant_id = $1)`, [B])).toBe(0);
     const audit = (await db.query(`select action from audit_log where tenant_id = $1 and action like 'gallery.%' order by id`, [B])).rows.map((r) => r.action);
     expect(audit).toEqual(['gallery.installed', 'gallery.installed']);

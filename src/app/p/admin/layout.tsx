@@ -18,6 +18,7 @@ const NAV: { path: string; word: MessageKey }[] = [
   { path: '/flags', word: 'platform.nav.flags' },
   { path: '/announcements', word: 'platform.nav.announcements' },
   { path: '/presets', word: 'platform.nav.presets' },
+  { path: '/gallery', word: 'platform.nav.gallery' },
   { path: '/inbox', word: 'platform.nav.inbox' },
   { path: '/support', word: 'platform.nav.support' },
 ];

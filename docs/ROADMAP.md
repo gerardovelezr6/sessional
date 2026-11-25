@@ -1,7 +1,7 @@
 # Roadmap
 
-Status: Phases 0 to 14 are merged. Phase 15 (email, domains and white-label) is up for review in
-one pull request. Phases 16 (pack exchange) and 17 (hardening and docs) remain. The degraded-mode
+Status: Phases 0 to 15 are merged. Phase 16 (pack exchange: the community gallery) is up for review
+in one pull request. Phase 17 (hardening and docs) remains. The degraded-mode
 load test from Phase 7 still needs staging (see `docs/LOAD-TEST.md`).
 
 Each phase is one or more pull requests off the latest `main`, each with migrations, tests and a

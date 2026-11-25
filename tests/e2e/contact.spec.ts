@@ -103,8 +103,7 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   await expect(steps).toHaveCount(6);
   const stage = page.locator('.story-stage');
   // Roll call: delegations answer as you scroll through the step.
-  await steps.nth(0).scrollIntoViewIfNeeded();
-  await page.mouse.wheel(0, 300);
+  await scrollThrough(steps.nth(0), 0.6);
   await expect(stage).toContainText(/\d+ of 15 answered/);
   await expect(steps.nth(0)).toHaveAttribute('aria-current', 'step');
   // Voting: further down, the placards vote and the resolution passes.

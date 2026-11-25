@@ -5099,8 +5099,10 @@ begin
     perform 1 from public.gallery_packs p where p.id = v_pack and p.author_tenant = p_tenant and p.section = p_section for update;
     if not found then return jsonb_build_object('error', 'pack'); end if;
     update public.gallery_packs p set
-      name = case when p_name is not null and exists (select from jsonb_each_text(p_name) e where btrim(e.value) <> '') then p_name else p.name end,
-      description = coalesce(p_description, p.description), author_label = left(v_label, 120), updated_at = now()
+      -- What is written in a language replaces that language only.
+      name = p.name || coalesce((select jsonb_object_agg(e.key, e.value) from jsonb_each_text(p_name) e where btrim(e.value) <> ''), '{}'::jsonb),
+      description = p.description || coalesce((select jsonb_object_agg(e.key, e.value) from jsonb_each_text(p_description) e where btrim(e.value) <> ''), '{}'::jsonb),
+      author_label = left(v_label, 120), updated_at = now()
     where p.id = v_pack;
     select coalesce(max(v.version), 0) + 1 into v_version from public.gallery_versions v where v.pack_id = v_pack;
     -- A newer submission replaces one still waiting.
@@ -5176,6 +5178,13 @@ begin
   return true;
 end $$;
 
+-- What the school installed, and which version.
+create or replace function public.gallery_installs_of(p_tenant uuid) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select case when app.has_permission(p_tenant, 'tenant.manage') then
+    coalesce((select jsonb_agg(jsonb_build_object('pack_id', i.pack_id, 'version', i.version)) from public.gallery_installs i where i.tenant_id = p_tenant), '[]'::jsonb) end
+$$;
+
 -- ───────── Review (platform admins) ─────────
 -- Versions waiting for review, oldest first, with their data and what was approved before.
 create or replace function public.platform_gallery_queue() returns jsonb
@@ -5236,11 +5245,11 @@ $$;
 
 revoke all on function app.gallery_card(public.gallery_packs), app.gallery_listed(public.gallery_packs) from public, anon, authenticated;
 revoke all on function public.gallery_submit(uuid, uuid, text, jsonb, jsonb, jsonb, jsonb, int), public.gallery_mine(uuid), public.gallery_set_hidden(uuid, uuid, boolean),
-  public.gallery_list(text), public.gallery_get(uuid), public.gallery_version_data(uuid, int), public.gallery_installed(uuid, uuid, int),
+  public.gallery_list(text), public.gallery_get(uuid), public.gallery_version_data(uuid, int), public.gallery_installed(uuid, uuid, int), public.gallery_installs_of(uuid),
   public.platform_gallery_queue(), public.platform_gallery_packs(), public.platform_gallery_review(uuid, boolean, text), public.platform_gallery_hide(uuid, boolean),
   public.gallery_public() from public, anon;
 grant execute on function public.gallery_submit(uuid, uuid, text, jsonb, jsonb, jsonb, jsonb, int), public.gallery_mine(uuid), public.gallery_set_hidden(uuid, uuid, boolean),
-  public.gallery_list(text), public.gallery_get(uuid), public.gallery_version_data(uuid, int), public.gallery_installed(uuid, uuid, int),
+  public.gallery_list(text), public.gallery_get(uuid), public.gallery_version_data(uuid, int), public.gallery_installed(uuid, uuid, int), public.gallery_installs_of(uuid),
   public.platform_gallery_queue(), public.platform_gallery_packs(), public.platform_gallery_review(uuid, boolean, text), public.platform_gallery_hide(uuid, boolean)
   to authenticated, service_role;
 revoke all on function public.gallery_public() from authenticated;

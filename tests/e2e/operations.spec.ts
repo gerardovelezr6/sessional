@@ -35,7 +35,8 @@ test('the schedule is planned once and shows on the schedule, home page, dashboa
   await page.goto(at('/schedule'));
   // An item running now (the school's time zone is UTC here).
   const now = new Date();
-  const from = new Date(now.getTime() - 30 * 60000);
+  // Started half an hour ago, but never before today's midnight (UTC), so it is running now at any hour.
+  const from = new Date(Math.max(now.getTime() - 30 * 60000, Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())));
   const to = new Date(now.getTime() + 90 * 60000);
   await page.getByLabel('Title').fill('Session 2');
   await page.getByLabel('Date').fill(from.toISOString().slice(0, 10));

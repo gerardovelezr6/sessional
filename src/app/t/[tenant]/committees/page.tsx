@@ -12,6 +12,7 @@ import { CommitteeList, type ListGroup } from './CommitteeList';
 import { CommitteeFields } from './CommitteeFields';
 import { choicesFor, groupByCategory, hasPassed, loadOverview } from './data';
 import { UnlockForm } from './UnlockForm';
+import { regional } from '@/i18n/regional';
 
 const DONE = { added: 'committee.saved', deleted: 'committee.deleted', secrets: 'committee.saved' } as const;
 
@@ -28,7 +29,7 @@ export default async function CommitteesPage({ params, searchParams }: { params:
   const manage = ctx.can('committee.manage');
   const overview = await loadOverview(tenant.id, ctx.token);
   const structure = config.structure;
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
+  const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
 
   if (!overview.conference) {
     return (

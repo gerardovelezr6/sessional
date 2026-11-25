@@ -16,14 +16,14 @@ reports. Grades are about students, many of them minors.
   given with. Changing the rubric changes future grades only. A removed delegate's grades stay with
   the label they had.
 - **Privacy in the database.** `grades.manage` is scoped to the committees a chair chairs;
-  `grades.view` is tenant-wide and meant for advisors and organisers. Row-level security enforces it,
+  `grades.view` is tenant-wide and meant for advisors and organizers. Row-level security enforces it,
   and the reading function returns the same null whether a committee is hidden or empty. The audit
   log records every grade, removal and award.
 - **The server decides points.** The browser sends only keys; the server looks the level up in the
   published rules.
 - **Reproducible files.** Exports are generated on request, never stored. Dates inside the files come
   from the data, so a saved mapping downloads the same file again. Downloads are logged without names.
-- **Fonts are bundled.** PDFs embed Noto Sans (SIL Open Font Licence) so accents print everywhere.
+- **Fonts are bundled.** PDFs embed Noto Sans (SIL Open Font License) so accents print everywhere.
 
 ## Consequences
 

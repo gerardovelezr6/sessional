@@ -9,6 +9,7 @@ import { buildTheme } from '@/theme/engine';
 import type { ThemeChoice } from '@/theme/presets';
 import { requireTenant, tenantContext } from '@/tenancy/context';
 import { loadOverview, UUID } from '../../committees/data';
+import { regional } from '@/i18n/regional';
 
 // Downloads a gradebook: one committee, or every committee the person may read ("all"), as CSV,
 // Excel or PDF, with the school's default columns or a saved mapping.
@@ -54,7 +55,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
   let body: string | Buffer | Uint8Array;
   if (format === 'csv') body = toCsv(columns, rows);
   else if (format === 'xlsx') {
-    const when = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone: config.identity.timeZone });
+    const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'short', timeStyle: 'short', timeZone: config.identity.timeZone });
     const numberOf = new Map(all.flatMap((d) => d.sessions.map((s) => [s.id, s.number] as const)));
     const log: Cell[][] = all.flatMap((d) =>
       d.grades.map((g) => [

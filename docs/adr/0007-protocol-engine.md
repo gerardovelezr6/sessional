@@ -18,7 +18,7 @@ code or scripts.
 | Motions | Key, code, label, precedence, who may move it, parameters (duration, speaking time, topic), seconding, debate (speakers for and against), the vote it needs, effects |
 | Effects | A fixed set of operations: set mode, start caucus, set speaking time, open or close session, open vote, open or close debate, set agenda, none |
 | Points and yields | Types, whether they interrupt, to whom time may be yielded |
-| Speaking | Default times, presets, speakers-list behaviour, questions and comments |
+| Speaking | Default times, presets, speakers-list behavior, questions and comments |
 | Caucus types | Moderated, unmoderated, custom; limits, extensions, optional speaking time |
 | Timers | Auto-advance, warning marks, sounds and visual alerts |
 | Voting | Methods (roll call, placard count, secret), procedural and substantive, explanations of vote, division of the question, veto holders and when a veto applies |
@@ -31,7 +31,7 @@ Everything in `src/lib/config.ts` and `src/lib/session.ts` of the reference beco
 ## Presets
 
 Standard UN-style, Harvard-style, THIMUN-style, Reglamento en español. Each is written from scratch
-as our own summary of widely used procedure, with no text copied from any organisation's rulebook,
+as our own summary of widely used procedure, with no text copied from any organization's rulebook,
 and each is a starting point a tenant forks and edits. The PASMUN rules exist only as a pack applied
 to the demo tenant.
 
@@ -140,7 +140,7 @@ commands gives the same state), and Playwright runs that drop the network mid-vo
   Realtime broadcast, a random 256-bit channel name given only to the committee's chairs and paired
   screens). The message carries no data, so a leaked channel name reveals only that something
   changed; the content always comes from the server after the usual checks. This replaces the
-  "private channels" of the original plan: screens have no Supabase session to authorise a private
+  "private channels" of the original plan: screens have no Supabase session to authorize a private
   channel, and content-free announcements keep every permission check in one place.
 - Degraded mode: if realtime does not connect within five seconds, consoles poll every five seconds
   and screens every two; with realtime working both poll only every thirty seconds as a safety net.
@@ -149,4 +149,4 @@ commands gives the same state), and Playwright runs that drop the network mid-vo
   reload themselves after ten minutes of server errors while online.
 - Sounds: a short tone at the warning mark and three at time up, generated in the browser, after one
   click or key press on the screen (browsers block sound before that). The timer also turns the accent
-  colour near the end and flashes the danger colour when time is up (steady for reduced motion).
+  color near the end and flashes the danger color when time is up (steady for reduced motion).

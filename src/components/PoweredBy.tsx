@@ -13,7 +13,9 @@ export function PoweredBy({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     <div className="mt-8 flex flex-col items-center gap-1 text-xs text-on-surface-muted">
       <p className="flex items-center gap-2">
         <span>{t('common.poweredBy')}</span>
-        <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-4 w-auto" />
+        <a href={`${root}/${lang}`} aria-label={t('landing.home')}>
+          <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-4 w-auto" />
+        </a>
       </p>
       <nav aria-label={t('legal.links')} className="flex gap-3">
         <a className="underline-offset-2 hover:underline" href={`${root}/privacy${lang}`}>

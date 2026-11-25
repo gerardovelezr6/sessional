@@ -4,7 +4,7 @@ Status: proposed · Date: 2026-11-10
 
 ## Decision
 
-Permissions are a fixed catalogue in code; roles are tenant data that bundle permissions.
+Permissions are a fixed catalog in code; roles are tenant data that bundle permissions.
 
 - Permissions (about 30): `committee.run`, `committee.manage`, `delegates.manage`, `grades.write`,
   `grades.view`, `crisis.view`, `documents.manage`, `users.invite`, `users.manage`, `roles.manage`,

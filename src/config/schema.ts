@@ -29,7 +29,7 @@ const SOURCE = catalogs.en as Record<string, string>;
 // Text written by the tenant, per language: {"en": "…", "es": "…"}.
 const localizedText = (max: number) => z.record(z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/), z.string().max(max));
 
-const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'not a six-digit hex colour');
+const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'not a six-digit hex color');
 
 export const sections = {
   identity: z.object({

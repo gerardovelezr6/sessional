@@ -9,13 +9,13 @@ tokens only.
 
 | Layer | Edited by | Examples |
 |---|---|---|
-| Primitives | the tenant, in the theme editor | brand and accent colours, neutral tint, font families, type scale, weights, letter-spacing, radius scale, spacing density, border width, shadow level, motion level |
+| Primitives | the tenant, in the theme editor | brand and accent colors, neutral tint, font families, type scale, weights, letter-spacing, radius scale, spacing density, border width, shadow level, motion level |
 | Semantic | computed | `surface`, `on-surface`, `primary`, `on-primary`, `border`, `success`, `warning`, `danger`, `stage`, `on-stage`, focus ring |
 | Component | computed, overridable | button, input, card, table, tab, page title, header, navigation, badge, timer, projection layouts |
 
 ## Contrast is guaranteed by construction
 
-Semantic colours are derived in OKLCH. Every "on" colour is chosen by the engine to reach 4.5:1
+Semantic colors are derived in OKLCH. Every "on" color is chosen by the engine to reach 4.5:1
 (3:1 for large text and controls); if the tenant's pick cannot reach it, the engine shifts lightness
 and the editor shows what was adjusted and why. A unit test runs every preset and a set of random
 palettes through every surface/text pair, light and dark. The reference's manual `.on-dark` class
@@ -24,14 +24,14 @@ disappears.
 ## No flash
 
 The proxy resolves the tenant; the root layout renders the variables into `<head>` and sets `lang`,
-`dir` and the colour scheme on `<html>` before any paint. The neutral loading screen stays only for
+`dir` and the color scheme on `<html>` before any paint. The neutral loading screen stays only for
 client-side data, and it uses the tenant's own tokens.
 
 ## Enforcement
 
 Tailwind maps utilities to variables only. A lint rule rejects hex values, palette classes such as
 `bg-emerald-500`, arbitrary pixel radii and physical properties (`ml-`, `left-`) in components, so
-right-to-left works and the ~230 raw-colour uses found in the audit cannot come back.
+right-to-left works and the ~230 raw-color uses found in the audit cannot come back.
 
 ## Presets
 

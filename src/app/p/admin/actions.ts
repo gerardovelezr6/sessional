@@ -275,6 +275,29 @@ export async function findPersonAction(_s: { person?: FoundPerson | null; error?
   }
 }
 
+// Admin → Inbox: requests from the website's contact form.
+export async function contactStatusAction(id: string, status: 'new' | 'answered'): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(id)) return refused;
+  try {
+    await rpc('platform_contact_set', { p_id: id, p_status: status }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/inbox?done=${status}`);
+}
+
+export async function deleteContactAction(id: string): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(id)) return refused;
+  try {
+    await rpc('platform_contact_delete', { p_id: id }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back('/inbox?done=deleted');
+}
+
 // ── Billing (Phase 13) ──
 interface PlanRow {
   key: string;

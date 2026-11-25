@@ -21,7 +21,7 @@ export const TERM_PACKS: Record<TermPackKey, Record<'en' | 'es', Terms>> = {
     es: { conference: 'Conferencia', committee: 'Comité', committees: 'Comités', chair: 'Presidente', chairs: 'Presidentes', delegate: 'Representante', delegates: 'Representantes', highCommand: 'Secretaría', advisor: 'Profesor asesor', advisors: 'Profesores asesores' },
   },
   school: {
-    en: { conference: 'Model UN', committee: 'Committee', committees: 'Committees', chair: 'Moderator', chairs: 'Moderators', delegate: 'Student', delegates: 'Students', highCommand: 'Organisers', advisor: 'Teacher', advisors: 'Teachers' },
+    en: { conference: 'Model UN', committee: 'Committee', committees: 'Committees', chair: 'Moderator', chairs: 'Moderators', delegate: 'Student', delegates: 'Students', highCommand: 'Organizers', advisor: 'Teacher', advisors: 'Teachers' },
     es: { conference: 'Modelo de la ONU', committee: 'Comité', committees: 'Comités', chair: 'Moderador', chairs: 'Moderadores', delegate: 'Estudiante', delegates: 'Estudiantes', highCommand: 'Organizadores', advisor: 'Docente', advisors: 'Docentes' },
   },
   reglamento: {

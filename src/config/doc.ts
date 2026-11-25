@@ -17,7 +17,7 @@ function allowed(setting: Setting): string {
     case 'select':
       return `${c.options.map((o) => `\`${o.value}\` (${en(o.labelKey)})`).join(', ')}${c.optional ? '; empty = as the preset has it' : ''}`;
     case 'color':
-      return 'colour as `#RRGGBB`; empty = as the preset has it';
+      return 'color as `#RRGGBB`; empty = as the preset has it';
     case 'localizedText':
       return `text per language, up to ${c.maxLength} characters each`;
     case 'timeZone':

@@ -1,3 +1,4 @@
+import { regional } from '@/i18n/regional';
 // Plans as the database holds them, and the rules about moving between them. Pure: used by the
 // billing page, the server actions and the tests.
 
@@ -50,5 +51,5 @@ export function direction(plans: Plan[], from: string | null, to: string): 'up' 
 
 // An amount in the currency's usual form: 34900 MXN → "$349.00 MXN".
 export function money(amount: number, currency: string, locale: string): string {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'symbol' }).format(amount / 100) + ` ${currency.toUpperCase()}`;
+  return new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol' }).format(amount / 100) + ` ${currency.toUpperCase()}`;
 }

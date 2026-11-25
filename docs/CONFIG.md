@@ -70,9 +70,9 @@ Spanish: Diseño
 | Design preset | `theme.preset` | `flat-institutional` | `sessional` (Sessional), `flat-institutional` (Classic conference), `classic-formal` (Classic formal), `modern-rounded` (Modern rounded), `high-contrast` (High contrast), `playful-school` (Playful school) | `theme.edit` | A complete look to start from. The settings below change parts of it. |
 | Logo | `theme.logo` | as the preset has it | uploaded PNG, JPEG or WebP, up to 2 MB | `theme.edit` | PNG, JPEG or WebP, up to 2 MB. Shown in the page header and on the sign-in page. |
 | Browser icon | `theme.favicon` | as the preset has it | uploaded square PNG, 32 to 1024 px | `theme.edit` | A square PNG, 32 to 1024 pixels, shown in the browser tab. It should still be clear at 16 pixels. |
-| Brand color | `theme.brand` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | Your main color, used for buttons and highlights. Pick one, or keep the design's. |
-| Accent color | `theme.accent` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | A second color for small highlights. Pick one, or keep the design's. |
-| Page background | `theme.background` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `theme.edit` | The color behind your pages. Very dark choices are lightened so text stays readable. |
+| Brand color | `theme.brand` | as the preset has it | color as `#RRGGBB`; empty = as the preset has it | `theme.edit` | Your main color, used for buttons and highlights. Pick one, or keep the design's. |
+| Accent color | `theme.accent` | as the preset has it | color as `#RRGGBB`; empty = as the preset has it | `theme.edit` | A second color for small highlights. Pick one, or keep the design's. |
+| Page background | `theme.background` | as the preset has it | color as `#RRGGBB`; empty = as the preset has it | `theme.edit` | The color behind your pages. Very dark choices are lightened so text stays readable. |
 | Font | `theme.font` | as the preset has it | `montserrat` (Montserrat), `inter` (Inter), `source-serif` (Source Serif), `nunito` (Nunito), `atkinson` (Atkinson Hyperlegible), `system` (Device font); empty = as the preset has it | `theme.edit` | The typeface of all text. |
 | Corners | `theme.radius` | as the preset has it | `none` (Square), `small` (Slightly rounded), `medium` (Rounded), `large` (Very rounded); empty = as the preset has it | `theme.edit` | How rounded buttons, fields and cards are. |
 | Spacing | `theme.density` | as the preset has it | `compact` (Compact), `comfortable` (Comfortable), `spacious` (Spacious); empty = as the preset has it | `theme.edit` | How much room controls and cards take. |
@@ -144,7 +144,7 @@ Spanish: Módulos
 | Projection screens | `modules.screens` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Screens paired to a committee, showing the speaker, timer and list. |
 | Discipline | `modules.discipline` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Warnings and pardons in the chair console. |
 | Announcements | `modules.announcements` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Notices on the home page, dashboard and console. |
-| Schedule | `modules.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference timetable, shown on the home page, dashboard and console. |
+| Schedule | `modules.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference schedule, shown on the home page, dashboard and console. |
 
 ## Public pages (`publicSite`)
 
@@ -154,7 +154,7 @@ Spanish: Páginas públicas
 |---|---|---|---|---|---|
 | Public pages | `publicSite.enabled` | `off` | `on` (On), `off` (Off) | `tenant.manage` | Off: the public address shows nothing. On: it shows the parts switched on below. |
 | Delegations | `publicSite.delegations` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Each committee's countries or roles, with flags. Never students' names. |
-| Schedule | `publicSite.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference timetable. |
+| Schedule | `publicSite.schedule` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The conference schedule. |
 | Passed resolutions | `publicSite.resolutions` | `on` | `on` (On), `off` (Off) | `tenant.manage` | Code and title of each resolution a committee passed. |
 | Live view | `publicSite.live` | `off` | `on` (On), `off` (Off) | `tenant.manage` | What each committee's projection screen shows (speaker, timer, list, last vote), on any phone. |
 
@@ -166,13 +166,13 @@ Spanish: Impresión
 |---|---|---|---|---|---|
 | Paper size | `printing.paper` | `a4` | `a4` (A4), `letter` (Letter) | `tenant.manage` | A4 for most of the world, Letter for the United States, Canada and Mexico. |
 | Placard style | `printing.placardStyle` | `classic` | `classic` (Classic), `bold` (Bold), `framed` (Framed), `minimal` (Minimal) | `tenant.manage` | Placards are folded in half; both faces show the delegation. |
-| Placard color | `printing.placardColor` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main color. |
+| Placard color | `printing.placardColor` | as the preset has it | color as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main color. |
 | Flag on placards | `printing.placardFlag` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The delegation's flag, as in the app (country, US state or group logo). |
 | Logo on placards | `printing.placardLogo` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The school's logo in a corner of each face (PNG or JPEG logos). |
 | Committee on placards | `printing.placardCommittee` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The committee's name under the delegation. |
 | Check-in code on placards | `printing.placardQr` | `on` | `on` (On), `off` (Off) | `tenant.manage` | A QR code a chair scans to mark the delegation present. |
 | Certificate style | `printing.certificateStyle` | `classic` | `classic` (Classic), `modern` (Modern), `elegant` (Elegant), `minimal` (Minimal) | `tenant.manage` | Used for participation and award certificates. |
-| Certificate color | `printing.certificateColor` | as the preset has it | colour as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main color. |
+| Certificate color | `printing.certificateColor` | as the preset has it | color as `#RRGGBB`; empty = as the preset has it | `tenant.manage` | Empty: the school's main color. |
 | Flag on certificates | `printing.certificateFlag` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The flag of the delegation the student represented. |
 | Logo on certificates | `printing.certificateLogo` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The school's logo at the top (PNG or JPEG logos). |
 | Participation certificate title | `printing.certificateTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | Empty: “Certificate of Participation”. |

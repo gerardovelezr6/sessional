@@ -24,9 +24,10 @@ import { realtimeConfig } from '@/live/broadcast';
 import { CONSOLE_TABS } from './tabs';
 import { moduleOn } from '@/config/modules';
 import { currentSchedule } from '@/schedule/load';
-import { nowAndNext, timeIn } from '@/schedule/time';
+import { nowAndNext, clockIn } from '@/schedule/time';
 import { AnnouncementList } from '@/site/AnnouncementList';
 import { currentAnnouncements } from '@/site/presets';
+import { regional } from '@/i18n/regional';
 
 interface SessionRow {
   id: string;
@@ -77,7 +78,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
     flag: flagFor(type, d, [committeeLocale, ...languages]),
     logoUrl: d.group_key ? assetUrl(tenant.id, type.groups.find((g) => g.key === d.group_key)?.logo) : null,
   }));
-  const when = new Intl.DateTimeFormat(locale, {
+  const when = new Intl.DateTimeFormat(regional(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: config.identity.timeZone,
@@ -86,8 +87,8 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
   const plan = moduleOn(config, 'schedule') ? nowAndNext((await currentSchedule(tenant.id, ctx.token)).items, Date.parse(new Date().toISOString())) : { now: null, next: null };
   const tz = config.identity.timeZone;
   const planNote = [
-    plan.now ? t('schedule.console.now', { title: plan.now.title, time: timeIn(plan.now.ends_at, tz) }) : '',
-    plan.next ? t('schedule.console.next', { title: plan.next.title, time: timeIn(plan.next.starts_at, tz) }) : '',
+    plan.now ? t('schedule.console.now', { title: plan.now.title, time: clockIn(plan.now.ends_at, tz, locale) }) : '',
+    plan.next ? t('schedule.console.next', { title: plan.next.title, time: clockIn(plan.next.starts_at, tz, locale) }) : '',
   ].filter(Boolean).join(' · ');
   const pattern = (k: MessageKey) => messageFor(k, locale, config.translations.messages).text;
 

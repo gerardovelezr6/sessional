@@ -290,3 +290,6 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 .landing-frame { border: 1px solid var(--s-color-border-strong); border-radius: 4px; }
 .landing-key { border: 1px solid var(--s-color-border-strong); border-radius: 4px; padding: 0.25rem 0.5rem; }
 .landing-rule { border-top: 1px solid var(--s-color-border-strong); }
+/* The landing page's header stays on screen; anchors and focus land below it. */
+html:has(.landing-page) { scroll-padding-top: 7rem; }
+@media (min-width: 48rem) { html:has(.landing-page) { scroll-padding-top: 5rem; } }

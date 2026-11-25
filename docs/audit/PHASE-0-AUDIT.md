@@ -13,7 +13,7 @@ Size: ~9,500 lines of TypeScript/SQL, 21 tables, 12 migrations, no tests, no CI,
 | `src/lib/config.ts` | `appName: 'ManagePASMUN'`, fallback conference/short name `PASMUN`, "Codes follow the PASMUN grading log" | Tenant identity config; product name from one `PRODUCT` constant |
 | `src/app/layout.tsx` | `<title>ManagePASMUN`, description "High Command and Chairs" | Per-tenant metadata rendered on the server |
 | `src/components/BrandProvider.tsx` | Title `"{short} · ManagePASMUN"`, fallback `'MUN'` initials logo | Tenant identity + theme |
-| `src/lib/gradingExport.ts` | Workbook "same five tabs as the PASMUN spreadsheet", `wb.creator = 'ManagePASMUN'`, tab colours `FF1E40AF` / `FF16A34A` | Grading export templates + saved column mappings |
+| `src/lib/gradingExport.ts` | Workbook "same five tabs as the PASMUN spreadsheet", `wb.creator = 'ManagePASMUN'`, tab colors `FF1E40AF` / `FF16A34A` | Grading export templates + saved column mappings |
 | `src/components/chair/GradingLog.tsx` | Layout mirrors the PASMUN grading log | Grading config (categories, columns) |
 | `supabase/schema.sql`, `migrations/002`, `003`, `seed.sql` | Defaults `'PASMUN'`, seeded PASMUN rubric wording (EN+ES), placeholder dates/venue | No tenant data in migrations; presets live in packs |
 | `.env.example` | `CONFERENCE_ACCESS_CODE=PASMUN-2026-…`, `managepasmun.vercel.app` | Removed (see §6) |
@@ -53,7 +53,7 @@ Size: ~9,500 lines of TypeScript/SQL, 21 tables, 12 migrations, no tests, no CI,
 
 | File | What is hard-coded | Target |
 |---|---|---|
-| `src/lib/catalog.ts` | `DEFAULT_CATALOG`: five categories, six types (standard, specialized, US Senate, Senado de México, ICC, crisis), parties, sides, colours | Structure packs; the engine itself is already data-driven and ports well |
+| `src/lib/catalog.ts` | `DEFAULT_CATALOG`: five categories, six types (standard, specialized, US Senate, Senado de México, ICC, crisis), parties, sides, colors | Structure packs; the engine itself is already data-driven and ports well |
 | `src/lib/catalog.ts` | `FlagSource` fixed to five values; `BulkColumn` fixed to `country \| name \| group`; fallback to type key `'standard'`; `matchGroup` strips `partido_` / `_party` | Extensible flag sources (uploaded sets), delegate field schema, generic alias matching |
 | `supabase/schema.sql` | `delegates(name, country, group_key, flag)` fixed columns | Field schema + `custom` jsonb |
 | `src/components/Flag.tsx`, `countries.ts` | `/flags/us/*.svg`, `us-` prefix, `flag-icons` classes | Flag-set registry (built-in + tenant uploads) |
@@ -101,7 +101,7 @@ Size: ~9,500 lines of TypeScript/SQL, 21 tables, 12 migrations, no tests, no CI,
 | `tailwind.config.ts` | All radii forced to `0`, slate and red scales as hex, Montserrat, ticker speed | Tokens (ADR-0005) |
 | `src/app/globals.css` | `.btn`, `.input`, `.card`, `.label`, `.page-title` styles; body 15px/1.73; default brand `#1e40af` | Component tokens |
 | `BrandProvider.tsx` | Dark tones = brand × 0.22/0.32/0.45/0.5/0.65, no contrast check | Token engine with contrast guarantees |
-| ~230 uses in 25 files (worst: `chair/Motions.tsx`, `display/page.tsx`, `chair/Voting.tsx`, `chair/Participation.tsx`, `chair/RollCall.tsx`, `LiveTimer.tsx`) | Raw palette classes (`text-emerald-400`, `bg-amber-…`, `bg-white`, `red-600`) for status, timers, votes | Semantic tokens (`success`, `warning`, `danger`, `on-stage`); lint rule bans raw colours |
+| ~230 uses in 25 files (worst: `chair/Motions.tsx`, `display/page.tsx`, `chair/Voting.tsx`, `chair/Participation.tsx`, `chair/RollCall.tsx`, `LiveTimer.tsx`) | Raw palette classes (`text-emerald-400`, `bg-amber-…`, `bg-white`, `red-600`) for status, timers, votes | Semantic tokens (`success`, `warning`, `danger`, `on-stage`); lint rule bans raw colors |
 | `BrandProvider.tsx` | Loading screen is client-side with a 6 s bail-out; theme arrives after first paint | Theme resolved on the server, no flash |
 | `Flag.tsx`, `ui.tsx` | Pixel radii and sizes inline | Tokens |
 
@@ -134,7 +134,7 @@ Functions: 8 helpers (`is_*`, `can_run`, `can_access_doc_path`, `server_now`, `c
 Storage: 6 policies on two buckets. Indexes: one explicit index (`participation_entries_idx`);
 committee foreign keys are otherwise unindexed.
 
-## 9. Behaviour worth porting as-is
+## 9. Behavior worth porting as-is
 
 - Invite and reset through `token_hash` + a confirm button (`api/admin/invite`, `set-password`).
 - Timers stored as `{duration, remaining, running, started_at}` and rendered against a synced server

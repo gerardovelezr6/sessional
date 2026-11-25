@@ -1240,6 +1240,8 @@ const flagGlobal = {}; // key -> { enabled, note }
 const flagOverrides = []; // { tenant_id, key, enabled }
 const platformAnnouncements = [];
 const platformPresets = [];
+// The website's contact form (contact_requests).
+const contactRequests = [];
 const tenantRow = (id) => Object.values(TENANTS).find((t) => t.kind === 'tenant' && t.id === id);
 const NOT_ADMIN = { status: 403, body: { code: '42501', message: 'not found' } };
 const invalid = (message) => ({ status: 400, body: { code: '22023', message } });
@@ -1391,6 +1393,32 @@ Object.assign(rpcs, {
     if (!platformAdmins.has(userId)) return NOT_ADMIN;
     const i = platformPresets.findIndex((x) => x.id === p_id);
     if (i >= 0) platformPresets.splice(i, 1);
+    return { body: i >= 0 };
+  },
+  contact_submit: ({ p_data, p_sender }) => {
+    const hour = Date.now() - 3600_000;
+    if (contactRequests.filter((c) => c.sender === p_sender && Date.parse(c.created_at) > hour).length >= 3) return { body: { error: 'rate' } };
+    const row = { id: randomUUID(), created_at: new Date().toISOString(), ...p_data, email: String(p_data.email).toLowerCase(), sender: p_sender, emailed: false, status: 'new' };
+    for (const k of ['country', 'conference', 'month', 'message']) if (row[k] === '') row[k] = null;
+    contactRequests.push(row);
+    return { body: { id: row.id } };
+  },
+  contact_mark_emailed: ({ p_id }) => {
+    const c = contactRequests.find((x) => x.id === p_id);
+    if (c) c.emailed = true;
+    return { body: !!c };
+  },
+  platform_contact_list: (_b, userId) => (platformAdmins.has(userId) ? { body: [...contactRequests].reverse().map((c) => without(c, 'sender')) } : NOT_ADMIN),
+  platform_contact_set: ({ p_id, p_status }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const c = contactRequests.find((x) => x.id === p_id);
+    if (c) c.status = p_status;
+    return { body: !!c };
+  },
+  platform_contact_delete: ({ p_id }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    const i = contactRequests.findIndex((x) => x.id === p_id);
+    if (i >= 0) contactRequests.splice(i, 1);
     return { body: i >= 0 };
   },
   presets_published: ({ p_section }) => ({ body: platformPresets.filter((p) => p.section === p_section && p.published).map((p) => without(p, 'published', 'section', 'updated_at')) }),
@@ -1603,7 +1631,7 @@ async function stripeStandIn(method, url, raw) {
   return { status: 404, body: { error: { message: `no stand-in for ${method} ${url}` } } };
 }
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion']);
+const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {

@@ -11,6 +11,7 @@ import { AdminTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { CONFERENCE_READERS } from './access';
 import { cloneConferenceAction, conferenceStatusAction } from './actions';
+import { regional } from '@/i18n/regional';
 
 // Every conference of the school: the current one, drafts and past years. Last year's is cloned
 // into the next in one action; any year can be opened to look back.
@@ -63,7 +64,7 @@ export default async function ConferencesPage({ params, searchParams }: { params
   const manage = ctx.can('conference.manage');
   const scheduleOn = config.modules.schedule !== 'off';
   const { done } = await searchParams;
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+  const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'medium' });
   // Up to five years, oldest first.
   const years = list.slice(0, 5).reverse();
   const nextYear = list[0] ? list[0].name.replace(/\d{4}/, (y) => String(Number(y) + 1)) : '';

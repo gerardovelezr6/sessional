@@ -13,6 +13,7 @@ import { GradingPanel } from './grading';
 import type { ConsoleTab } from './tabs';
 import { Floor, PhoneBar, Shortcuts, useServerNow, useShortcuts } from './floor';
 import { DisciplinePanel, MotionsPanel, PointsPanel, VotePanel, type VotableDocument } from './procedure';
+import { regional } from '@/i18n/regional';
 
 export interface ConsoleDelegate {
   id: string;
@@ -102,7 +103,7 @@ export function Console(p: Props) {
   const pack = confirmed.state.session ? p.protocol : p.nextProtocol;
   const time = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      new Intl.DateTimeFormat(regional(locale), {
         timeStyle: 'short',
         timeZone: p.timeZone,
       }),

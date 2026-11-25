@@ -4,6 +4,7 @@ import wordmark from '@brand/sessional-wordmark-navy.png';
 import { accessToken } from '@/auth/session';
 import { DEFAULT_LOCALE, translator, type MessageKey } from '@/messages';
 import { isPlatformAdmin } from '@/platform/admin';
+import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { PRODUCT_NAME } from '@/platform/product';
 import { basePath } from '@/tenancy/context';
 
@@ -17,6 +18,7 @@ const NAV: { path: string; word: MessageKey }[] = [
   { path: '/flags', word: 'platform.nav.flags' },
   { path: '/announcements', word: 'platform.nav.announcements' },
   { path: '/presets', word: 'platform.nav.presets' },
+  { path: '/inbox', word: 'platform.nav.inbox' },
   { path: '/support', word: 'platform.nav.support' },
 ];
 
@@ -29,7 +31,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <>
       <header className="app-header flex flex-wrap items-center gap-4">
-        <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-7 w-auto" priority />
+        <a href={admin ? `${base}/` : `${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}/`} aria-label={t(admin ? 'platform.nav.schools' : 'landing.home')}>
+          <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-7 w-auto" priority />
+        </a>
         {admin ? (
           <nav aria-label={t('platform.nav')} className="flex flex-wrap gap-3 text-sm font-semibold">
             {NAV.map((n) => (

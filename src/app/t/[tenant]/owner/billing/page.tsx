@@ -11,6 +11,7 @@ import { localize, type MessageKey } from '@/messages';
 import { OwnerTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { cancelAction, choosePlanAction, portalAction, resumeAction } from './actions';
+import { regional } from '@/i18n/regional';
 
 // Owner → Billing: the plan, how much of it is used, choosing or changing plans, payment details
 // and invoices (on Stripe's own pages), and cancelling, with the export offered first.
@@ -51,7 +52,7 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
   const configured = stripeConfigured();
   const billing = s.has_customer && configured ? await rpc<{ customer: string | null }>('billing_server_get', { p_tenant: tenant.id }, 'service').catch(() => null) : null;
   const invoices: Invoice[] = billing?.customer ? await listInvoices(billing.customer).catch(() => []) : [];
-  const date = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: config.identity.timeZone });
+  const date = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'long', timeZone: config.identity.timeZone });
   const d = (iso: string | null) => (iso ? date.format(new Date(iso)) : '—');
   const current = plans.find((p) => p.key === s.plan);
   const name = (p: Plan | undefined) => (p ? localize(p.name, locale, p.key) : t('billing.noPlan'));

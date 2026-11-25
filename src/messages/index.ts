@@ -1,6 +1,7 @@
 import { IntlMessageFormat } from 'intl-messageformat';
 import { termArguments, TERM_PACKS } from '@/i18n/terms';
 import { catalogs, type MessageKey } from './catalogs';
+import { regional } from '@/i18n/regional';
 
 export { catalogs, type MessageKey };
 
@@ -37,7 +38,7 @@ function format(text: string, locale: string, values: Record<string, string | nu
   const id = `${locale}\u0000${text}`;
   let message = compiled.get(id);
   if (!message) {
-    message = new IntlMessageFormat(text, locale);
+    message = new IntlMessageFormat(text, regional(locale));
     if (compiled.size > 5000) compiled.clear();
     compiled.set(id, message);
   }

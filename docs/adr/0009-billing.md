@@ -43,7 +43,7 @@ Why this shape:
 ## Lifecycle
 
 `trialing` (14 days, no card) → `active` → `past_due` (7-day grace, banners for billing managers) →
-`read_only` (everything visible and exportable, nothing editable) → cancelled → deletion after the
+`read_only` (everything visible and exportable, nothing editable) → canceled → deletion after the
 retention window (ADR-0002).
 
 Conference-day protection: a tenant with a conference in progress is never switched to read-only;
@@ -65,7 +65,7 @@ truth for subscription state; a nightly job reconciles.
 
 ## Resellers and referrals
 
-A parent organisation owns several tenants and receives one invoice. Referral links map to Stripe
+A parent organization owns several tenants and receives one invoice. Referral links map to Stripe
 promotion codes and are reported per partner. A paid pack marketplace needs payouts, moderation and
 tax handling through Stripe Connect; I recommend launching the free gallery first (open question).
 

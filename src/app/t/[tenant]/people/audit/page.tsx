@@ -6,6 +6,7 @@ import { rpc } from '@/data/rpc';
 import { catalogs, type MessageKey } from '@/messages';
 import { OwnerTabs } from '@/site/AdminTabs';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { regional } from '@/i18n/regional';
 
 // The school's audit log: who changed what, and when. Newest first, fifty at a time, filtered by
 // kind of change. Details of grades and documents show only to those who may read them.
@@ -44,7 +45,7 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
     const [table = '', op = ''] = action.split('.');
     return known.has(`audit.op.${op}`) ? t(`audit.op.${op}` as MessageKey, { what: tableWord(table) }) : action;
   };
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'medium', timeZone: config.identity.timeZone });
+  const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'medium', timeStyle: 'medium', timeZone: config.identity.timeZone });
   const link = (k: string | null, b: string | null) => `${base}/people/audit${k || b ? `?${new URLSearchParams({ ...(k ? { kind: k } : {}), ...(b ? { before: b } : {}) })}` : ''}`;
 
   return (

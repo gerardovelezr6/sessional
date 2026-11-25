@@ -1,3 +1,4 @@
+import { regional } from '@/i18n/regional';
 // Time zones grouped by region, each labelled with its city and current offset from UTC.
 export interface ZoneGroup {
   label: string;
@@ -14,7 +15,7 @@ export function timeZoneGroups(locale: string, now = new Date()): ZoneGroup[] {
     const region = zone.includes('/') ? zone.split('/')[0]! : 'UTC';
     let offset = '';
     try {
-      offset = new Intl.DateTimeFormat(locale, { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
+      offset = new Intl.DateTimeFormat(regional(locale), { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
     } catch {
       offset = '';
     }

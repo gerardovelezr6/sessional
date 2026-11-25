@@ -4,7 +4,7 @@ Status: proposed · Date: 2026-11-10
 
 ## Decision
 
-All customisation is data described by one Zod schema with a `schemaVersion`. Code holds defaults
+All customization is data described by one Zod schema with a `schemaVersion`. Code holds defaults
 and presets only. There is no settings row with columns.
 
 ## Sections and scope
@@ -12,7 +12,7 @@ and presets only. There is no settings row with columns.
 | Section | Scope | Replaces in the reference |
 |---|---|---|
 | `identity` (names, dates, venue, time zone, formats) | conference | `settings` columns |
-| `theme` | tenant, overridable per conference | brand colours, Tailwind config |
+| `theme` | tenant, overridable per conference | brand colors, Tailwind config |
 | `locale` and `terminology` | tenant | `es.ts`, role labels |
 | `structure` (categories, types, groups, delegate fields, flag sources, bulk formats, confidential-topic rule) | conference | `committee_catalog` |
 | `protocol` | conference | `config.ts`, `session.ts` |

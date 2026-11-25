@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { dayIn, dayToShow, nowAndNext, timeIn, zonedToUtc, type ScheduleItem } from '@/schedule/time';
+import { clockIn, dayIn, dayToShow, nowAndNext, spanIn, timeIn, zonedToUtc, type ScheduleItem } from '@/schedule/time';
+import { regional } from '@/i18n/regional';
 
 describe('schedule times', () => {
+  it('shows times the American and Mexican way: a 12-hour clock in both languages', () => {
+    const nb = (s: string) => s.replace(/\u00a0/g, ' ');
+    expect(nb(clockIn('2027-03-05T15:30:00.000Z', 'America/Mexico_City', 'en'))).toBe('9:30 AM');
+    expect(nb(clockIn('2027-03-05T21:05:00.000Z', 'America/Mexico_City', 'es'))).toMatch(/^3:05 p\. ?m\.$/);
+    expect(nb(spanIn('2027-03-05T15:00:00.000Z', '2027-03-05T16:30:00.000Z', 'America/Mexico_City', 'en'))).toBe('9:00 – 10:30 AM');
+    expect(regional('en')).toBe('en-US');
+    expect(regional('es')).toBe('es-MX');
+    expect(regional('fr')).toBe('fr');
+    expect(new Intl.NumberFormat(regional('es')).format(1234.5)).toBe('1,234.5');
+  });
   it('reads a local time in the school’s time zone, daylight saving included', () => {
     expect(zonedToUtc('2027-03-05', '09:30', 'America/Mexico_City')).toBe('2027-03-05T15:30:00.000Z');
     expect(zonedToUtc('2027-07-05', '09:30', 'Europe/Madrid')).toBe('2027-07-05T07:30:00.000Z');

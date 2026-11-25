@@ -11,6 +11,7 @@ import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { loadOverview } from '../committees/data';
 import { applyImportAction, previewImportAction, undoImportAction } from './actions';
 import { ImportFlow } from './ImportFlow';
+import { regional } from '@/i18n/regional';
 
 // High Command → Import: delegations from a CSV or Excel file or a Google Sheet, checked row by
 // row first. Every import can be undone.
@@ -47,7 +48,7 @@ export default async function ImportPage({ params, searchParams }: { params: Pro
   const batches = (await rpc<Batch[]>('import_batches_list', { p_tenant: tenant.id }, { token: ctx.token })) ?? [];
   const { done, n } = await searchParams;
   const DONE: Record<string, MessageKey> = { imported: 'import.done.imported', undone: 'import.done.undone' };
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
+  const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
   const L = Object.fromEntries(WORDS.map((w) => [w, t(`import.${w}` as MessageKey)])) as Record<(typeof WORDS)[number], string>;
 
   return (

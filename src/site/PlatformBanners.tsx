@@ -1,13 +1,14 @@
 import { localize, type Translate } from '@/messages';
 import { liveAnnouncements } from '@/platform/announcements';
 import { currentImpersonation } from '@/platform/impersonation';
+import { regional } from '@/i18n/regional';
 
 // Above every school page: a platform admin's session as a member (who, why, until when, and a
 // button to end it), and the platform's announcements. Neither can be dismissed.
 export async function PlatformBanners({ tenantId, base, locale, t, manager, name }: { tenantId: string; base: string; locale: string; t: Translate; manager: boolean; name: string | null }) {
   const imp = await currentImpersonation();
   const announcements = (await liveAnnouncements()).filter((a) => a.audience === 'all' || manager);
-  const until = imp ? new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(imp.expires_at)) : '';
+  const until = imp ? new Intl.DateTimeFormat(regional(locale), { timeStyle: 'short' }).format(new Date(imp.expires_at)) : '';
   return (
     <>
       {imp ? (

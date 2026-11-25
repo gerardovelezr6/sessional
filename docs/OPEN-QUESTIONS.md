@@ -9,7 +9,7 @@ Only the decisions that are hard to undo or that change the plan.
 | 3 | First data region | **Answered:** `us-west-1` (N. California). Fine for Mexico and the US |
 | 4 | Do delegates get accounts? | **Assumed no** (my recommendation): delegates stay records and use read-only links and QR codes |
 | 5 | PASMUN data as a demo tenant | **Assumed no**: a synthetic demo conference instead |
-| 6 | Paid pack marketplace at launch | **Assumed no**: free gallery at launch, paid marketplace afterwards |
+| 6 | Paid pack marketplace at launch | **Assumed no**: free gallery at launch, paid marketplace afterward |
 | 7 | Stripe seller country | **Answered:** Mexico. Prices in MXN and USD. Tax and invoice setup for a Mexican seller is confirmed in the billing phase, before anything is charged |
 | 8 | Vector source of the logo | **Done:** SVG wordmarks are in `brand/`. The app icon exists as PNG only, which is enough for now |
 

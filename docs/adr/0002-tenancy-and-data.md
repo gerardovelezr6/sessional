@@ -11,7 +11,7 @@ is written multi-tenant from the first migration; the reference's twelve migrati
 
 | Table | Purpose |
 |---|---|
-| `tenants` | slug, name, status (`trialing`, `active`, `past_due`, `read_only`, `suspended`, `deleted`), plan, parent organisation, cell, `purge_after` |
+| `tenants` | slug, name, status (`trialing`, `active`, `past_due`, `read_only`, `suspended`, `deleted`), plan, parent organization, cell, `purge_after` |
 | `tenant_domains`, `tenant_slug_history` | hosts and rename redirects (ADR-0003) |
 | `profiles` | one per auth user, no role |
 | `memberships` | `(tenant_id, user_id, role_key, status)`: one email, many tenants, different roles |
@@ -44,7 +44,7 @@ using ( committee_id = any ((select app.my_committees())::uuid[]) )
 ```
 
 A person who belongs to two schools can read both through RLS; the app still filters by the tenant
-resolved from the host on every query (defence in depth), and server code with the service-role key
+resolved from the host on every query (defense in depth), and server code with the service-role key
 goes through one `tenantDb(tenantId)` wrapper that refuses a query without a tenant filter.
 
 ## Projection screens and public pages without anonymous table access

@@ -168,7 +168,7 @@ test('pulling the network mid-vote loses nothing', async ({ page, context }) => 
   await expect(vote.getByRole('status')).toHaveText(/^Passed: Emergency measure\. Yes 3, no 1, abstain 1/);
 });
 
-test('a change still unsent when the page reloads is sent afterwards, once', async ({ page, request }) => {
+test('a change still unsent when the page reloads is sent afterward, once', async ({ page, request }) => {
   await signIn(page, 'chair@rules.test');
   await request.post(`${MOCK}/__test/drop-commits`, { data: { count: 1 } });
   const chips = page.locator('#floor-title').locator('..').getByRole('group', { name: 'Add to the list' });

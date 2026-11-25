@@ -10,6 +10,7 @@ import { AdminTabs } from '@/site/AdminTabs';
 import { ADMIN_PERMISSIONS } from '@/site/nav';
 import { siteOf } from '@/site/rules';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
+import { regional } from '@/i18n/regional';
 
 // The High Command page: the current conference, live. Counts only, no names; refreshed every
 // fifteen seconds while the page is open.
@@ -51,7 +52,7 @@ export default async function AdminPage({ params }: { params: Promise<{ tenant: 
   const live = rows.filter((c) => c.status?.status === 'in_session').length;
   const grades = rows.some((c) => c.grades !== null) ? rows.reduce((n, c) => n + (c.grades ?? 0), 0) : null;
   const minutes = (s: number) => Math.round(s / 60);
-  const time = new Intl.DateTimeFormat(locale, { timeStyle: 'medium', timeZone: config.identity.timeZone });
+  const time = new Intl.DateTimeFormat(regional(locale), { timeStyle: 'medium', timeZone: config.identity.timeZone });
   const ago = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const at = data ? Date.parse(data.at) : 0;
   const sinceText = (iso: string | null) => (iso ? ago.format(-Math.max(0, Math.round((at - Date.parse(iso)) / 60000)), 'minute') : '—');

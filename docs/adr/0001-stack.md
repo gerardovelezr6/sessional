@@ -8,7 +8,7 @@ Supabase (Postgres, RLS, Auth, Realtime, Storage) and Vercel, as you leaned. The
 alternative with a clear win, and two would be full rewrites. Everything vendor-specific sits behind
 four adapters so a later move is contained: `DomainProvider` (Vercel domains API → Cloudflare for
 SaaS), `RealtimeTransport` (Supabase Broadcast → Ably), `EmailProvider` (Resend), `JobRunner` (cron
-route + Postgres queue). No Vercel KV, Blob, Edge Config or ISR-only behaviour.
+route + Postgres queue). No Vercel KV, Blob, Edge Config or ISR-only behavior.
 
 ## Load assumption
 
@@ -23,7 +23,7 @@ Scores are 1 (poor) to 5 (good).
 |---|---|---|---|---|---|
 | Row isolation / RLS | 5 | 4 (RLS works, JWT plumbing is yours) | 2 (security rules, no SQL) | 2 (in code only) | 5 |
 | Realtime at 1,800 connections | 4 | 5 | 4 | 5 | 2 (build it) |
-| One person in several tenants | 4 (memberships table) | 5 (Clerk organisations) | 3 | 3 | 3 |
+| One person in several tenants | 4 (memberships table) | 5 (Clerk organizations) | 3 | 3 | 3 |
 | Cost at 10 / 100 / 1,000 tenants | 5 | 3 (three bills, per-MAU auth) | 3 | 3 | 4 |
 | Migration effort from reference | 5 | 2 | 1 | 1 | 3 |
 | Lock-in / portability | 4 (standard Postgres, open source) | 4 | 1 | 1 | 5 |

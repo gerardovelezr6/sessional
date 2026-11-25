@@ -9,6 +9,7 @@ import { parseBulk, type BulkRow } from '@/structure/bulk';
 import type { FlagChoice } from '@/structure/flags';
 import type { CommitteeType } from '@/structure/schema';
 import { goTo } from '@/components/go';
+import { regional } from '@/i18n/regional';
 
 export interface GroupView {
   key: string;
@@ -52,7 +53,7 @@ interface Props {
 function fmt(pattern: string | undefined, locale: string, values: Record<string, string | number> = {}): string {
   if (!pattern) return '';
   try {
-    return String(new IntlMessageFormat(pattern, locale).format(values));
+    return String(new IntlMessageFormat(pattern, regional(locale)).format(values));
   } catch {
     return pattern;
   }

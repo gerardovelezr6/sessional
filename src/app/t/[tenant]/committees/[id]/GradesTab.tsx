@@ -5,12 +5,13 @@ import { awardSuggestions, formatPoints, standingsOf, type GradingData } from '@
 import { localize, type Translate } from '@/messages';
 import { removeGradeFromLogAction, setAwardAction } from '../../grades/actions';
 import { AwardsForm } from './AwardsForm';
+import { regional } from '@/i18n/regional';
 
 // A committee's gradebook: totals, awards, every grade given, and downloads.
 export function GradesTab({ tenantKey, base, data, rules, mappings, canGrade, locale, timeZone, t }: { tenantKey: string; base: string; data: GradingData; rules: Grading; mappings: Mapping[]; canGrade: boolean; locale: string; timeZone: string; t: Translate }) {
   const standings = standingsOf(rules, data, locale);
   const suggestions = awardSuggestions(rules, standings);
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short', timeZone });
+  const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'short', timeStyle: 'short', timeZone });
   const numberOf = new Map(data.sessions.map((s) => [s.id, s.number]));
   const committeeId = data.committee.id;
   return (

@@ -7,11 +7,12 @@ import { moduleOn } from '@/config/modules';
 import { tenantTranslator } from '@/config/store';
 import type { MessageKey } from '@/messages';
 import { currentSchedule } from '@/schedule/load';
-import { dayIn, nowAndNext, SCHEDULE_KINDS, timeIn } from '@/schedule/time';
+import { dayIn, nowAndNext, SCHEDULE_KINDS, clockIn, spanIn } from '@/schedule/time';
 import { AdminTabs } from '@/site/AdminTabs';
 import { ADMIN_PERMISSIONS } from '@/site/nav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { deleteScheduleItemAction, saveScheduleItemAction } from './actions';
+import { regional } from '@/i18n/regional';
 
 // The conference schedule: every member reads it; people who manage the conference plan it.
 export default async function SchedulePage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string }> }) {
@@ -29,7 +30,7 @@ export default async function SchedulePage({ params, searchParams }: { params: P
   const plan = ctx.can('conference.manage') && conferenceId;
   const { now: current, next } = nowAndNext(items, Date.parse(new Date().toISOString()));
   const days = [...new Set(items.map((i) => dayIn(i.starts_at, tz)))].sort();
-  const dayName = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const dayName = new Intl.DateTimeFormat(regional(locale), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   const { done } = await searchParams;
   const DONE: Record<string, MessageKey> = { saved: 'schedule.done.saved', deleted: 'schedule.done.deleted' };
   const firstDay = days[0] ?? new Date().toISOString().slice(0, 10);
@@ -49,14 +50,14 @@ export default async function SchedulePage({ params, searchParams }: { params: P
               <div className="stat">
                 <span className="label-text">{t('schedule.now')}</span>
                 <span className="text-lg font-bold text-on-surface">{current.title}</span>
-                <span className="text-sm">{t('schedule.until', { time: timeIn(current.ends_at, tz) })}{current.location ? ` · ${current.location}` : ''}</span>
+                <span className="text-sm">{t('schedule.until', { time: clockIn(current.ends_at, tz, locale) })}{current.location ? ` · ${current.location}` : ''}</span>
               </div>
             ) : null}
             {next ? (
               <div className="stat">
                 <span className="label-text">{t('schedule.next')}</span>
                 <span className="text-lg font-bold text-on-surface">{next.title}</span>
-                <span className="text-sm">{`${timeIn(next.starts_at, tz)}–${timeIn(next.ends_at, tz)}`}{next.location ? ` · ${next.location}` : ''}</span>
+                <span className="text-sm">{spanIn(next.starts_at, next.ends_at, tz, locale)}{next.location ? ` · ${next.location}` : ''}</span>
               </div>
             ) : null}
           </section>
@@ -73,7 +74,7 @@ export default async function SchedulePage({ params, searchParams }: { params: P
                 .filter((i) => dayIn(i.starts_at, tz) === day)
                 .map((i) => (
                   <li key={i.id} className={`flex flex-wrap items-center gap-3 border-b border-border py-2 ${current?.id === i.id ? 'font-semibold text-on-surface' : ''}`}>
-                    <span className="w-28 font-mono text-sm">{`${timeIn(i.starts_at, tz)}–${timeIn(i.ends_at, tz)}`}</span>
+                    <span className="w-40 shrink-0 font-mono text-sm">{spanIn(i.starts_at, i.ends_at, tz, locale)}</span>
                     <span className="min-w-40 flex-1">
                       {i.title}
                       {i.location ? <span className="block text-xs font-normal">{i.location}</span> : null}

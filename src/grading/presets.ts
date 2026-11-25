@@ -54,7 +54,7 @@ export function standardGrading(): Grading {
         weight: 1,
         levels: [
           lv('leads', 'Leads', 'Lidera', 3, 'Leads a group and drives its proposals.', 'Lidera un grupo e impulsa sus propuestas.'),
-          lv('active', 'Active', 'Activo', 2, 'Takes part and helps organise ideas.', 'Participa y ayuda a organizar ideas.'),
+          lv('active', 'Active', 'Activo', 2, 'Takes part and helps organize ideas.', 'Participa y ayuda a organizar ideas.'),
           lv('passive', 'Passive', 'Pasivo', 1, 'Present but contributes little.', 'Presente pero aporta poco.'),
         ],
       },

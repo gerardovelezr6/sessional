@@ -1,4 +1,5 @@
 import { FORMAL_NAMES } from './formal-names';
+import { regional } from '@/i18n/regional';
 
 // Country names in any language, and recognising a country from what someone types: short names,
 // formal names and common alternatives, in every language the school uses. Names come from the
@@ -26,7 +27,7 @@ export function countryCodes(): string[] {
 
 export function countryName(code: string, locale: string): string {
   try {
-    return new Intl.DisplayNames([locale, 'en'], { type: 'region' }).of(code.toUpperCase()) ?? code;
+    return new Intl.DisplayNames([regional(locale), 'en'], { type: 'region' }).of(code.toUpperCase()) ?? code;
   } catch {
     return code;
   }
@@ -115,7 +116,7 @@ function indexFor(locales: string[]): Map<string, string> {
   for (const locale of id.split('|')) {
     let names: Intl.DisplayNames;
     try {
-      names = new Intl.DisplayNames([locale], { type: 'region', fallback: 'none' });
+      names = new Intl.DisplayNames([regional(locale)], { type: 'region', fallback: 'none' });
     } catch {
       continue;
     }

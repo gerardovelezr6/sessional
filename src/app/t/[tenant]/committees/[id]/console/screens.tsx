@@ -2,6 +2,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { fmt } from '@/i18n/fmt';
 import type { ScreenRow, ScreensResult } from './actions';
+import { regional } from '@/i18n/regional';
 
 // Projection screens of this committee: pair one with the code it shows, choose what it shows,
 // turn its sound on or off, or unpair it. Every change waits for the server before it shows.
@@ -35,7 +36,7 @@ export function ScreensPanel({
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const time = new Intl.DateTimeFormat(locale, { timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(regional(locale), { timeStyle: 'short' });
   // The list as it is now: screens paired from another device, or seen since the page loaded.
   useEffect(() => {
     let gone = false;

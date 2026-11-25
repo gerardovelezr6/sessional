@@ -9,7 +9,7 @@ with each phase.
 |---|---|
 | `brand/` | Logo files as supplied. Imported directly; never copied, redrawn or re-traced |
 | `src/app/` | Next.js App Router pages |
-| `src/theme/` | Design tokens. The only place raw colour values may appear |
+| `src/theme/` | Design tokens. The only place raw color values may appear |
 | `src/messages/` | Message catalogs. The only place user-facing text may appear |
 | `src/platform/` | Product-level constants |
 | `eslint-rules/` | Lint rules that enforce the two lines above, plus logical (right-to-left safe) CSS |
@@ -27,7 +27,7 @@ the production build. CI runs all three on every push and pull request.
 
 ## Guards in place from the first commit
 
-- A raw colour, palette class, pixel radius, physical direction class or literal UI string in a
+- A raw color, palette class, pixel radius, physical direction class or literal UI string in a
   component fails lint.
 - English and Spanish catalogs must have the same keys and placeholders.
 - Every token text/background pair of the default preset must reach 4.5:1.
@@ -113,7 +113,7 @@ the authentication service.
 
 ## Configuration (Phase 2, part 1)
 
-Everything a school can customise is one typed schema in `src/config/schema.ts`, stored as data.
+Everything a school can customize is one typed schema in `src/config/schema.ts`, stored as data.
 
 | Piece | Where | What it does |
 |---|---|---|
@@ -163,22 +163,22 @@ diff between versions, and packs (part 3).
 ## Themes (Phase 3, part 1)
 
 A school's design is the `theme` section of its settings. The engine (`src/theme/engine.ts`)
-turns it into CSS variables that every component reads; components never hold a colour, radius
+turns it into CSS variables that every component reads; components never hold a color, radius
 or spacing of their own (the lint rules enforce this).
 
 - **Presets** (`src/theme/presets.ts`): Sessional (the product's own look and the default),
   Flat institutional, Classic formal, Modern rounded, High contrast, Playful school. A school
-  picks one and may override brand colour, accent, page background, font, corners, spacing,
+  picks one and may override brand color, accent, page background, font, corners, spacing,
   uppercase labels, shadows, contrast level and light/dark/automatic.
-- **Text cannot become unreadable:** text colours are derived, never taken as given. Colours are
+- **Text cannot become unreadable:** text colors are derived, never taken as given. Colors are
   adjusted in OKLCH (perceived lightness) until each text/background pair reaches its ratio:
   7:1 for body text, 4.5:1 for secondary text and text on buttons, 3:1 for buttons and field
-  outlines against the page (12:1 and 7:1 in high contrast). The settings page says when a colour
-  had to be adjusted. Tested on every preset and on 500 random colour combinations, light and dark.
+  outlines against the page (12:1 and 7:1 in high contrast). The settings page says when a color
+  had to be adjusted. Tested on every preset and on 500 random color combinations, light and dark.
 - **No flash of the default look:** the school's stylesheet is rendered by the server into the
   first HTML. It uses the selector `:root:root`, which outranks the product default wherever the
   browser places the two.
-- **Automatic mode** sends light colours plus a `prefers-color-scheme: dark` block, so each
+- **Automatic mode** sends light colors plus a `prefers-color-scheme: dark` block, so each
   person's device decides.
 - **Fonts** are self-hosted (no requests to third-party font servers).
 
@@ -191,9 +191,9 @@ or spacing of their own (the lint rules enforce this).
   written only by the server with the service role after the permission and the file are checked.
   A stored path is only ever used for the school it belongs to.
 - **Page header** on every school page: the logo (or the school's name), light or in the brand
-  colour. **Page titles** plain or with a brand bar. **Tabs** underlined, filled or outlined; the
+  color. **Page titles** plain or with a brand bar. **Tabs** underlined, filled or outlined; the
   settings sections are now tabs.
-- These styles are tokens that point at colour tokens (for example the header text is
+- These styles are tokens that point at color tokens (for example the header text is
   `var(--s-color-on-primary)` on `var(--s-color-primary)`), so they inherit the contrast
   guarantees; a unit test checks every preset and override.
 - **Live preview** beside the Design controls: a sample page redrawn on every change, before
@@ -210,12 +210,12 @@ metering).
     `card`, `card-footer`, `btn`, `btn-primary`, `btn-secondary`, `input`, `label`, `label-text`,
     a few elements inside them, and the states `:hover`, `:focus-visible`, `[aria-current]`,
     `[aria-selected]`.
-  - Properties are an allow-list (colours, spacing, borders, corners, font size, weight, letter
+  - Properties are an allow-list (colors, spacing, borders, corners, font size, weight, letter
     spacing, text transform); values are checked and bounded. Nothing that hides or moves
     content, loads a resource (`url()`, `@import`), escapes the style element, or uses
-    `!important` is accepted. `@media` only for widths and colour scheme.
-  - Colours must be `#hex` or a theme token, so contrast can be checked: a text colour must reach
-    4.5:1 on its own background or on both page surfaces, in every colour scheme the school uses.
+    `!important` is accepted. `@media` only for widths and color scheme.
+  - Colors must be `#hex` or a theme token, so contrast can be checked: a text color must reach
+    4.5:1 on its own background or on both page surfaces, in every color scheme the school uses.
   - Saving is refused while there is any problem, with one message per line. Rendering keeps only
     the valid rules. `?safe-mode` renders a page without custom CSS (the proxy sets an internal
     header that visitors cannot send themselves), and "Remove custom CSS" clears it in a draft.
@@ -293,13 +293,13 @@ committees), editable email texts (email phase), flags (Phase 5).
   export/import are folded under "History and files".
 - **Controls** (`src/app/t/[tenant]/settings/fields.tsx`, built from the registry by `build.ts`):
   - small choices are rows of buttons, and presets, fonts and word sets are cards (presets show
-    their colours, fonts are written in themselves); all are native radios;
-  - colours: a colour picker, suggested swatches, an optional colour-code box and "Use the
-    design's colour";
+    their colors, fonts are written in themselves); all are native radios;
+  - colors: a color picker, suggested swatches, an optional color-code box and "Use the
+    design's color";
   - languages: a list by name with "Shown first" and Remove, and "Add a language";
-  - words: a table of words by language, with the set's word as a grey hint;
+  - words: a table of words by language, with the set's word as a gray hint;
   - time zones: grouped by region with their UTC offset;
-  - the Design section is split into Starting point, Logo and colours, Text and shapes, Page
+  - the Design section is split into Starting point, Logo and colors, Text and shapes, Page
     layout, Readability and Advanced (folded; custom CSS).
 - Registry entries carry an optional `group` and `presentation` (`buttons`, `cards`, `dropdown`).
 
@@ -309,10 +309,10 @@ committees), editable email texts (email phase), flags (Phase 5).
   settings (`src/structure/schema.ts`), versioned, previewed and published like any other section,
   edited on `/settings/structure`. A type decides the delegate list's main column, where flags come
   from (`country`, `country_in_text`, `us_state`, `group_logo`, `none`), its groups (parties, sides)
-  with colours, short names, aliases and uploaded logos, extra fields, the column order for pasting,
+  with colors, short names, aliases and uploaded logos, extra fields, the column order for pasting,
   and whether it has a confidential topic. The six reference types (Standard, Specialized, US
   Senate, Mexican Senate, ICC, Crisis) are plain data in `src/structure/presets.ts`, added with one
-  button and editable afterwards. A type or category used by a committee cannot be removed.
+  button and editable afterward. A type or category used by a committee cannot be removed.
 - **Committees and delegates are tables** (`committees`, `committee_chairs`, `delegates`,
   `committee_secrets`), each with `tenant_id`, composite keys and row-level security, in the
   isolation matrix. Committees belong to the active `conference`; `type_key` and `category_key`
@@ -320,7 +320,7 @@ committees), editable email texts (email phase), flags (Phase 5).
 - **Who sees what**: every member sees committees and their chairs; delegates are read by managers
   (`committee.manage`) and by a committee's own chairs; chairs with `delegates.manage` edit them.
   Starter roles gain these permissions in the migration.
-- **Confidential topics** live in their own table. Organisers read them always; chairs only from
+- **Confidential topics** live in their own table. Organizers read them always; chairs only from
   `conferences.secrets_unlocked_at` (now, a scheduled time, or never). The rule is in the database
   (`app.secrets_readable()`), so the topic never reaches a chair's browser early. "Show when half
   the committees are in session" needs sessions and comes with Phase 6.
@@ -374,7 +374,7 @@ committees), editable email texts (email phase), flags (Phase 5).
 - New schools start with the "Classic conference" design (`flat-institutional`): white, square,
   Montserrat, slate text under deep headings, spaced uppercase labels, tabs and main buttons, a
   white header with the school's name and tagline. The product's own pages keep the Sessional look.
-- Home page: a banner in the brand colour (`--s-color-banner-end` is derived so its text stays
+- Home page: a banner in the brand color (`--s-color-banner-end` is derived so its text stays
   readable end to end) with the conference name, tagline, dates and venue; then the committees as
   cards under their categories, with live status, filters and search. `identity.dates`,
   `identity.venue` and `theme.homeBanner` are settings.
@@ -394,7 +394,7 @@ committees), editable email texts (email phase), flags (Phase 5).
   `display_unpair`.
 - `src/live/broadcast.ts` announces revisions; `src/live/useLive.ts` listens (Supabase Realtime) and
   falls back to polling.
-- Screens use the school's colours in a dark stage scheme (Settings → Design → Projection screens:
+- Screens use the school's colors in a dark stage scheme (Settings → Design → Projection screens:
   dark or light) and three layouts chosen per screen: speaker, timer and list; timer only; list.
 
 ## Interface tidy-up
@@ -423,7 +423,7 @@ committees), editable email texts (email phase), flags (Phase 5).
 - `src/grading/standings.ts` totals (in tenths, so sums are exact), ranks with ties, applies the
   scale and suggests awards; it is pure and unit-tested against a reference rubric.
 - Exports (`/grades/export`, `src/grading/export.ts`): CSV (byte-order mark, formula guard), XLSX
-  (Gradebook, Grading log and Rubric sheets) and PDF (embedded Noto Sans, the school's colours). The
+  (Gradebook, Grading log and Rubric sheets) and PDF (embedded Noto Sans, the school's colors). The
   file's dates come from the newest grade, so the same data and mapping give the same bytes. Saved
   column mappings store keys and headings only.
 - Pages: the console's Grading tab, the committee's Grades tab (standings, awards, log, download)
@@ -487,7 +487,7 @@ committees), editable email texts (email phase), flags (Phase 5).
   `roles.manage`, `audit.view`), held by the Owner and Advisors. The starter High Command role no
   longer has them; the migration `20261122000000_owner_area.sql` removes them from existing
   `high_command` roles. A school can give them back on the roles page, where they carry a "Staff" tag.
-- `/owner` (menu item "Owner", `tenant.manage`): one card per customisation (website, branding,
+- `/owner` (menu item "Owner", `tenant.manage`): one card per customization (website, branding,
   conference details, languages and words, committee types, rules of procedure, grading, sign-in,
   access code, roles, audit log, archive) and the roles that hold staff permissions today. Its own
   row of tabs (`OwnerTabs`) shows on every settings page it leads to.
@@ -565,14 +565,14 @@ committees), editable email texts (email phase), flags (Phase 5).
   and committees it created carry its id. `import_undo` removes them (a created committee stays if
   someone added a delegation to it since) and records who undid it and when.
 - Print (High Command → Print; chairs see the parts for their committees): `/print/<kind>` returns
-  a PDF built with pdf-lib in the school's primary colour, with its logo (PNG or JPEG; a WebP logo
+  a PDF built with pdf-lib in the school's primary color, with its logo (PNG or JPEG; a WebP logo
   is left out) and Noto Sans, embedded whole (a subset dropped letters): placards (tent cards, each with a signed check-in QR code), sign-in
   sheets, the agenda, passed resolutions, certificates of participation (`committee.manage`) or of
   award (`grades.view`), and the grade report (the gradebook PDF). What appears follows what the
   person may read. The same data gives the same file.
 - Printing settings (Owner → Settings → Printing): paper size (A4 or Letter); placard style
-  (classic, bold, framed, minimal), colour, and whether the flag, logo, committee and check-in code
-  appear; certificate style (classic, modern, elegant, minimal), colour, flag, logo, titles, a line
+  (classic, bold, framed, minimal), color, and whether the flag, logo, committee and check-in code
+  appear; certificate style (classic, modern, elegant, minimal), color, flag, logo, titles, a line
   under the text and up to three signatures. Flags are the app's own (flag-icons for countries, the
   bundled US state flags, a group's uploaded logo), turned into PNG with sharp on the server, once
   per flag per process.

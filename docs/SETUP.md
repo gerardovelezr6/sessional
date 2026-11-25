@@ -15,7 +15,7 @@ green; leave major-version jumps (TypeScript 7, ESLint 10) closed until I schedu
    non-commercial use.
 2. Add New → Project → import `sessional` from GitHub. The framework is detected; no environment
    variables are needed yet.
-3. Deploy. You should see the wordmark on a paper-coloured page.
+3. Deploy. You should see the wordmark on a paper-colored page.
 
 ## 3. Domain `sessional.app` (after step 2)
 
@@ -29,8 +29,8 @@ needed on Cloudflare for this.
 
 | Type | Name | Target | Proxy status |
 |---|---|---|---|
-| CNAME (or the A record Vercel shows) | `@` | value shown by Vercel | DNS only (grey cloud) |
-| CNAME | `*` | value shown by Vercel (`cname.vercel-dns-0.com` or similar) | DNS only (grey cloud) |
+| CNAME (or the A record Vercel shows) | `@` | value shown by Vercel | DNS only (gray cloud) |
+| CNAME | `*` | value shown by Vercel (`cname.vercel-dns-0.com` or similar) | DNS only (gray cloud) |
 | NS | `_acme-challenge` | `ns1.vercel-dns.com` | — |
 | NS | `_acme-challenge` | `ns2.vercel-dns.com` | — |
 
@@ -38,7 +38,7 @@ needed on Cloudflare for this.
 
 What they do: the first two send visitors to Vercel. The two NS records let Vercel prove ownership
 and issue the wildcard HTTPS certificate; they must stay in place for renewals. Keep the proxy
-switched off (grey cloud) on the first two, otherwise Cloudflare sits in front of Vercel and
+switched off (gray cloud) on the first two, otherwise Cloudflare sits in front of Vercel and
 certificates fail.
 
 Source: Vercel's guide

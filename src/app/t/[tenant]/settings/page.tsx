@@ -22,6 +22,7 @@ import { discardDraftAction, importPackAction, installPresetAction, publishActio
 import { sectionGroups } from './build';
 import { ActionButton, SectionForm } from './SectionForm';
 import { ThemePreview } from './ThemePreview';
+import { regional } from '@/i18n/regional';
 
 type Bound = (state: SettingsState, data: FormData) => Promise<SettingsState>;
 
@@ -49,7 +50,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
   // Presets the platform published for this section, to install as a draft.
   const library = await rpc<{ id: string; name: Record<string, string>; description: Record<string, string> }[]>('presets_published', { p_section: section }, { token: ctx.token }).catch(() => []);
   // Dates in the reader's language and the school's time zone.
-  const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
+  const when = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'medium', timeStyle: 'short', timeZone: config.identity.timeZone });
   const anyDraft = SECTION_NAMES.some((s) => state[s]?.draft);
   // The school's languages as being edited (a draft may add one before it is published).
   const editingLocales = resolveSection('locale', state.locale?.draft ?? state.locale?.published).data.enabledLocales;

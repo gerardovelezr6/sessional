@@ -15,10 +15,11 @@ import { typeOf } from '@/structure/schema';
 import { checkinCode } from '@/print/checkin';
 import { agenda, certificates, placards, resolutions, signInSheets } from '@/print/kinds';
 import { currentSchedule } from '@/schedule/load';
-import { dayIn, timeIn } from '@/schedule/time';
+import { dayIn, spanIn } from '@/schedule/time';
 import { requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
 import { loadCommittee, loadOverview, UUID, type CommitteeDetail } from '../../committees/data';
 import type { DocumentRow } from '../../committees/[id]/documents/rules';
+import { regional } from '@/i18n/regional';
 
 // Printables as PDF, in the school's look. What a person may print follows what they may read:
 // the database decides which committees, delegations, documents and grades come back.
@@ -107,7 +108,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
       if (!moduleOn(config, 'schedule')) return new NextResponse(null, { status: 404 });
       const tz = config.identity.timeZone;
       const { items } = await currentSchedule(tenant.id, ctx.token);
-      const dayName = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+      const dayName = new Intl.DateTimeFormat(regional(locale), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
       const days = [...new Set(items.map((i) => dayIn(i.starts_at, tz)))].sort();
       title = t('print.agenda.title');
       body = await agenda(
@@ -116,7 +117,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ tenant: 
         conferenceName,
         days.map((day) => ({
           day: dayName.format(new Date(`${day}T12:00:00Z`)),
-          items: items.filter((i) => dayIn(i.starts_at, tz) === day).map((i) => ({ time: `${timeIn(i.starts_at, tz)}–${timeIn(i.ends_at, tz)}`, title: i.title, detail: i.location })),
+          items: items.filter((i) => dayIn(i.starts_at, tz) === day).map((i) => ({ time: spanIn(i.starts_at, i.ends_at, tz, locale), title: i.title, detail: i.location })),
         })),
       );
       break;

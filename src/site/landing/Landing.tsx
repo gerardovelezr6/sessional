@@ -3,6 +3,7 @@ import Link from 'next/link';
 import wordmark from '@brand/sessional-wordmark-navy.png';
 import type { MessageKey, Translate } from '@/messages';
 import { ConsoleMock, PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
+import { regional } from '@/i18n/regional';
 
 // The marketing page. Left-aligned, plain words, real pieces of the product; nothing promised that
 // is not built, except under "Coming next", which says so.
@@ -46,7 +47,7 @@ function Section({ id, title, intro, children }: { id: string; title: string; in
 
 export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
   const nameOf = (p: PlanRow) => p.name[locale] ?? p.name.en ?? p.key;
-  const money = (amount: number, currency: string) => `${new Intl.NumberFormat(locale === 'es' ? 'es-MX' : 'en-US', { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
+  const money = (amount: number, currency: string) => `${new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
   const currency = locale === 'es' ? 'mxn' : 'usd';
   const other = locale === 'es' ? 'en' : 'es';
   const mail = contact ? `mailto:${contact}?subject=${encodeURIComponent(t('landing.mailSubject'))}` : '';
@@ -62,7 +63,7 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
           </Link>
           <nav aria-label={t('landing.nav')} className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
             <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href="#session">{t('landing.nav.session')}</a>
-            <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href="#organisers">{t('landing.nav.organisers')}</a>
+            <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href="#organizers">{t('landing.nav.organisers')}</a>
             <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href="#pricing">{t('landing.nav.pricing')}</a>
             <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href="#next">{t('landing.nav.next')}</a>
           </nav>
@@ -140,7 +141,7 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
           </div>
         </Section>
 
-        <Section id="organisers" title={t('landing.organisers.title')} intro={t('landing.organisers.intro')}>
+        <Section id="organizers" title={t('landing.organisers.title')} intro={t('landing.organisers.intro')}>
           {/* Each card carries a real detail of the feature, not a slogan. */}
           <dl className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {ORGANISERS.map((o) => (
@@ -228,7 +229,7 @@ export function Landing({ t, locale, appUrl, contact, qr, plans }: Props) {
                       <th scope="row" className="py-3 text-start font-semibold">{t(`landing.pricing.limit.${k}` as MessageKey)}</th>
                       {plans.map((p) => (
                         <td key={p.key} className="py-3">
-                          {p.limits[k] === null || p.limits[k] === undefined ? t('landing.pricing.noLimit') : new Intl.NumberFormat(locale).format(p.limits[k]!)}
+                          {p.limits[k] === null || p.limits[k] === undefined ? t('landing.pricing.noLimit') : new Intl.NumberFormat(regional(locale)).format(p.limits[k]!)}
                         </td>
                       ))}
                     </tr>

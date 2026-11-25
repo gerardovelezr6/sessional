@@ -1,3 +1,4 @@
+import { regional } from '@/i18n/regional';
 // Schedule times are typed in the school's time zone (Settings → Identity) and stored in UTC.
 
 // How far a time zone is ahead of UTC at a moment, in milliseconds.
@@ -31,6 +32,16 @@ export function dayIn(iso: string, timeZone: string): string {
 
 export function timeIn(iso: string, timeZone: string): string {
   return new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+}
+
+// A time of day as people in the reader's region write it (9:30 AM; 9:30 a.m.).
+export function clockIn(iso: string, timeZone: string, locale: string): string {
+  return new Intl.DateTimeFormat(regional(locale), { timeZone, hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace(/[\u202f\u2009]/g, '\u00a0');
+}
+
+// A span of time in one go ("9:00 – 10:30 AM"), without repeating what the two ends share.
+export function spanIn(from: string, to: string, timeZone: string, locale: string): string {
+  return new Intl.DateTimeFormat(regional(locale), { timeZone, hour: 'numeric', minute: '2-digit' }).formatRange(new Date(from), new Date(to)).replace(/[\u202f\u2009]/g, '\u00a0');
 }
 
 export interface ScheduleItem {

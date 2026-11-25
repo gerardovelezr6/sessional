@@ -94,7 +94,7 @@ function contrastProblem(rule: Rule, schemes: Tokens[]): string | null {
   const bg = decl('background-color');
   if (!fg && !bg) return null;
   // A new background needs its own text colour, so the two can be checked together.
-  if (bg && !fg && !['transparent', 'inherit'].includes(bg.trim().toLowerCase())) return 'set a text colour (color) with the background';
+  if (bg && !fg && !['transparent', 'inherit'].includes(bg.trim().toLowerCase())) return 'set a text color with the background';
   for (const tokens of schemes) {
     const text = resolve(fg!, tokens);
     if (!text) continue; // currentColor / inherit: unchanged from the checked theme

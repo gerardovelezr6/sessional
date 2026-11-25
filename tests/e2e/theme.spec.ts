@@ -39,7 +39,7 @@ test('a school that changed nothing has the classic conference look', async ({ p
 test("a school's published design arrives with the first HTML, for signed-out visitors too", async ({ page }) => {
   const res = await page.goto(at('delta.localhost', '/login'));
   const html = await res!.text();
-  // In <head>, before any content: no flash of the default colours.
+  // In <head>, before any content: no flash of the default colors.
   const head = html.slice(0, html.indexOf('</head>'));
   expect(head).toContain('--s-color-primary:#7A1F2B');
 
@@ -69,23 +69,23 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   await page.goto(at('zeta.localhost', '/settings?section=theme'));
   let design = page.locator('section#theme');
 
-  // Not a colour: refused, nothing saved, and what was typed stays.
-  await design.getByLabel('Brand colour, colour code').fill('red');
+  // Not a color: refused, nothing saved, and what was typed stays.
+  await design.getByLabel('Brand color, color code').fill('red');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await expect(design.getByText('Some values are not valid. Nothing was saved.')).toBeVisible();
-  await expect(design.getByLabel('Brand colour, colour code')).toHaveValue('red');
+  await expect(design.getByLabel('Brand color, color code')).toHaveValue('red');
 
-  // A rounded preset, with a brand colour far too pale for a button on a light page.
+  // A rounded preset, with a brand color far too pale for a button on a light page.
   await choose(design, 'Design preset', 'Modern rounded');
-  await design.getByLabel('Brand colour, colour code').fill('#FDE68A');
+  await design.getByLabel('Brand color, color code').fill('#FDE68A');
   await choose(design, 'Uppercase labels', 'On');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await page.waitForURL(/done=draft/);
   design = page.locator('section#theme');
   await expect(design.getByText(/^You have unpublished changes/)).toBeVisible();
-  // The choices are kept: the card and the colour show what was saved.
+  // The choices are kept: the card and the color show what was saved.
   await expect(design.getByRole('radio', { name: /Modern rounded/ })).toBeChecked();
-  await expect(design.getByLabel('Brand colour', { exact: true })).toHaveValue('#fde68a');
+  await expect(design.getByLabel('Brand color', { exact: true })).toHaveValue('#fde68a');
   // Still the old look: a draft is not live.
   expect(await style(page, '.btn-primary', 'border-radius')).toBe('0px');
 
@@ -93,13 +93,13 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   await expect(page.getByText('Preview: you are seeing your unpublished drafts.')).toBeVisible();
   await expect.poll(() => style(page, '.btn-primary', 'border-radius')).toBe('14px');
   expect(await style(page, '.label', 'text-transform')).toBe('uppercase');
-  // The pale colour was darkened until the button stands out, and its text reads.
+  // The pale color was darkened until the button stands out, and its text reads.
   expect(await style(page, '.btn-primary', 'background-color')).not.toBe('rgb(253, 230, 138)');
   expect(await contrastOf(page, '.btn-primary')).toBeGreaterThanOrEqual(4.5);
   expect(await contrastOf(page, 'h1')).toBeGreaterThanOrEqual(7);
   expect(await contrastOf(page, '.label')).toBeGreaterThanOrEqual(4.5);
-  // The settings page explains that a colour was changed to keep text readable.
-  await expect(page.getByText('Some colours were adjusted so that text stays readable.')).toBeVisible();
+  // The settings page explains that a color was changed to keep text readable.
+  await expect(page.getByText('Some colors were adjusted so that text stays readable.')).toBeVisible();
 
   // A visitor still sees the old design.
   const visitor = await (await browser.newContext()).newPage();
@@ -118,7 +118,7 @@ test('an owner redesigns the school: draft, preview, publish; unreadable choices
   await visitor.context().close();
 });
 
-test('automatic mode follows the device: dark colours for a device set to dark', async ({ browser }) => {
+test('automatic mode follows the device: dark colors for a device set to dark', async ({ browser }) => {
   const owner = await (await browser.newContext()).newPage();
   await owner.goto(at('zeta.localhost', '/login'));
   await owner.getByLabel('Email').fill('owner@zeta.test');

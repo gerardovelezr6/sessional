@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { loadPublicSite } from '@/public/site';
-import { dayIn, timeIn } from '@/schedule/time';
+import { dayIn, spanIn } from '@/schedule/time';
 import { basePath, requireTenant } from '@/tenancy/context';
+import { regional } from '@/i18n/regional';
 
 // The school's public conference page: committees, their topics, and the schedule. No sign-in.
 // Off unless the Owner turned it on (Settings → Public pages); then a missing page, not a refusal.
@@ -18,7 +19,7 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
   if (!site) notFound();
   const base = await basePath();
   const tz = config.identity.timeZone;
-  const dayName = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const dayName = new Intl.DateTimeFormat(regional(locale), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   const days = [...new Set(site.schedule.map((s) => dayIn(s.starts_at, tz)))].sort();
 
   return (
@@ -54,7 +55,7 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
                     .filter((s) => dayIn(s.starts_at, tz) === day)
                     .map((s) => (
                       <li key={`${s.starts_at}-${s.title}`} className="flex flex-wrap gap-3 border-b border-border py-1 text-sm">
-                        <span className="w-28 font-mono">{`${timeIn(s.starts_at, tz)}–${timeIn(s.ends_at, tz)}`}</span>
+                        <span className="w-40 shrink-0 font-mono">{spanIn(s.starts_at, s.ends_at, tz, locale)}</span>
                         <span className="flex-1">{s.title}</span>
                         {s.location ? <span>{s.location}</span> : null}
                       </li>

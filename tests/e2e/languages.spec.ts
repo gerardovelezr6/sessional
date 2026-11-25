@@ -130,7 +130,7 @@ test('changing the words of a school changes every text that uses them', async (
   await choose(words, 'Set of words', 'School');
   // Empty boxes show the set's word as a hint.
   await expect(words.getByLabel('Chair (one), English')).toHaveAttribute('placeholder', 'Moderator');
-  await words.getByLabel('Organising team, English').fill('Secretariat of Lambda');
+  await words.getByLabel('Organizing team, English').fill('Secretariat of Lambda');
   await saveAndPublish(words);
 
   // The live preview sample uses the words.

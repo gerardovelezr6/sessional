@@ -118,3 +118,13 @@ describe('the school’s own sender', () => {
     expect(await call('owner', `public.mail_sender_remove($1)`, [A])).toBe(true);
   });
 });
+
+describe('finding a member to email a reset link', () => {
+  it('is server-only, matches the address in any case, and never crosses schools', async () => {
+    const email = `dm-chair-${run}@example.test`;
+    expect(await failure('owner', `public.member_by_email($1, $2)`, [A, email])).toMatch(/permission denied/);
+    expect(await call('service', `public.member_by_email($1, $2)`, [A, ` ${email.toUpperCase()} `])).toMatchObject({ user_id: people.chair });
+    expect(await call('service', `public.member_by_email($1, $2)`, [B, email])).toBeNull();
+    expect(await call('service', `public.member_by_email($1, $2)`, [A, `nobody-${run}@example.test`])).toBeNull();
+  });
+});

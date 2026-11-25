@@ -4910,7 +4910,7 @@ $$;
 create or replace function public.mail_sender_get(p_tenant uuid) returns jsonb
 language sql stable security definer set search_path = '' as $$
   select case when app.has_permission(p_tenant, 'tenant.manage') then (
-    select jsonb_build_object('domain', m.domain, 'local_part', m.local_part, 'records', m.records, 'status', m.status,
+    select jsonb_build_object('domain', m.domain, 'local_part', m.local_part, 'provider_id', m.provider_id, 'records', m.records, 'status', m.status,
       'verified_at', m.verified_at, 'checked_at', m.checked_at, 'problem', m.problem)
     from public.tenant_mail m where m.tenant_id = p_tenant) end
 $$;
@@ -4976,3 +4976,15 @@ revoke all on function public.tenant_features_server(uuid), public.domain_server
 grant execute on function public.tenant_features_server(uuid), public.domain_server_set(uuid, text, jsonb), public.domains_to_check(), public.mail_sender_server_set(uuid, jsonb), public.mail_sender_for(uuid) to service_role;
 revoke all on function public.resolve_tenant(text, text) from public, anon, authenticated;
 grant execute on function public.resolve_tenant(text, text) to service_role;
+
+-- Server only, for "forgot your password": is this address an active or invited member here? The
+-- answer never reaches the visitor (they are told the same thing either way).
+create or replace function public.member_by_email(p_tenant uuid, p_email text) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object('user_id', p.id, 'name', p.full_name, 'locale', p.locale)
+  from public.profiles p join public.memberships m on m.user_id = p.id
+  where m.tenant_id = p_tenant and p.email = lower(btrim(p_email)) and m.status in ('active', 'invited')
+  limit 1
+$$;
+revoke all on function public.member_by_email(uuid, text) from public, anon, authenticated;
+grant execute on function public.member_by_email(uuid, text) to service_role;

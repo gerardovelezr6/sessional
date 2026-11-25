@@ -209,9 +209,9 @@ Spanish: Correo
 | Added to the school: subject | `email.addedSubject` | (none) | text per language, up to 150 characters each | `tenant.manage` | Sent to someone who already has an account when you add them. |
 | Added to the school: text | `email.addedBody` | (none) | text per language, up to 2000 characters each | `tenant.manage` | Paragraphs separated by a blank line. The button to sign in is added after them. |
 
-## Branding and sign-in (`branding`)
+## White-label and sign-in (`branding`)
 
-Spanish: Marca e inicio de sesión
+Spanish: Marca blanca e inicio de sesión
 
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|

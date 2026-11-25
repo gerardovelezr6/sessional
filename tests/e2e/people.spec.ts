@@ -171,7 +171,7 @@ test('inviting someone who already has an account gives them access at once', as
   await page.goto(at('beta.localhost', '/people'));
   await page.getByLabel('Email').fill('chair@alpha.test');
   await page.getByRole('button', { name: 'Create invitation' }).click();
-  await expect(page.getByRole('status')).toContainText('already has an account and can sign in now');
+  await expect(page.getByRole('status')).toContainText('chair@alpha.test already has an account: we emailed them that they can sign in now');
   await expect(page.getByLabel('Invitation link')).toHaveValue(at('beta.localhost', '/login'));
 
   // Inviting the same person again is refused, and says why.

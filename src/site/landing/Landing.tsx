@@ -7,7 +7,7 @@ import { messageFor, type MessageKey, type Translate } from '@/messages';
 import { ContactForm, type ContactLabels } from './ContactForm';
 import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
 import { Reveal } from './Reveal';
-import { Scene } from './Scene';
+import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
@@ -146,11 +146,10 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
         </div>
       </header>
 
-      <Scene>
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
           {/* The opening and "How a session runs" are one story: the stage stands beside the headline
               and plays the session as you scroll down through the steps. */}
-          <section className="pt-12" aria-labelledby="hero-title">
+          <section className="pb-16 pt-12" aria-labelledby="hero-title">
             <Story
               names={storyNames(locale)}
               L={storyLabels(t, locale)}
@@ -198,7 +197,11 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
           </section>
 
           <Section id="screens" title={t('landing.screens.title')} intro={t('landing.screens.intro')}>
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
+            <Scene>
+              <div className="mb-4 flex justify-end">
+                <ScenePause pause={t('landing.screens.pause')} play={t('landing.screens.play')} />
+              </div>
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
               <div className="flex flex-col gap-3">
                 <ProjectorMock t={t} locale={locale} />
                 <p className="max-w-xl text-sm">{t('landing.screens.projector')}</p>
@@ -213,7 +216,8 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
                   <p className="text-sm">{t('landing.screens.placard')}</p>
                 </div>
               </div>
-            </div>
+              </div>
+            </Scene>
           </Section>
 
           <Section id="organizers" title={t('landing.organisers.title')} intro={t('landing.organisers.intro')}>
@@ -359,7 +363,6 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
             </div>
           </Section>
         </main>
-      </Scene>
 
       <footer className="border-t border-border">
         {/* Google's sign-in review asks the home page to say plainly what the app does. */}

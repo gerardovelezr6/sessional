@@ -42,7 +42,7 @@ export function Tabs({ label, tabs, children }: { label: string; tabs: { id: str
         ))}
       </div>
       {tabs.map((t, i) => (
-        <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={i !== active} tabIndex={0}>
+        <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={i !== active} tabIndex={0} className={i === active ? 'tab-panel-in' : undefined}>
           {children[i]}
         </div>
       ))}

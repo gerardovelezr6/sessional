@@ -337,3 +337,12 @@ html:has(.app-header) { scroll-padding-top: 5rem; }
 @media (prefers-reduced-motion: no-preference) {
   .story-stage { animation: page-in 220ms ease-out both; }
 }
+/* Switching tabs: the new panel eases in, and its cards follow one after another. */
+@media (prefers-reduced-motion: no-preference) {
+  .tab-panel-in { animation: tab-in 260ms ease-out both; }
+  .tab-panel-in > * > * { animation: tab-in 320ms ease-out both; }
+  .tab-panel-in > * > :nth-child(2) { animation-delay: 40ms; }
+  .tab-panel-in > * > :nth-child(3) { animation-delay: 80ms; }
+  .tab-panel-in > * > :nth-child(4) { animation-delay: 120ms; }
+  @keyframes tab-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}

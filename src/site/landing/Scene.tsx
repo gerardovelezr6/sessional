@@ -1,22 +1,74 @@
 'use client';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { Flag } from '@/components/Flag';
 
-// One moment of a committee in session, shared by the pictures of the chair's console, the
-// projector and a delegate's phone, so all three show the same speaker and the same time. It holds
-// still: the moving part of the page is the scroll story ("How a session runs").
+// "Three screens in the room": the projector and a delegate's phone run off one clock, so when a
+// speaker's time runs out both move on together. It runs only while on screen, can be paused, and
+// starts paused for people who ask for less motion.
 
 const TOTAL = 45;
 const START = ['fr', 'br', 'ke', 'jp', 'mx', 'de', 'in', 'za'];
-const MOMENT = { order: START, left: 12 };
 
-const SceneContext = createContext(MOMENT);
+interface SceneValue {
+  order: string[];
+  left: number;
+  paused: boolean;
+  toggle: () => void;
+}
+const SceneContext = createContext<SceneValue>({ order: START, left: 12, paused: true, toggle: () => undefined });
 const useScene = () => useContext(SceneContext);
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+// One second passes: the speaker's time runs down; at zero the next delegation takes the floor.
+function advance(s: { order: string[]; left: number }) {
+  if (s.left > 0) return { ...s, left: s.left - 1 };
+  return { order: [...s.order.slice(1), s.order[0]!], left: TOTAL };
+}
+
+const MOTION = '(prefers-reduced-motion: reduce)';
+const reducedMotion = () => window.matchMedia(MOTION).matches;
+const subscribeMotion = (onChange: () => void) => {
+  const m = window.matchMedia(MOTION);
+  m.addEventListener('change', onChange);
+  return () => m.removeEventListener('change', onChange);
+};
+
 export function Scene({ children }: { children: React.ReactNode }) {
-  return <SceneContext.Provider value={MOMENT}>{children}</SceneContext.Provider>;
+  const [{ order, left }, tick] = useReducer(advance, { order: START, left: 12 });
+  // null: nobody pressed the button yet, so it follows the device's motion setting.
+  const [choice, setChoice] = useState<boolean | null>(null);
+  const reduce = useSyncExternalStore(subscribeMotion, reducedMotion, () => false);
+  const paused = choice ?? reduce;
+  const [seen, setSeen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setSeen(!!e?.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  useEffect(() => {
+    if (paused || !seen) return;
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [paused, seen]);
+  return (
+    <SceneContext.Provider value={{ order, left, paused, toggle: () => setChoice(!paused) }}>
+      <div ref={box}>{children}</div>
+    </SceneContext.Provider>
+  );
+}
+
+// Pause or play the screens (they move on their own, so they can be stopped).
+export function ScenePause({ pause, play }: { pause: string; play: string }) {
+  const { paused, toggle } = useScene();
+  return (
+    <button type="button" className="btn btn-secondary btn-sm" aria-pressed={paused} onClick={toggle}>
+      {paused ? play : pause}
+    </button>
+  );
 }
 
 function Bar({ left, track, fill }: { left: number; track: string; fill: string }) {

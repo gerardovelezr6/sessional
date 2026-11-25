@@ -126,7 +126,7 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   expect(top).toBeLessThan(200);
 });
 
-test('the opening shows the story’s stage beside the headline, not a second console; the rest holds still', async ({ page }) => {
+test('the opening shows the story’s stage beside the headline, not a second console', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
   await expect(page.getByRole('figure', { name: 'The chair’s console during a general debate' })).toHaveCount(0);
@@ -137,11 +137,35 @@ test('the opening shows the story’s stage beside the headline, not a second co
   const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
   const box = await stage.boundingBox();
   expect(Math.abs(box!.y - h1!.y)).toBeLessThan(160);
-  // The projector further down is a picture: it does not tick.
-  const timer = page.getByRole('figure', { name: 'The projector screen in the committee room' }).locator('.font-mono');
-  const at = await timer.textContent();
+});
+
+test('the three screens run on one clock while on screen, can be paused, and start paused for less motion', async ({ page, browser }) => {
+  await page.goto('/');
+  await page.locator('#screens').scrollIntoViewIfNeeded();
+  const projector = page.getByRole('figure', { name: 'The projector screen in the committee room' }).locator('.font-mono');
+  const phone = page.getByRole('figure', { name: 'A delegate’s phone' }).locator('.font-mono');
+  const first = await projector.textContent();
+  await expect(projector).not.toHaveText(first!, { timeout: 3000 });
+  await page.getByRole('button', { name: 'Pause the screens' }).click();
+  const stopped = await projector.textContent();
   await page.waitForTimeout(1500);
-  await expect(timer).toHaveText(at!);
+  await expect(projector).toHaveText(stopped!);
+  await expect(phone).toHaveText(stopped!);
+
+  const calm = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+  await calm.goto('/');
+  await calm.locator('#screens').scrollIntoViewIfNeeded();
+  await expect(calm.getByRole('button', { name: 'Play the screens' })).toHaveAttribute('aria-pressed', 'true');
+  await calm.context().close();
+});
+
+test('the pinned stage stops before the line that closes the story', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  await page.locator('#screens').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 500));
+  const stage = await page.locator('.story-stage').locator('xpath=ancestor::div[contains(@class,"sticky")][1]').boundingBox();
+  const line = await page.locator('#screens').boundingBox();
+  expect(stage!.y + stage!.height).toBeLessThan(line!.y - 32);
 });
 
 test('organizer features are grouped in tabs that work from the keyboard, and the section nav marks where you are', async ({ page }) => {

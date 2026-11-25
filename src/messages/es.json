@@ -2733,5 +2733,7 @@
   "landing.story.award_best": "Mejor Delegado",
   "landing.story.award_outstanding": "Delegado Sobresaliente",
   "landing.story.award_mention": "Mención Honorífica",
-  "landing.story.scrollHint": "Desplázate para empezar ↓"
+  "landing.story.scrollHint": "Desplázate para empezar ↓",
+  "landing.screens.pause": "Pausar las pantallas",
+  "landing.screens.play": "Reproducir las pantallas"
 }

@@ -2733,5 +2733,7 @@
   "landing.story.award_best": "Best Delegate",
   "landing.story.award_outstanding": "Outstanding Delegate",
   "landing.story.award_mention": "Honorable Mention",
-  "landing.story.scrollHint": "Scroll to start ↓"
+  "landing.story.scrollHint": "Scroll to start ↓",
+  "landing.screens.pause": "Pause the screens",
+  "landing.screens.play": "Play the screens"
 }

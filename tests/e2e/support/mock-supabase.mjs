@@ -1835,6 +1835,14 @@ function mailDomainsStandIn(method, url, body) {
   return { body: { id: m[1], name: d.name, status: d.status, records: records.map((r) => without(r, 'fullName')) } };
 }
 
+// --- Phase 17: a school whose public pages are on from the start (the accessibility audit). ---
+TENANTS.open = { kind: 'tenant', id: tid(32), slug: 'open', name: 'Open School', status: 'active' };
+seed('owner@open.test', 'Ona Open', tid(32), 'owner');
+conferences.push({ id: randomUUID(), tenant_id: tid(32), name: 'Open MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() });
+committees.push({ id: randomUUID(), tenant_id: tid(32), conference_id: conferences.at(-1).id, name: 'Human Rights Council', abbreviation: 'HRC', topic: 'Freedom of expression online', description: '', category_key: null, type_key: 'standard', language: null, sort_order: 0, created_at: new Date().toISOString() });
+for (const label of ['Brazil', 'Canada', 'Japan']) delegates.push({ id: randomUUID(), tenant_id: tid(32), committee_id: committees.at(-1).id, label, name: '', flag: null, group_key: null, extra: {}, sort_order: 0 });
+CONFIG[tid(32)] = { publicSite: { version: 1, schema_version: 1, data: { enabled: 'on', live: 'on' } } };
+
 // --- Phase 16: the community gallery. Two schools: one shares, the other installs. ---
 TENANTS.share = { kind: 'tenant', id: tid(30), slug: 'share', name: 'Sharing School', status: 'active' };
 TENANTS.take = { kind: 'tenant', id: tid(31), slug: 'take', name: 'Taking School', status: 'active' };

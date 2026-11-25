@@ -10,6 +10,8 @@ const at = (host: string, path = '/') => `http://${host}:${PORT}${path}`;
 
 async function audit(page: Page, name: string) {
   await page.waitForLoadState('networkidle');
+  // An audit of a "not found" page would prove nothing.
+  await expect(page.getByRole('heading', { level: 1, name: /There is no conference here|not found|can’t find/i }), `${name} exists`).toHaveCount(0);
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
   const found = result.violations.map((v) => `${v.impact} ${v.id}: ${v.help} → ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`);
   expect.soft(found, `${name} (${page.url()})`).toEqual([]);
@@ -36,7 +38,7 @@ const ROOT = [
 for (const mode of ['normal', 'high contrast and larger text'] as const) {
   test.describe(`${mode}`, () => {
     test.beforeEach(async ({ context }) => {
-      if (mode !== 'normal') await context.addCookies([{ name: 's_display', value: 'contrast,large', domain: 'localhost', path: '/' }, ...['alpha', 'console', 'grades', 'pub', 'screens', 'site', 'admin'].map((h) => ({ name: 's_display', value: 'contrast,large', domain: `${h}.localhost`, path: '/' }))]);
+      if (mode !== 'normal') await context.addCookies([{ name: 's_display', value: 'contrast,large', domain: 'localhost', path: '/' }, ...['alpha', 'console', 'grades', 'open', 'screens', 'site', 'admin'].map((h) => ({ name: 's_display', value: 'contrast,large', domain: `${h}.localhost`, path: '/' }))]);
     });
 
     test('the main website', async ({ page }) => {
@@ -51,8 +53,10 @@ for (const mode of ['normal', 'high contrast and larger text'] as const) {
       await audit(page, 'sign-in');
       await page.goto(at('alpha.localhost', '/forgot'));
       await audit(page, 'forgot password');
-      await page.goto(at('pub.localhost', '/public'));
+      await page.goto(at('open.localhost', '/public'));
       await audit(page, 'public pages');
+      await page.getByRole('link', { name: /Human Rights Council/ }).first().click();
+      await audit(page, 'a public committee page');
       await page.goto(at('screens.localhost', '/display'));
       await audit(page, 'projection pairing');
     });
@@ -98,7 +102,8 @@ for (const mode of ['normal', 'high contrast and larger text'] as const) {
 
     test('grading', async ({ page }) => {
       await signIn(page, 'grades.localhost', 'owner@grades.test');
-      await page.goto(at('grades.localhost', '/committees/00000000-0000-4000-9200-000000000001/grades'));
+      await page.goto(at('grades.localhost', '/committees/00000000-0000-4000-9200-000000000001?tab=grades'));
+      await expect(page.getByRole('table', { name: 'Standings' })).toBeVisible();
       await audit(page, 'gradebook');
     });
   });

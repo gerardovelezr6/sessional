@@ -5,6 +5,7 @@ import { loadPublicSite } from '@/public/site';
 import { dayIn, spanIn } from '@/schedule/time';
 import { basePath, requireTenant } from '@/tenancy/context';
 import { regional } from '@/i18n/regional';
+import { localize } from '@/messages';
 
 // The school's public conference page: committees, their topics, and the schedule. No sign-in.
 // Off unless the Owner turned it on (Settings → Public pages); then a missing page, not a refusal.
@@ -72,6 +73,7 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
             ))}
           </section>
         ) : null}
+        {localize(config.consent.publicNotice, locale) ? <p className="whitespace-pre-line text-sm">{localize(config.consent.publicNotice, locale)}</p> : null}
         <p className="text-sm">
           {t('public.staff')}{' '}
           <a className="font-semibold underline underline-offset-2" href={`${base}/login`}>

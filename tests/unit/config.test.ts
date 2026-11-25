@@ -22,6 +22,10 @@ describe('defaults', () => {
       access: { gate: null },
       modules: { grading: 'on', documents: 'on', screens: 'on', discipline: 'on', announcements: 'on', schedule: 'on' },
       announcements: { items: null },
+      email: { fromName: {}, replyTo: '', footer: {}, inviteSubject: {}, inviteBody: {}, resetSubject: {}, resetBody: {}, addedSubject: {}, addedBody: {} },
+      branding: { poweredBy: 'on', loginTitle: {}, loginMessage: {} },
+      legal: { privacy: {}, terms: {} },
+      consent: { invite: {}, publicNotice: {}, cookieNotice: 'off', cookieText: {} },
       publicSite: { enabled: 'off', delegations: 'on', schedule: 'on', resolutions: 'on', live: 'off' },
       printing: {
         paper: 'a4', placardStyle: 'classic', placardColor: null, placardFlag: 'on', placardLogo: 'on', placardCommittee: 'on', placardQr: 'on',

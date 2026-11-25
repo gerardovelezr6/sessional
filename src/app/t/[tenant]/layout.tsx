@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
-import { notFound, permanentRedirect } from 'next/navigation';
+import { notFound, permanentRedirect, redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { AccountMenu } from '@/components/AccountMenu';
+import { CookieNotice } from '@/components/CookieNotice';
 import { BillingBanner } from '@/site/BillingBanner';
 import { PlatformBanners } from '@/site/PlatformBanners';
 import { requestTime } from '@/platform/health';
@@ -15,7 +16,7 @@ import { DEFAULT_LOCALE, translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { resolveTenant, type TenantStatus } from '@/tenancy/directory';
 import { basePath, tenantContext } from '@/tenancy/context';
-import { parseTenantKey, SAFE_MODE_HEADER, TENANT_PATH_HEADER } from '@/tenancy/route';
+import { BASE_PATH_HEADER, parseTenantKey, SAFE_MODE_HEADER, TENANT_PATH_HEADER } from '@/tenancy/route';
 import { AccessGate } from '@/access/AccessGate';
 import { ACCESS_CODE_COOKIE, passValid } from '@/access/code';
 import { sanitizeCustomCss } from '@/theme/custom-css';
@@ -94,6 +95,14 @@ export default async function TenantLayout({ params, children }: Props) {
   if (isHidden(found.tenant.status)) {
     const own = await tenantTranslator(found.tenant.id);
     return <Notice title={own.t('tenant.unavailable.title')} body={own.t('tenant.unavailable.body')} locale={own.locale} />;
+  }
+  // A school with its own primary domain is served there: its other addresses send people on.
+  if (found.tenant.primary) {
+    const h = await headers();
+    const [here, port] = (h.get('host') ?? '').split(':');
+    if (here && here !== found.tenant.primary && !h.get(BASE_PATH_HEADER)) {
+      redirect(`${isSecureOrigin() ? 'https' : 'http'}://${found.tenant.primary}${port ? `:${port}` : ''}${h.get(TENANT_PATH_HEADER) ?? '/'}`);
+    }
   }
   // An editor previewing their drafts always sees that they are: the banner cannot be dismissed
   // while preview is on.
@@ -181,7 +190,7 @@ export default async function TenantLayout({ params, children }: Props) {
   if (gate) {
     const h = await headers();
     const path = h.get(TENANT_PATH_HEADER) ?? '/';
-    const exempt = /^\/(set-password|display)(\/|$)/.test(path);
+    const exempt = /^\/(set-password|display|privacy|terms|forgot)(\/|$)/.test(path);
     const passed = passValid((await cookies()).get(ACCESS_CODE_COOKIE)?.value, found.tenant.id, gate.codeHash);
     if (!exempt && !passed && !(ctx?.membership && !gate.members)) {
       return (
@@ -206,6 +215,15 @@ export default async function TenantLayout({ params, children }: Props) {
       <BillingBanner tenantId={found.tenant.id} status={found.tenant.status} token={ctx?.token ?? null} manager={!!ctx?.can('tenant.manage')} base={base} locale={own.locale} t={own.t} now={requestTime()} />
     </>
   );
+  // The school's cookie note, when it turned it on (Settings → Consent).
+  const cookies_ =
+    own.config.consent.cookieNotice === 'on' ? (
+      <CookieNotice
+        text={localize(own.config.consent.cookieText, own.locale) || own.t('consent.cookie.default')}
+        privacyHref={`${base}/privacy`}
+        L={{ label: own.t('consent.cookie.label'), privacy: own.t('legal.privacy.title'), ok: own.t('consent.cookie.ok') }}
+      />
+    ) : null;
   if (!own.preview) {
     return (
       <>
@@ -213,6 +231,7 @@ export default async function TenantLayout({ params, children }: Props) {
         {banners}
         {header}
         {children}
+        {cookies_}
       </>
     );
   }
@@ -226,6 +245,7 @@ export default async function TenantLayout({ params, children }: Props) {
       {banners}
       {header}
       {children}
+      {cookies_}
     </>
   );
 }

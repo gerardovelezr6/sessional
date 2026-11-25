@@ -20,6 +20,8 @@ function allowed(setting: Setting): string {
       return 'color as `#RRGGBB`; empty = as the preset has it';
     case 'localizedText':
       return `text per language, up to ${c.maxLength} characters each`;
+    case 'text':
+      return c.email ? 'an email address, or empty' : `one line, up to ${c.maxLength} characters`;
     case 'timeZone':
       return 'an IANA time zone, e.g. `America/Mexico_City`';
     case 'asset':

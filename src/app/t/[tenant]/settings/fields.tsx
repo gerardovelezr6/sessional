@@ -19,7 +19,7 @@ type Base = { settingKey: string; label: string; help: string; errorKeys?: strin
 export type FieldView = Base &
   (
     | { kind: 'number'; name: string; value: string; min: number; max: number }
-    | { kind: 'text'; name: string; value: string; maxLength?: number }
+    | { kind: 'text'; name: string; value: string; maxLength?: number; inputType?: 'email' }
     | { kind: 'textarea'; name: string; value: string; maxLength: number }
     | { kind: 'localized'; inputs: { name: string; caption: string; value: string; maxLength: number; lang: string; dir: 'ltr' | 'rtl' }[] }
     | { kind: 'select'; name: string; value: string; options?: Option[]; optionGroups?: { label: string; options: Option[] }[] }
@@ -306,7 +306,7 @@ export function SettingField({ view, valueOf, error, labels }: { view: FieldView
       control = <input className="input w-32" id={view.name} name={view.name} type="number" min={view.min} max={view.max} defaultValue={valueOf(view.name, view.value)} aria-label={view.label} {...common} />;
       break;
     case 'text':
-      control = <input className="input" id={view.name} name={view.name} defaultValue={valueOf(view.name, view.value)} maxLength={view.maxLength} aria-label={view.label} {...common} />;
+      control = <input className="input" id={view.name} name={view.name} type={view.inputType ?? 'text'} autoComplete="off" spellCheck={view.inputType ? false : undefined} defaultValue={valueOf(view.name, view.value)} maxLength={view.maxLength} aria-label={view.label} {...common} />;
       break;
     case 'textarea':
       control = <textarea className="input font-mono" id={view.name} name={view.name} rows={8} maxLength={view.maxLength} spellCheck={false} defaultValue={valueOf(view.name, view.value)} aria-label={view.label} {...common} />;
@@ -349,7 +349,12 @@ export function SettingField({ view, valueOf, error, labels }: { view: FieldView
               <label htmlFor={input.name} className="text-xs font-semibold text-on-surface-muted">
                 {input.caption}
               </label>
-              <input className="input" id={input.name} name={input.name} defaultValue={valueOf(input.name, input.value)} maxLength={input.maxLength} lang={input.lang} dir={input.dir} {...common} />
+              {/* Long texts (email bodies, legal pages) get room to write. */}
+              {input.maxLength > 300 ? (
+                <textarea className="input" id={input.name} name={input.name} rows={input.maxLength > 2000 ? 14 : 6} defaultValue={valueOf(input.name, input.value)} maxLength={input.maxLength} lang={input.lang} dir={input.dir} {...common} />
+              ) : (
+                <input className="input" id={input.name} name={input.name} defaultValue={valueOf(input.name, input.value)} maxLength={input.maxLength} lang={input.lang} dir={input.dir} {...common} />
+              )}
             </div>
           ))}
         </div>

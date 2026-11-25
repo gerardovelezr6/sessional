@@ -30,7 +30,7 @@ afterAll(async () => {
 
 describe('resolve_tenant', () => {
   it('finds a tenant by its current address, ignoring case', async () => {
-    const expected = { kind: 'tenant', id: tenant, slug: `new-${run}`, name: 'Resolve School', status: 'trialing' };
+    const expected = { kind: 'tenant', id: tenant, slug: `new-${run}`, name: 'Resolve School', status: 'trialing', primary: null };
     expect(await resolve({ slug: `new-${run}` })).toEqual(expected);
     expect(await resolve({ slug: `NEW-${run}` })).toEqual(expected);
   });

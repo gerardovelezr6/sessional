@@ -18,7 +18,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         // Lets the browser reach a pretend customer domain on this machine.
-        launchOptions: { args: ['--host-resolver-rules=MAP mun.example.test 127.0.0.1, MAP unknown.example.test 127.0.0.1'] },
+        launchOptions: { args: ['--host-resolver-rules=MAP mun.example.test 127.0.0.1, MAP unknown.example.test 127.0.0.1, MAP mun.brand.test 127.0.0.1'] },
       },
     },
   ],
@@ -47,6 +47,11 @@ export default defineConfig({
         // Email (signup links) through the Resend stand-in, which keeps what was sent.
         RESEND_API_KEY: 're_test_mock',
         RESEND_API_URL: `http://localhost:${MOCK_PORT}/resend`,
+        // Custom domains: the hosting provider and public DNS, both stand-ins in the mock server.
+        VERCEL_TOKEN: 'vercel_test_mock',
+        VERCEL_PROJECT_ID: 'prj_test',
+        VERCEL_API_URL: `http://localhost:${MOCK_PORT}/vercel`,
+        DOH_URL: `http://localhost:${MOCK_PORT}/doh`,
       },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

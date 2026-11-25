@@ -32,6 +32,8 @@ export type Control =
   // Announcements: posted on their own page, by High Command too.
   | { kind: 'announcements' }
   | { kind: 'localizedText'; maxLength: number }
+  // One line of plain text; an email address when `email` is set.
+  | { kind: 'text'; maxLength: number; email?: boolean }
   | { kind: 'timeZone' };
 
 // How a choice is shown: a row of buttons for a few short options, cards for richer ones.
@@ -66,6 +68,7 @@ export const SECTION_MENU: { label: MessageKey; sections: SectionName[] }[] = [
   { label: 'settings.menu.conference', sections: ['identity', 'modules', 'site', 'publicSite', 'printing', 'announcements', 'theme', 'structure', 'protocol', 'grading'] },
   { label: 'settings.menu.language', sections: ['locale', 'terminology', 'translations'] },
   { label: 'settings.menu.people', sections: ['people', 'access'] },
+  { label: 'settings.menu.brand', sections: ['email', 'branding', 'legal', 'consent'] },
 ];
 
 export const SECTION_HELP: Record<SectionName, MessageKey> = {
@@ -84,6 +87,10 @@ export const SECTION_HELP: Record<SectionName, MessageKey> = {
   publicSite: 'settings.publicSite.description',
   printing: 'settings.printing.description',
   announcements: 'settings.announcements.description',
+  email: 'settings.email.description',
+  branding: 'settings.branding.description',
+  legal: 'settings.legal.description',
+  consent: 'settings.consent.description',
 };
 
 export const SECTION_LABELS: Record<SectionName, MessageKey> = {
@@ -102,6 +109,10 @@ export const SECTION_LABELS: Record<SectionName, MessageKey> = {
   publicSite: 'settings.publicSite',
   printing: 'settings.printing',
   announcements: 'settings.announcements',
+  email: 'settings.email',
+  branding: 'settings.branding',
+  legal: 'settings.legal',
+  consent: 'settings.consent',
 };
 
 export const registry: Setting[] = [
@@ -477,5 +488,95 @@ export const registry: Setting[] = [
     section: 'announcements', key: 'items', permission: 'announcements.manage',
     labelKey: 'settings.announcements.items', helpKey: 'settings.announcements.items.help',
     control: { kind: 'announcements' },
+  },
+  {
+    section: 'email', key: 'fromName', permission: 'tenant.manage',
+    labelKey: 'settings.email.fromName', helpKey: 'settings.email.fromName.help',
+    control: { kind: 'localizedText', maxLength: 60 },
+  },
+  {
+    section: 'email', key: 'replyTo', permission: 'tenant.manage',
+    labelKey: 'settings.email.replyTo', helpKey: 'settings.email.replyTo.help',
+    control: { kind: 'text', maxLength: 254, email: true },
+  },
+  {
+    section: 'email', key: 'footer', permission: 'tenant.manage',
+    labelKey: 'settings.email.footer', helpKey: 'settings.email.footer.help',
+    control: { kind: 'localizedText', maxLength: 300 },
+  },
+  {
+    section: 'email', key: 'inviteSubject', permission: 'tenant.manage',
+    labelKey: 'settings.email.inviteSubject', helpKey: 'settings.email.inviteSubject.help',
+    control: { kind: 'localizedText', maxLength: 150 },
+  },
+  {
+    section: 'email', key: 'inviteBody', permission: 'tenant.manage',
+    labelKey: 'settings.email.inviteBody', helpKey: 'settings.email.inviteBody.help',
+    control: { kind: 'localizedText', maxLength: 2000 },
+  },
+  {
+    section: 'email', key: 'resetSubject', permission: 'tenant.manage',
+    labelKey: 'settings.email.resetSubject', helpKey: 'settings.email.resetSubject.help',
+    control: { kind: 'localizedText', maxLength: 150 },
+  },
+  {
+    section: 'email', key: 'resetBody', permission: 'tenant.manage',
+    labelKey: 'settings.email.resetBody', helpKey: 'settings.email.resetBody.help',
+    control: { kind: 'localizedText', maxLength: 2000 },
+  },
+  {
+    section: 'email', key: 'addedSubject', permission: 'tenant.manage',
+    labelKey: 'settings.email.addedSubject', helpKey: 'settings.email.addedSubject.help',
+    control: { kind: 'localizedText', maxLength: 150 },
+  },
+  {
+    section: 'email', key: 'addedBody', permission: 'tenant.manage',
+    labelKey: 'settings.email.addedBody', helpKey: 'settings.email.addedBody.help',
+    control: { kind: 'localizedText', maxLength: 2000 },
+  },
+  {
+    section: 'branding', key: 'poweredBy', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.branding.poweredBy', helpKey: 'settings.branding.poweredBy.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'branding', key: 'loginTitle', permission: 'tenant.manage',
+    labelKey: 'settings.branding.loginTitle', helpKey: 'settings.branding.loginTitle.help',
+    control: { kind: 'localizedText', maxLength: 80 },
+  },
+  {
+    section: 'branding', key: 'loginMessage', permission: 'tenant.manage',
+    labelKey: 'settings.branding.loginMessage', helpKey: 'settings.branding.loginMessage.help',
+    control: { kind: 'localizedText', maxLength: 400 },
+  },
+  {
+    section: 'legal', key: 'privacy', permission: 'tenant.manage',
+    labelKey: 'settings.legal.privacy', helpKey: 'settings.legal.privacy.help',
+    control: { kind: 'localizedText', maxLength: 20000 },
+  },
+  {
+    section: 'legal', key: 'terms', permission: 'tenant.manage',
+    labelKey: 'settings.legal.terms', helpKey: 'settings.legal.terms.help',
+    control: { kind: 'localizedText', maxLength: 20000 },
+  },
+  {
+    section: 'consent', key: 'invite', permission: 'tenant.manage',
+    labelKey: 'settings.consent.invite', helpKey: 'settings.consent.invite.help',
+    control: { kind: 'localizedText', maxLength: 600 },
+  },
+  {
+    section: 'consent', key: 'publicNotice', permission: 'tenant.manage',
+    labelKey: 'settings.consent.publicNotice', helpKey: 'settings.consent.publicNotice.help',
+    control: { kind: 'localizedText', maxLength: 600 },
+  },
+  {
+    section: 'consent', key: 'cookieNotice', permission: 'tenant.manage', presentation: 'buttons',
+    labelKey: 'settings.consent.cookieNotice', helpKey: 'settings.consent.cookieNotice.help',
+    control: { kind: 'select', options: [{ value: 'on', labelKey: 'settings.onOff.on' }, { value: 'off', labelKey: 'settings.onOff.off' }] },
+  },
+  {
+    section: 'consent', key: 'cookieText', permission: 'tenant.manage',
+    labelKey: 'settings.consent.cookieText', helpKey: 'settings.consent.cookieText.help',
+    control: { kind: 'localizedText', maxLength: 400 },
   },
 ];

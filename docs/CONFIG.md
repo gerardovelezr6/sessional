@@ -192,3 +192,49 @@ Spanish: Código de acceso
 | Setting | Key | Default | Allowed | Who can change | What it does |
 |---|---|---|---|---|---|
 | Access code | `access.gate` | as the preset has it | edited on the access code page; stores only a hash of the code; empty means no code | `tenant.manage` | Only a hash of the code is stored. |
+
+## Email (`email`)
+
+Spanish: Correo
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Sender name | `email.fromName` | (none) | text per language, up to 60 characters each | `tenant.manage` | Shown as who the email is from. Empty: your school’s name. |
+| Reply-to address | `email.replyTo` | (empty) | an email address, or empty | `tenant.manage` | Where replies go, such as your conference’s inbox. Empty: replies go nowhere. |
+| Footer | `email.footer` | (none) | text per language, up to 300 characters each | `tenant.manage` | A line at the bottom of every email, such as your school’s address. |
+| Invitation: subject | `email.inviteSubject` | (none) | text per language, up to 150 characters each | `tenant.manage` | The subject line of invitations. |
+| Invitation: text | `email.inviteBody` | (none) | text per language, up to 2000 characters each | `tenant.manage` | Paragraphs separated by a blank line. The button to accept is added after them. |
+| Password reset: subject | `email.resetSubject` | (none) | text per language, up to 150 characters each | `tenant.manage` | The subject line of password resets. |
+| Password reset: text | `email.resetBody` | (none) | text per language, up to 2000 characters each | `tenant.manage` | Paragraphs separated by a blank line. The button to choose a password is added after them. |
+| Added to the school: subject | `email.addedSubject` | (none) | text per language, up to 150 characters each | `tenant.manage` | Sent to someone who already has an account when you add them. |
+| Added to the school: text | `email.addedBody` | (none) | text per language, up to 2000 characters each | `tenant.manage` | Paragraphs separated by a blank line. The button to sign in is added after them. |
+
+## White-label and sign-in (`branding`)
+
+Spanish: Marca blanca e inicio de sesión
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| “Powered by Sessional” | `branding.poweredBy` | `on` | `on` (On), `off` (Off) | `tenant.manage` | The small mark at the foot of your pages. Turning it off takes effect on plans with white-label (Institution and Circuit). |
+| Sign-in title | `branding.loginTitle` | (none) | text per language, up to 80 characters each | `tenant.manage` | The heading of your sign-in page. Empty: “Sign in to” and your school’s name. |
+| Sign-in message | `branding.loginMessage` | (none) | text per language, up to 400 characters each | `tenant.manage` | A few lines under the heading, such as who to ask for an account. |
+
+## Legal pages (`legal`)
+
+Spanish: Páginas legales
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| Privacy policy | `legal.privacy` | (none) | text per language, up to 20000 characters each | `tenant.manage` | Blank lines separate paragraphs; a line starting with “# ” is a heading. |
+| Terms | `legal.terms` | (none) | text per language, up to 20000 characters each | `tenant.manage` | Blank lines separate paragraphs; a line starting with “# ” is a heading. |
+
+## Consent (`consent`)
+
+Spanish: Consentimiento
+
+| Setting | Key | Default | Allowed | Who can change | What it does |
+|---|---|---|---|---|---|
+| When accepting an invitation | `consent.invite` | (none) | text per language, up to 600 characters each | `tenant.manage` | Shown above the button people press to join, such as your school’s code of conduct. |
+| On the public pages | `consent.publicNotice` | (none) | text per language, up to 600 characters each | `tenant.manage` | A note at the bottom of your public pages, such as how delegations are shown. |
+| Cookie note | `consent.cookieNotice` | `off` | `on` (On), `off` (Off) | `tenant.manage` | A short note about cookies, shown until each visitor closes it. Sessional only uses cookies needed to sign in and remember choices. |
+| Cookie note text | `consent.cookieText` | (none) | text per language, up to 400 characters each | `tenant.manage` | Empty: Sessional’s wording. |

@@ -116,6 +116,9 @@ function fieldsFor(section: SectionName, values: Record<string, unknown>, ctx: B
       case 'timeZone':
         out.push({ ...base, kind: 'select', name, value: String(value), optionGroups: timeZoneGroups(uiLocale).map((g) => ({ label: g.label, options: g.zones })) });
         break;
+      case 'text':
+        out.push({ ...base, kind: 'text', name, value: String(value ?? ''), maxLength: c.maxLength, ...(c.email ? { inputType: 'email' as const } : {}) });
+        break;
       case 'localizedText': {
         if (section === 'terminology') break; // part of the words table
         const text = (value ?? {}) as Record<string, string>;

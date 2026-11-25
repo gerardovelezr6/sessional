@@ -26,8 +26,6 @@ export function ConsoleMock({ t, locale }: { t: Translate; locale: string }) {
         list: t('landing.mock.console.list'),
         motion: t('landing.mock.console.motion', { by: countryName('MX', locale) }),
         quorum: t('landing.mock.console.quorum'),
-        pause: t('landing.mock.console.pause'),
-        play: t('landing.mock.console.play'),
       }}
     />
   );

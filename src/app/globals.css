@@ -333,3 +333,7 @@ html:has(.app-header) { scroll-padding-top: 5rem; }
   main { animation: page-in 180ms ease-out both; }
   @keyframes page-in { from { opacity: 0.001; } to { opacity: 1; } }
 }
+/* The scroll story's stage: each step comes in with a short fade. */
+@media (prefers-reduced-motion: no-preference) {
+  .story-stage { animation: page-in 220ms ease-out both; }
+}

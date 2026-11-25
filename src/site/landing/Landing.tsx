@@ -3,11 +3,13 @@ import Link from 'next/link';
 import wordmark from '@brand/sessional-wordmark-navy.png';
 import { countryCodes, countryName } from '@/i18n/countries';
 import { regional } from '@/i18n/regional';
-import type { MessageKey, Translate } from '@/messages';
+import { messageFor, type MessageKey, type Translate } from '@/messages';
 import { ContactForm, type ContactLabels } from './ContactForm';
 import { ConsoleMock, PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
 import { Reveal } from './Reveal';
 import { Scene } from './Scene';
+import { Story, type StoryLabels } from './Story';
+import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
 import { Tabs } from './Tabs';
 
@@ -33,7 +35,6 @@ interface Props {
   signup: boolean;
 }
 
-const STEPS = ['rollcall', 'speakers', 'motions', 'documents', 'voting', 'after'] as const;
 const ORGANIZERS = {
   before: ['import', 'people', 'schedule', 'public'],
   during: ['analytics', 'access', 'documents', 'print'],
@@ -44,7 +45,7 @@ const FAQ = ['accounts', 'wifi', 'rules', 'spanish', 'data', 'cost'] as const;
 const LIMITS = ['committees', 'delegates', 'staff', 'active_conferences'] as const;
 const NOT_COUNTRIES = new Set(['EU', 'UN']);
 
-function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: React.ReactNode }) {
+function Section({ id, title, intro, children, reveal = true }: { id: string; title: string; intro?: string; children: React.ReactNode; reveal?: boolean }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="landing-rule flex flex-col gap-6 py-12">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[18rem_1fr]">
@@ -53,7 +54,7 @@ function Section({ id, title, intro, children }: { id: string; title: string; in
         </h2>
         {intro ? <p className="max-w-2xl text-base">{intro}</p> : null}
       </div>
-      <Reveal>{children}</Reveal>
+      {reveal ? <Reveal>{children}</Reveal> : children}
     </section>
   );
 }
@@ -87,6 +88,19 @@ function contactLabels(t: Translate): ContactLabels {
     failed: t('contact.form.failed'),
     privacy: t('contact.form.privacy'),
     website: t('contact.form.website'),
+  };
+}
+
+const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
+const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
+const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention'] as const;
+// The story's words, with ICU placeholders left for the client to fill.
+function storyLabels(t: Translate, locale: string): StoryLabels {
+  const raw = (k: string) => messageFor(k, locale).text;
+  return {
+    steps: Object.fromEntries(STORY_STEPS.map((s) => [s, { title: t(`landing.step.${s}.title` as MessageKey), body: t(`landing.step.${s}.body` as MessageKey) }])) as StoryLabels['steps'],
+    progress: raw('landing.story.progress'),
+    stage: Object.fromEntries(STAGE.map((k) => [k, raw(`landing.story.${k}`)])),
   };
 }
 
@@ -168,18 +182,8 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
             <ConsoleMock t={t} locale={locale} />
           </section>
 
-          <Section id="session" title={t('landing.session.title')} intro={t('landing.session.intro')}>
-            <ol className="grid grid-cols-1 gap-x-10 lg:grid-cols-2">
-              {STEPS.map((s, i) => (
-                <li key={s} className="flex flex-col gap-1 border-t border-border py-4">
-                  <span className="flex items-baseline gap-3">
-                    <span className="landing-serif text-2xl text-on-surface">{i + 1}</span>
-                    <span className="font-semibold text-on-surface">{t(`landing.step.${s}.title` as MessageKey)}</span>
-                  </span>
-                  <span className="text-sm">{t(`landing.step.${s}.body` as MessageKey)}</span>
-                </li>
-              ))}
-            </ol>
+          <Section id="session" title={t('landing.session.title')} intro={t('landing.session.intro')} reveal={false}>
+            <Story names={storyNames(locale)} L={storyLabels(t, locale)} />
           </Section>
 
           <Section id="screens" title={t('landing.screens.title')} intro={t('landing.screens.intro')}>

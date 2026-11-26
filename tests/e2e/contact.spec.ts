@@ -93,8 +93,14 @@ test('a platform admin reads requests in the inbox, marks them answered and dele
 });
 
 // Scrolls so that a step is this far through its part of the story.
+// Scrolls so that the given fraction of a step has passed the stage's reading line (40% down the
+// pinned stage), which is how the page decides which step the stage plays.
 const scrollThrough = (step: import('@playwright/test').Locator, fraction: number) =>
-  step.evaluate((el: HTMLElement, f) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.65 + el.offsetHeight * f), fraction);
+  step.evaluate((el: HTMLElement, f) => {
+    const frame = document.querySelector('.story-stage')!.closest('.sticky') as HTMLElement;
+    const line = parseFloat(getComputedStyle(frame).top) + frame.offsetHeight * 0.4;
+    window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - line + el.offsetHeight * f);
+  }, fraction);
 
 test('“How a session runs” is told by scrolling: the pinned stage plays each step', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -125,27 +131,33 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   expect(top).toBeLessThan(200);
 });
 
-test('the story’s stage sits in its own section, level with its heading, and stays while the steps scroll by', async ({ page }) => {
+test('the stage stands beside the headline, then always plays the step written beside it', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  // The opening is text only.
-  await expect(page.locator('#hero-title').locator('xpath=ancestor::section[1]').locator('.story-stage')).toHaveCount(0);
   const stage = page.locator('.story-stage');
-  await page.locator('#session').scrollIntoViewIfNeeded();
   await expect(stage).toBeVisible();
-  // The stage starts level with the section’s heading.
-  await page.evaluate(() => window.scrollTo(0, 0));
-  const heading = await page.getByRole('heading', { level: 2, name: 'How a session runs' }).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-  const top = await stage.evaluate((el) => el.closest('.sticky')!.getBoundingClientRect().top + window.scrollY);
-  expect(Math.abs(top - heading)).toBeLessThan(24);
-  // Halfway through the section it is still on screen.
-  const section = page.locator('section[aria-labelledby="session-title"]');
-  const box = (await section.evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: el.getBoundingClientRect().height })));
-  await page.evaluate((y) => window.scrollTo(0, y), box.top + box.height / 2 - 200);
-  await page.waitForTimeout(300);
-  const seen = await stage.boundingBox();
-  expect(seen!.y).toBeGreaterThanOrEqual(0);
-  expect(seen!.y + seen!.height).toBeLessThanOrEqual(800);
+  await expect(page.getByText('Scroll to start ↓')).toBeVisible();
+  // The stage starts level with the opening's headline.
+  const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
+  const box = await stage.boundingBox();
+  expect(Math.abs(box!.y - h1!.y)).toBeLessThan(160);
+
+  // At every point of the scroll, the step the stage plays is the one whose text is beside it.
+  const end = await page.locator('.story-steps').evaluate((el) => el.getBoundingClientRect().bottom + window.scrollY);
+  for (let y = 0; y < end; y += 120) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(80);
+    const r = await page.evaluate(() => {
+      const frame = document.querySelector('.story-stage')!.closest('.sticky')!.getBoundingClientRect();
+      const label = document.querySelector('.story-stage')!.parentElement!.querySelector('.font-mono')!.textContent ?? '';
+      const shown = Number(/Step (\d+) of/.exec(label)?.[1] ?? 0);
+      const titles = [...document.querySelectorAll('.story-steps > li > div > span')].map((el) => el.getBoundingClientRect());
+      const title = shown ? titles[shown - 1]! : null;
+      return { shown, y: window.scrollY, beside: !title || (title.top < frame.bottom && title.bottom > frame.top), onScreen: frame.bottom > 0 && frame.top < window.innerHeight };
+    });
+    expect(r.onScreen, `stage on screen at ${r.y}`).toBe(true);
+    expect(r.beside, `step ${r.shown}'s text beside the stage at ${r.y}`).toBe(true);
+  }
 });
 
 test('the three screens run on one clock while on screen, can be paused, and start paused for less motion', async ({ page, browser }) => {

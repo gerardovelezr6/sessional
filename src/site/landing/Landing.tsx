@@ -148,8 +148,13 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
       </header>
 
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          {/* The opening: what Sessional does, and one main action. */}
-          <section className="max-w-3xl pb-14 pt-12" aria-labelledby="hero-title">
+          {/* The opening and "How a session runs" are one story: the stage stands beside the headline
+              and plays each step beside its text as you scroll down. */}
+          <section className="pb-16 pt-12" aria-labelledby="hero-title">
+            <Story
+              names={storyNames(locale)}
+              L={storyLabels(t, locale)}
+              lead={
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
@@ -180,15 +185,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               </div>
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-          </section>
-
-          {/* How a session runs: the stage plays the session beside the steps as you scroll. */}
-          <section className="landing-rule pb-16 pt-12" aria-labelledby="session-title">
-            <Story
-              names={storyNames(locale)}
-              L={storyLabels(t, locale)}
+              }
               heading={
-                <div id="session" className="flex scroll-mt-24 flex-col gap-3">
+                <div id="session" className="landing-rule flex scroll-mt-24 flex-col gap-3 pt-10">
                   <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
                     {t('landing.session.title')}
                   </h2>

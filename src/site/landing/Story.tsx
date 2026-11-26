@@ -30,23 +30,27 @@ export interface StoryLabels {
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-// `heading` is the section's title. The stage stands beside it, its top level with the title, and
-// stays pinned beside the steps until the section ends.
-export function Story({ L, names, heading }: { L: StoryLabels; names: Record<string, string>; heading: React.ReactNode }) {
+// `lead` is the page's opening (headline and actions) and `heading` the section's title: both sit in
+// the left column above the steps. The stage stands beside the headline from the top of the page and
+// stays pinned beside the steps until the section ends, always playing the step written beside it.
+export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Record<string, string>; lead: React.ReactNode; heading: React.ReactNode }) {
   const [step, setStep] = useState(0);
   const [p, setP] = useState(0);
   const [started, setStarted] = useState(false);
   const steps = useRef<(HTMLLIElement | null)[]>([]);
+  const stage = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // On every scroll frame: the step whose top has passed 65% of the screen is the current one,
-    // and how far it has scrolled past that line is its progress. Measured live, so it is right
-    // whatever loaded above it.
+    // On every scroll frame, measured against the stage itself: the current step is the one beside
+    // the upper part of the stage (on phones, where the stage is pinned on top, the one just below it), and
+    // how far that step has moved past that line is its progress. So the stage never runs ahead of
+    // the text next to it. Measured live, so it is right whatever loaded above it.
     let frame = 0;
     const measure = () => {
       frame = 0;
-      // On phones the stage is pinned on top, so a step counts once it shows below it.
-      const line = window.innerHeight * (window.innerWidth < 1024 ? 0.85 : 0.65);
+      const box = stage.current?.getBoundingClientRect();
+      const wide = window.innerWidth >= 1024;
+      const line = box ? (wide ? box.top + box.height * 0.4 : box.bottom + 24) : window.innerHeight * 0.65;
       let current = 0;
       let progress = 0;
       let any = false;
@@ -56,7 +60,10 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
         if (r.top <= line) {
           any = true;
           current = i;
-          progress = Math.min(1, Math.max(0, (line - r.top) / r.height));
+          // The last step has extra room below it (so the stage stays until it ends); its
+          // animation runs over the step itself.
+          const room = i === STORY_STEPS.length - 1 && wide ? Math.max(0, r.height - window.innerHeight * 0.42) : 0;
+          progress = Math.min(1, Math.max(0, (line - r.top) / (r.height - room)));
         }
       });
       setStarted(any);
@@ -80,15 +87,16 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
   const key = STORY_STEPS[step]!;
   return (
     <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[1fr_1.1fr]">
-      <div className="lg:col-start-1 lg:row-start-1">{heading}</div>
-      {/* The pinned stage: beside the section on wide screens, level with its title; under the title on phones. */}
-      <div className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:top-24">
+      <div className="lg:col-start-1 lg:row-start-1">{lead}</div>
+      <div className="lg:col-start-1 lg:row-start-2">{heading}</div>
+      {/* The pinned stage: beside the headline on wide screens, then beside each step; under the section title on phones. */}
+      <div ref={stage} className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:top-24">
         <div className="landing-frame bg-surface-raised" aria-hidden="true">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs">
             <span className="font-semibold text-on-surface">{S.committee}</span>
             <span className="font-mono">{started ? fill(L.progress, { n: step + 1, total: STORY_STEPS.length }) : S.scrollHint}</span>
           </div>
-          <div key={key} className="story-stage min-h-[16rem] p-4 sm:min-h-[18rem]">
+          <div key={key} className="story-stage min-h-[22.5rem] p-4 lg:min-h-[18rem]">
             {key === 'rollcall' ? <RollCall p={p} S={S} names={names} /> : null}
             {key === 'speakers' ? <Speakers p={p} S={S} names={names} /> : null}
             {key === 'motions' ? <Motions p={p} S={S} names={names} /> : null}
@@ -106,7 +114,7 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
         </div>
       </div>
 
-      <ol className="story-steps flex flex-col lg:col-start-1 lg:row-start-2">
+      <ol className="story-steps flex flex-col lg:col-start-1 lg:row-start-3">
         {STORY_STEPS.map((s, i) => (
           <li
             key={s}
@@ -114,13 +122,16 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
               steps.current[i] = el;
             }}
             aria-current={i === step ? 'step' : undefined}
-            className="flex min-h-[36vh] flex-col justify-start gap-2 border-s-4 border-t border-s-transparent border-t-border pb-6 pt-8 ps-4 transition-colors duration-300 motion-reduce:transition-none lg:min-h-[42vh] aria-[current=step]:border-s-accent"
+            className="min-h-[36vh] border-s-4 border-t border-s-transparent border-t-border pb-6 pt-8 ps-4 lg:last:min-h-[78vh] transition-colors duration-300 motion-reduce:transition-none lg:min-h-[42vh] aria-[current=step]:border-s-accent"
           >
-            <span className="flex items-baseline gap-3">
-              <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>
-              <span className="text-xl font-semibold text-on-surface">{L.steps[s].title}</span>
-            </span>
-            <p className="max-w-md text-base">{L.steps[s].body}</p>
+            {/* On wide screens the text stays level with the stage's top while its step plays. */}
+            <div className="flex flex-col gap-2 lg:sticky lg:top-28">
+              <span className="flex items-baseline gap-3">
+                <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>
+                <span className="text-xl font-semibold text-on-surface">{L.steps[s].title}</span>
+              </span>
+              <p className="max-w-md text-base">{L.steps[s].body}</p>
+            </div>
           </li>
         ))}
       </ol>

@@ -93,13 +93,17 @@ test('a platform admin reads requests in the inbox, marks them answered and dele
 });
 
 // Scrolls so that a step is this far through its part of the story.
-// Scrolls so that the given fraction of a step has passed the stage's reading line (halfway down the
-// pinned stage), which is how the page decides which step the stage plays.
+// On wide screens the steps and the stage are pinned together while their track scrolls by; this
+// scrolls to the given fraction of a step (index from 0).
 const scrollThrough = (step: import('@playwright/test').Locator, fraction: number) =>
   step.evaluate((el: HTMLElement, f) => {
-    const frame = document.querySelector('.story-stage')!.closest('.sticky') as HTMLElement;
-    const line = parseFloat(getComputedStyle(frame).top) + frame.offsetHeight * 0.5;
-    window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - line + el.offsetHeight * f);
+    const track = document.querySelector('.story-track') as HTMLElement;
+    const pinned = document.querySelector('.story-pinned') as HTMLElement;
+    const steps = [...document.querySelectorAll('.story-steps > li')];
+    const i = steps.indexOf(el);
+    const top = track.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(pinned).top);
+    const distance = track.offsetHeight - pinned.offsetHeight;
+    window.scrollTo(0, top + (distance * (i + f)) / steps.length);
   }, fraction);
 
 test('“How a session runs” is told by scrolling: the pinned stage plays each step', async ({ page }) => {
@@ -131,38 +135,38 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   expect(top).toBeLessThan(200);
 });
 
-test('the stage sits in “How a session runs”, level with its heading, and always plays the step written beside it', async ({ page }) => {
+test('the steps and the stage move as one: the stage is level with the list, one step open at a time, no room left over', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  // The opening is text only.
+  // The opening has the Secretariat's view, not the story's stage.
   await expect(page.locator('section[aria-labelledby="hero-title"] .story-stage')).toHaveCount(0);
-  const stage = page.locator('.story-stage');
-  // The stage starts level with the section's heading.
-  const heading = await page.getByRole('heading', { level: 2, name: 'How a session runs' }).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-  const top = await stage.evaluate((el) => el.closest('.sticky')!.getBoundingClientRect().top + window.scrollY);
-  expect(Math.abs(top - heading)).toBeLessThan(24);
-
-  // At every point of the scroll, the step the stage plays is the one whose text is beside it.
-  const end = await page.locator('.story-steps').evaluate((el) => el.getBoundingClientRect().bottom + window.scrollY);
-  for (let y = 0; y < end; y += 120) {
+  const track = await page.locator('.story-track').evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: el.getBoundingClientRect().height }));
+  const pinnedHeight = await page.locator('.story-pinned').evaluate((el) => (el as HTMLElement).offsetHeight);
+  for (let y = track.top - 96; y < track.top + track.height - pinnedHeight - 96; y += 140) {
     await page.evaluate((top) => window.scrollTo(0, top), y);
-    await page.waitForTimeout(80);
+    await page.waitForTimeout(380);
     const r = await page.evaluate(() => {
-      const frame = document.querySelector('.story-stage')!.closest('.sticky')!.getBoundingClientRect();
+      const frame = document.querySelector('.story-stage')!.closest('.landing-frame')!.getBoundingClientRect();
+      const list = document.querySelector('.story-steps')!.getBoundingClientRect();
       const label = document.querySelector('.story-stage')!.parentElement!.querySelector('.font-mono')!.textContent ?? '';
       const shown = Number(/Step (\d+) of/.exec(label)?.[1] ?? 0);
-      const titles = [...document.querySelectorAll('.story-steps > li > div > span')].map((el) => el.getBoundingClientRect());
-      const title = shown ? titles[shown - 1]! : null;
-      const line = document.querySelector('.story-line')?.getBoundingClientRect();
-      const text = shown ? document.querySelectorAll('.story-steps > li > div')[shown - 1]!.getBoundingClientRect() : null;
-      const lineFollows = !line || !text || Math.abs(line.bottom - (text.bottom + 16)) < 4 || line.height >= document.querySelectorAll('.story-steps > li')[shown - 1]!.getBoundingClientRect().height - 1;
-      const listOn = document.querySelector('.story-steps')!.getBoundingClientRect().top < window.innerHeight;
-      return { shown, y: window.scrollY, beside: !title || (title.top < frame.bottom && title.bottom > frame.top), onScreen: !listOn || (frame.bottom > 0 && frame.top < window.innerHeight), lineFollows };
+      const steps = [...document.querySelectorAll('.story-steps > li')];
+      const open = steps.findIndex((li) => li.getAttribute('aria-current') === 'step') + 1;
+      const bodies = steps.filter((li) => li.querySelector('.story-body')!.getBoundingClientRect().height > 12).length;
+      // Each step is only as tall as what it shows: title, and the open one's text.
+      const snug = steps.every((li) => li.getBoundingClientRect().height < 220);
+      return { y: window.scrollY, shown, open, level: Math.abs(frame.top - list.top), bodies, snug };
     });
-    expect(r.onScreen, `stage on screen at ${r.y}`).toBe(true);
-    expect(r.lineFollows, `the accent line ends just below step ${r.shown}'s text at ${r.y}`).toBe(true);
-    expect(r.beside, `step ${r.shown}'s text beside the stage at ${r.y}`).toBe(true);
+    expect(r.level, `stage level with the list at ${r.y}`).toBeLessThan(2);
+    expect(r.bodies, `one step open at ${r.y}`).toBe(1);
+    expect(r.snug, `no room left over at ${r.y}`).toBe(true);
+    if (r.shown) expect(r.open, `the stage plays the open step at ${r.y}`).toBe(r.shown);
   }
+  // The section ends right after the last step finishes: awards shown, the next section next.
+  await page.evaluate((top) => window.scrollTo(0, top), track.top + track.height - pinnedHeight - 96);
+  await expect(page.locator('.story-stage')).toContainText('Best Delegate');
+  const gap = await page.evaluate(() => document.querySelector('#screens')!.getBoundingClientRect().top - document.querySelector('.story-pinned')!.getBoundingClientRect().bottom);
+  expect(gap).toBeLessThan(100);
 });
 
 test('the three screens run on one clock while on screen, can be paused, and start paused for less motion', async ({ page, browser }) => {
@@ -183,15 +187,6 @@ test('the three screens run on one clock while on screen, can be paused, and sta
   await calm.locator('#screens').scrollIntoViewIfNeeded();
   await expect(calm.getByRole('button', { name: 'Play the screens' })).toHaveAttribute('aria-pressed', 'true');
   await calm.context().close();
-});
-
-test('the pinned stage stops before the line that closes the story', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/');
-  await page.locator('#screens').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 500));
-  const stage = await page.locator('.story-stage').locator('xpath=ancestor::div[contains(@class,"sticky")][1]').boundingBox();
-  const line = await page.locator('#screens').boundingBox();
-  expect(stage!.y + stage!.height).toBeLessThan(line!.y - 32);
 });
 
 test('organizer features are grouped in tabs that work from the keyboard, and the section nav marks where you are', async ({ page }) => {

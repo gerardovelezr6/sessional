@@ -30,51 +30,46 @@ export interface StoryLabels {
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-// `heading` is the section's title, above the steps. The stage stands beside it, its top level with
-// the title, and stays pinned beside the steps until the section ends, always playing the step
-// written beside it. The current step's accent line grows down beside its text as you scroll.
+// `heading` is the section's title, above the story.
+//
+// The steps and the stage are pinned together while the section scrolls by, so they never drift
+// apart. Scrolling moves through the six steps; the current one opens to show its text and its
+// accent line grows down beside it as you go. Each step is only as tall as its text, and the
+// section ends exactly when the last step does. Wide screens list every step beside the stage;
+// phones show the stage with only the current step under it (the others stay for screen readers).
 export function Story({ L, names, heading }: { L: StoryLabels; names: Record<string, string>; heading: React.ReactNode }) {
   const [step, setStep] = useState(0);
-  const [reach, setReach] = useState(0);
   const [p, setP] = useState(0);
   const [started, setStarted] = useState(false);
   const steps = useRef<(HTMLLIElement | null)[]>([]);
   const stage = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const pinned = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // On every scroll frame, measured against the stage itself: the current step is the one beside
-    // the upper part of the stage (on phones, where the stage is pinned on top, the one just below it), and
-    // how far that step has moved past that line is its progress. So the stage never runs ahead of
-    // the text next to it. Measured live, so it is right whatever loaded above it.
+    // Measured live on every scroll frame, so it is right whatever loaded above it.
     let frame = 0;
     const measure = () => {
       frame = 0;
-      const box = stage.current?.getBoundingClientRect();
-      const wide = window.innerWidth >= 1024;
-      const line = box ? (wide ? box.top + box.height * 0.5 : box.bottom + 24) : window.innerHeight * 0.65;
+      const n = STORY_STEPS.length;
       let current = 0;
       let progress = 0;
       let any = false;
-      let down = 0;
-      steps.current.forEach((el, i) => {
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        if (r.top <= line) {
+      if (track.current && pinned.current) {
+        // How far the pinned block has travelled through its track, from 0 to 1, split into steps.
+        const t = track.current.getBoundingClientRect();
+        const top = parseFloat(getComputedStyle(pinned.current).top) || 0;
+        const distance = Math.max(1, t.height - pinned.current.offsetHeight);
+        const done = (top - t.top) / distance;
+        if (done >= 0) {
           any = true;
-          current = i;
-          // The last step finishes exactly when the section ends (when the stage stops being
-          // pinned), so there is no empty room after it.
-          const span = i === STORY_STEPS.length - 1 && wide && box ? r.height - (box.bottom - line) : r.height;
-          progress = Math.min(1, Math.max(0, (line - r.top) / Math.max(1, span)));
-          // The accent line reaches from the step's top to just below its text, which stays
-          // pinned beside the stage on wide screens, so the line grows as you scroll.
-          const text = el.querySelector(':scope > div')?.getBoundingClientRect();
-          down = text ? Math.min(r.height, text.bottom - r.top + 16) : r.height;
+          const f = Math.min(1, done) * n;
+          current = Math.min(n - 1, Math.floor(f));
+          progress = Math.min(1, f - current);
         }
-      });
+      }
       setStarted(any);
       setStep(current);
-      setReach(Math.round(down));
       setP(Math.round(progress * 50) / 50);
     };
     const onScroll = () => {
@@ -93,56 +88,64 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
   const S = L.stage;
   const key = STORY_STEPS[step]!;
   return (
-    <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[1fr_1.1fr]">
-      <div className="lg:col-start-1 lg:row-start-1">{heading}</div>
-      {/* The pinned stage: beside the section on wide screens, level with its title; under the title on phones. */}
-      <div ref={stage} className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:top-24">
-        <div className="landing-frame bg-surface-raised" aria-hidden="true">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs">
-            <span className="font-semibold text-on-surface">{S.committee}</span>
-            <span className="font-mono">{started ? fill(L.progress, { n: step + 1, total: STORY_STEPS.length }) : S.scrollHint}</span>
+    <div className="flex flex-col gap-8">
+      {heading}
+      {/* The track gives the pinned block its scroll length on wide screens: about two thirds of a
+          screen per step. */}
+      <div ref={track} className="story-track h-[420vh] lg:h-[440vh]">
+        <div ref={pinned} className="story-pinned sticky top-[6.5rem] grid grid-cols-1 gap-x-12 gap-y-4 md:top-20 lg:top-24 lg:grid-cols-[1fr_1.1fr] lg:items-start lg:gap-y-8">
+          <div ref={stage} className="lg:col-start-2 lg:row-start-1">
+            <div className="landing-frame bg-surface-raised" aria-hidden="true">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs">
+                <span className="font-semibold text-on-surface">{S.committee}</span>
+                <span className="font-mono">{started ? fill(L.progress, { n: step + 1, total: STORY_STEPS.length }) : S.scrollHint}</span>
+              </div>
+              <div key={key} className="story-stage min-h-[19rem] p-3 sm:p-4 lg:min-h-[18rem]">
+                {key === 'rollcall' ? <RollCall p={p} S={S} names={names} /> : null}
+                {key === 'speakers' ? <Speakers p={p} S={S} names={names} /> : null}
+                {key === 'motions' ? <Motions p={p} S={S} names={names} /> : null}
+                {key === 'documents' ? <Documents p={p} S={S} names={names} /> : null}
+                {key === 'voting' ? <Voting p={p} S={S} names={names} /> : null}
+                {key === 'after' ? <Grades p={p} S={S} names={names} /> : null}
+              </div>
+              <div className="flex gap-1 px-4 pb-3">
+                {STORY_STEPS.map((s, i) => (
+                  <span key={s} className={`h-1 flex-1 ${i < step ? 'bg-on-surface' : i === step ? 'bg-border-strong' : 'bg-border'}`}>
+                    {i === step ? <span className="block h-1 bg-on-surface transition-[width] duration-150 motion-reduce:transition-none" style={{ width: `${p * 100}%` }} /> : null}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-          <div key={key} className="story-stage min-h-[22.5rem] p-4 lg:min-h-[18rem]">
-            {key === 'rollcall' ? <RollCall p={p} S={S} names={names} /> : null}
-            {key === 'speakers' ? <Speakers p={p} S={S} names={names} /> : null}
-            {key === 'motions' ? <Motions p={p} S={S} names={names} /> : null}
-            {key === 'documents' ? <Documents p={p} S={S} names={names} /> : null}
-            {key === 'voting' ? <Voting p={p} S={S} names={names} /> : null}
-            {key === 'after' ? <Grades p={p} S={S} names={names} /> : null}
-          </div>
-          <div className="flex gap-1 px-4 pb-3">
-            {STORY_STEPS.map((s, i) => (
-              <span key={s} className={`h-1 flex-1 ${i < step ? 'bg-on-surface' : i === step ? 'bg-border-strong' : 'bg-border'}`}>
-                {i === step ? <span className="block h-1 bg-on-surface transition-[width] duration-150 motion-reduce:transition-none" style={{ width: `${p * 100}%` }} /> : null}
-              </span>
-            ))}
-          </div>
+
+          <ol className="story-steps flex flex-col lg:col-start-1 lg:row-start-1">
+            {STORY_STEPS.map((s, i) => {
+              const open = i === step;
+              return (
+                <li
+                  key={s}
+                  ref={(el) => {
+                    steps.current[i] = el;
+                  }}
+                  aria-current={open ? 'step' : undefined}
+                  className={`relative border-t border-border py-3 ps-5 first:border-t-0 lg:first:pt-0 ${open ? 'max-lg:border-t-0 max-lg:py-0' : 'max-lg:sr-only'}`}
+                >
+                  {open && started ? <span aria-hidden="true" className="story-line absolute start-0 top-0 w-1 bg-accent" style={{ height: `${Math.max(4, p * 100)}%` }} /> : null}
+                  {/* The steps not playing are quieter (muted, still readable). */}
+                  <span className={`flex items-baseline gap-3 text-on-surface transition-colors duration-300 motion-reduce:transition-none ${open ? '' : 'lg:text-on-surface-muted'}`}>
+                    <span className="landing-serif text-3xl lg:text-2xl">{i + 1}</span>
+                    <span className={`text-xl lg:text-lg ${open ? 'font-semibold' : 'font-semibold lg:font-medium'}`}>{L.steps[s].title}</span>
+                  </span>
+                  {/* Wide screens: only the current step's text is open; the others fold away. */}
+                  <div className={`grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[1fr] lg:grid-rows-[0fr]'}`}>
+                    <p className="story-body min-h-0 max-w-md overflow-hidden pt-2 text-sm sm:text-base">{L.steps[s].body}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </div>
-
-      <ol className="story-steps flex flex-col lg:col-start-1 lg:row-start-2">
-        {STORY_STEPS.map((s, i) => (
-          <li
-            key={s}
-            ref={(el) => {
-              steps.current[i] = el;
-            }}
-            aria-current={i === step ? 'step' : undefined}
-            className={`relative min-h-[36vh] border-t border-border pb-6 pt-8 ps-5 transition-opacity duration-300 motion-reduce:transition-none lg:min-h-[28rem] ${i === step || !started ? '' : 'lg:opacity-30'}`}
-          >
-            {i === step && started ? <span aria-hidden="true" className="story-line absolute start-0 top-0 w-1 bg-accent" style={{ height: reach }} /> : null}
-            {/* On wide screens each step is as tall as the stage, so one step's text sits beside it at a time,
-                level with its top; the others fade. */}
-            <div className="flex flex-col gap-2 lg:sticky lg:top-28">
-              <span className="flex items-baseline gap-3">
-                <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>
-                <span className="text-xl font-semibold text-on-surface">{L.steps[s].title}</span>
-              </span>
-              <p className="max-w-md text-base">{L.steps[s].body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }

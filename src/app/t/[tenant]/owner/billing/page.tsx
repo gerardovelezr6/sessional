@@ -5,13 +5,15 @@ import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
 import { LIMITS, meter, money, type Plan, type Usage } from '@/billing/plans';
 import { listInvoices, stripeConfigured, type Invoice } from '@/billing/stripe';
+import { syncCheckout } from '@/billing/sync';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import { localize, type MessageKey } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
-import { cancelAction, choosePlanAction, portalAction, resumeAction } from './actions';
+import { cancelAction, choosePlanAction, portalAction, resumeAction, syncAction } from './actions';
 import { regional } from '@/i18n/regional';
+import { requestTime } from '@/platform/health';
 
 // Owner → Billing: the plan, how much of it is used, choosing or changing plans, payment details
 // and invoices (on Stripe's own pages), and cancelling, with the export offered first.
@@ -30,14 +32,21 @@ interface State {
   cancel_at_period_end: boolean;
   scheduled_plan_key: string | null;
   organisation: boolean | null;
+  organisation_name: string | null;
+  organisation_manager: boolean;
+  pays: boolean;
+  schools: number;
   has_customer: boolean | null;
   has_subscription: boolean | null;
+  commitment_months: number | null;
+  commitment_until: string | null;
+  referral: { code: string; name: string; percent_off: number; duration_months: number | null } | null;
 }
 
-const DONE: Record<string, MessageKey> = { paid: 'billing.done.paid', upgraded: 'billing.done.upgraded', scheduled: 'billing.done.scheduled', cancelled: 'billing.done.cancelled', resumed: 'billing.done.resumed' };
+const DONE: Record<string, MessageKey> = { paid: 'billing.done.paid', pending: 'billing.done.pending', upgraded: 'billing.done.upgraded', scheduled: 'billing.done.scheduled', cancelled: 'billing.done.cancelled', resumed: 'billing.done.resumed', synced: 'billing.done.synced', nothing: 'billing.done.nothing' };
 const TONE = { ok: 'bg-success', near: 'bg-warning-soft', full: 'bg-danger', unlimited: 'bg-success' } as const;
 
-export default async function BillingPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string; currency?: string }> }) {
+export default async function BillingPage({ params, searchParams }: { params: Promise<{ tenant: string }>; searchParams: Promise<{ done?: string; currency?: string; session_id?: string }> }) {
   const { tenant: key } = await params;
   const tenant = await requireTenant(key);
   const { t, locale, config } = await tenantTranslator(tenant.id);
@@ -45,9 +54,15 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
   const ctx = await tenantContext(tenant.id);
   if (!ctx) redirect(`${base}/login`);
   if (!ctx.can('tenant.manage')) return <Notice title={t('forbidden.title')} body={t('forbidden.body')} locale={locale} />;
+  const { done: asked, currency: wanted, session_id: sessionId } = await searchParams;
+  // Back from Checkout: confirm the payment with Stripe now, whether or not its webhook arrived.
+  let done = asked;
+  if (asked === 'paid' && sessionId && stripeConfigured()) {
+    const result = await syncCheckout(tenant.id, sessionId).catch(() => 'pending' as const);
+    done = result === 'paid' ? 'paid' : result === 'pending' ? 'pending' : undefined;
+  }
   const s = (await rpc<State | null>('billing_state', { p_tenant: tenant.id }, { token: ctx.token }))!;
   const plans = await rpc<Plan[]>('plans_public', {}, { token: ctx.token });
-  const { done, currency: wanted } = await searchParams;
   const currency = wanted === 'usd' || wanted === 'mxn' ? wanted : locale.startsWith('es') ? 'mxn' : 'usd';
   const configured = stripeConfigured();
   const billing = s.has_customer && configured ? await rpc<{ customer: string | null }>('billing_server_get', { p_tenant: tenant.id }, 'service').catch(() => null) : null;
@@ -55,6 +70,7 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
   const date = new Intl.DateTimeFormat(regional(locale), { dateStyle: 'long', timeZone: config.identity.timeZone });
   const d = (iso: string | null) => (iso ? date.format(new Date(iso)) : '—');
   const current = plans.find((p) => p.key === s.plan);
+  const inContract = !!s.commitment_until && Date.parse(s.commitment_until) > requestTime();
   const name = (p: Plan | undefined) => (p ? localize(p.name, locale, p.key) : t('billing.noPlan'));
 
   // One sentence for where the school stands.
@@ -69,12 +85,12 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
           : s.status === 'past_due'
             ? t('billing.status.pastDue', { date: d(s.grace_until) })
             : s.cancel_at_period_end
-              ? t('billing.status.cancelling', { date: d(s.current_period_end) })
+              ? t('billing.status.cancelling', { date: d(inContract ? s.commitment_until : s.current_period_end) })
               : t('billing.status.active', { date: d(s.current_period_end) });
 
   return (
     <Shell title={t('billing.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="billing" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'billing'}>
       <div className="flex flex-col gap-6">
         {done && DONE[done] ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -89,7 +105,24 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
           </h2>
           <p className={s.status === 'read_only' || s.status === 'past_due' ? 'font-semibold text-danger' : 'text-sm'}>{standing}</p>
           {s.scheduled_plan_key ? <p className="text-sm">{t('billing.scheduled', { plan: name(plans.find((p) => p.key === s.scheduled_plan_key)), date: d(s.current_period_end) })}</p> : null}
-          {s.organisation ? <p className="text-sm">{t('billing.organisation')}</p> : null}
+          {inContract ? (
+            <p className="text-sm">{t('billing.contract.now', { months: s.commitment_months ?? 0, date: d(s.commitment_until) })}</p>
+          ) : null}
+          {s.organisation ? (
+            <p className="text-sm">
+              {t('billing.organisation.member', { name: s.organisation_name ?? '', schools: s.schools })}{' '}
+              {s.organisation_manager ? (
+                <a className="font-semibold underline underline-offset-2" href={`${base}/owner/organisation`}>
+                  {t('billing.organisation.open')}
+                </a>
+              ) : null}
+            </p>
+          ) : null}
+          {s.referral && !s.has_subscription ? (
+            <p className="text-sm">
+              {t(s.referral.duration_months ? 'billing.referral.months' : 'billing.referral.once', { name: s.referral.name, percent: s.referral.percent_off, months: s.referral.duration_months ?? 0 })}
+            </p>
+          ) : null}
         </section>
 
         {s.metered ? (
@@ -149,9 +182,32 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
                     {p.prices
                       .filter((x) => x.currency === currency)
                       .map((x) => (
-                        <ActionForm key={x.key} action={choosePlanAction.bind(null, key, p.key, x.key) as (st: unknown, f: FormData) => Promise<{ error?: string }>} submitLabel={t(`billing.choose.${x.interval}` as MessageKey, { price: money(x.amount, x.currency, locale) })} variant={p.key === s.plan ? 'secondary' : 'primary'} />
+                        <ActionForm key={x.key} action={choosePlanAction.bind(null, key, p.key, x.key, 0) as (st: unknown, f: FormData) => Promise<{ error?: string }>} submitLabel={t(`billing.choose.${x.interval}` as MessageKey, { price: money(x.amount, x.currency, locale) })} variant={p.key === s.plan ? 'secondary' : 'primary'} />
                       ))}
                     {p.per_school ? <span className="text-xs">{t('billing.perSchool')}</span> : null}
+                    {p.per_school && p.volume.length ? (
+                      <span className="text-xs">
+                        {p.volume.map((v) => t('billing.volumeStep', { from: v.from, percent: v.percent_off })).join(' · ')}
+                      </span>
+                    ) : null}
+                    {p.terms.length ? (
+                      <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2">
+                        <span className="label-text">{t('billing.contract.title')}</span>
+                        {p.terms.flatMap((term) =>
+                          p.prices
+                            .filter((x) => x.currency === currency && x.interval !== 'conference')
+                            .map((x) => (
+                              <ActionForm
+                                key={`${term.months}-${x.key}`}
+                                action={choosePlanAction.bind(null, key, p.key, x.key, term.months) as (st: unknown, f: FormData) => Promise<{ error?: string }>}
+                                submitLabel={t(`billing.contract.choose.${x.interval}` as MessageKey, { months: term.months, percent: term.percent_off, price: money(Math.round(x.amount * (1 - term.percent_off / 100)), x.currency, locale) })}
+                                variant="secondary"
+                              />
+                            )),
+                        )}
+                        <span className="text-xs">{t('billing.contract.help')}</span>
+                      </div>
+                    ) : null}
                   </div>
                 </li>
               ))}
@@ -164,7 +220,12 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
             {t('billing.payment')}
           </h2>
           <p className="text-sm">{t('billing.paymentHelp')}</p>
-          {s.has_customer ? <ActionForm action={portalAction.bind(null, key) as (st: unknown, f: FormData) => Promise<{ error?: string }>} submitLabel={t('billing.portal')} variant="secondary" /> : null}
+          {s.has_customer ? (
+            <div className="flex flex-wrap gap-2">
+              <ActionForm action={portalAction.bind(null, key) as (st: unknown, f: FormData) => Promise<{ error?: string }>} submitLabel={t('billing.portal')} variant="secondary" />
+              <ActionForm action={syncAction.bind(null, key) as (st: unknown, f: FormData) => Promise<{ error?: string }>} submitLabel={t('billing.sync')} variant="secondary" />
+            </div>
+          ) : null}
           {invoices.length ? (
             <table className="table text-sm" aria-label={t('billing.invoices')}>
               <thead>
@@ -199,7 +260,7 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
           )}
         </section>
 
-        {s.has_subscription && s.billing_status !== 'canceled' ? (
+        {s.has_subscription && s.pays && s.billing_status !== 'canceled' ? (
           <section className="card flex flex-col gap-3" aria-labelledby="cancel">
             <h2 id="cancel" className="text-lg font-bold text-on-surface">
               {t('billing.cancel.title')}
@@ -208,7 +269,9 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
               <ConfirmButton action={resumeAction.bind(null, key)} ask={t('billing.cancel.resume')} confirm={t('billing.cancel.resumeConfirm')} cancel={t('billing.cancel.keep')} />
             ) : (
               <>
-                <p className="text-sm">{t('billing.cancel.help', { date: d(s.current_period_end) })}</p>
+                <p className="text-sm">
+                  {inContract ? t('billing.cancel.contract', { date: d(s.commitment_until) }) : t('billing.cancel.help', { date: d(s.current_period_end) })}
+                </p>
                 <p>
                   <a className="btn btn-secondary" href={`${base}/owner/data`}>
                     {t('billing.cancel.exportFirst')}
@@ -225,6 +288,7 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
           </section>
         ) : null}
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

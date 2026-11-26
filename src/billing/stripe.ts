@@ -112,6 +112,8 @@ export function createCheckout(o: {
   successUrl: string;
   cancelUrl: string;
   promotionCode?: string | null;
+  // A contract's discount (a coupon for its months), instead of a promotion code.
+  coupon?: string | null;
   metadata: Record<string, string>;
   automaticTax: boolean;
 }) {
@@ -124,13 +126,43 @@ export function createCheckout(o: {
     cancel_url: o.cancelUrl,
     metadata: { tenant_id: o.tenantId, ...o.metadata },
     ...(o.mode === 'subscription' ? { subscription_data: { metadata: { tenant_id: o.tenantId, ...o.metadata } } } : { payment_intent_data: { metadata: { tenant_id: o.tenantId, ...o.metadata } } }),
-    ...(o.promotionCode ? { discounts: [{ promotion_code: o.promotionCode }] } : { allow_promotion_codes: true }),
+    ...(o.coupon ? { discounts: [{ coupon: o.coupon }] } : o.promotionCode ? { discounts: [{ promotion_code: o.promotionCode }] } : { allow_promotion_codes: true }),
     // Tax ids (an RFC in Mexico, a VAT number…) appear on invoices; tax itself once Stripe Tax is set up.
     tax_id_collection: { enabled: true },
     customer_update: { name: 'auto', address: 'auto' },
     billing_address_collection: 'required',
     ...(o.automaticTax ? { automatic_tax: { enabled: true } } : {}),
   });
+}
+
+export interface CheckoutSession {
+  id: string;
+  object: 'checkout.session';
+  mode: 'subscription' | 'payment';
+  status: 'open' | 'complete' | 'expired';
+  payment_status: 'paid' | 'unpaid' | 'no_payment_required';
+  customer: string | null;
+  client_reference_id: string | null;
+  metadata: Record<string, string>;
+  discounts?: { promotion_code?: string | null; coupon?: string | null }[];
+  subscription: (Subscription & { object: 'subscription'; metadata: Record<string, string>; start_date?: number; cancel_at?: number | null }) | string | null;
+}
+
+// A Checkout session as it is now, with its subscription: how the app learns about a payment even
+// when Stripe's webhook doesn't reach it (a sandbox without the endpoint, a protected preview).
+export const getCheckoutSession = (id: string) => stripe<CheckoutSession>('GET', `/checkout/sessions/${encodeURIComponent(id)}`, { expand: ['subscription'] });
+
+// A contract's discount: a coupon for that many months, created once per plan, term and percent.
+export const termCoupon = (planKey: string, months: number, percentOff: number) =>
+  stripe<{ id: string }>('POST', '/coupons', { percent_off: percentOff, duration: 'repeating', duration_in_months: months, name: `${planKey} · ${months} months`, metadata: { plan: planKey, term_months: String(months) } }, `term-${planKey}-${months}-${percentOff}`);
+
+// Ends the subscription at a given time (the end of a contract).
+export const setCancelAt = (subscriptionId: string, at: number | null) => stripe<Subscription>('POST', `/subscriptions/${subscriptionId}`, at ? { cancel_at: at } : { cancel_at: '' });
+
+// The number of schools an organization pays for; Stripe prorates the change.
+export async function setQuantity(subscriptionId: string, quantity: number) {
+  const s = await getSubscription(subscriptionId);
+  return stripe<Subscription>('POST', `/subscriptions/${subscriptionId}`, { items: [{ id: s.items.data[0]!.id, quantity }], proration_behavior: 'create_prorations' });
 }
 
 export const createPortal = (customer: string, returnUrl: string) => stripe<Session>('POST', '/billing_portal/sessions', { customer, return_url: returnUrl });
@@ -175,23 +207,37 @@ export const listSubscriptions = async (customer: string) => (await stripe<{ dat
 // ── For the admin console ──
 export const createProduct = (name: string, planKey: string) => stripe<{ id: string }>('POST', '/products', { name, metadata: { plan: planKey } }, `product-${planKey}`);
 
-export function createPrice(product: string, p: { key: string; interval: string; currency: string; amount: number }, planKey: string) {
+// A plan's price. With volume steps (per-school plans), every school costs the step's price once the
+// organization reaches it (Stripe's volume tiers).
+export function createPrice(product: string, p: { key: string; interval: string; currency: string; amount: number }, planKey: string, volume: { from: number; percent_off: number }[] = []) {
+  const steps = [...volume].sort((a, b) => a.from - b.from);
+  const tiers = steps.length
+    ? steps.map((v, i) => ({ up_to: steps[i + 1] ? steps[i + 1]!.from - 1 : 'inf', unit_amount: Math.round(p.amount * (1 - v.percent_off / 100)) }))
+    : [];
+  if (tiers.length && steps[0]!.from > 1) tiers.unshift({ up_to: steps[0]!.from - 1, unit_amount: p.amount });
   return stripe<{ id: string }>(
     'POST',
     '/prices',
     {
       product,
       currency: p.currency,
-      unit_amount: p.amount,
+      ...(tiers.length ? { billing_scheme: 'tiered', tiers_mode: 'volume', tiers } : { unit_amount: p.amount }),
       ...(p.interval === 'conference' ? {} : { recurring: { interval: p.interval } }),
       lookup_key: `${planKey}_${p.key}`,
       metadata: { plan: planKey, price: p.key },
     },
-    `price-${planKey}-${p.key}-${p.amount}`,
+    `price-${planKey}-${p.key}-${p.amount}-${steps.map((v) => `${v.from}x${v.percent_off}`).join('_')}`,
   );
 }
 
-export async function createPromotionCode(code: string, percentOff: number) {
-  const coupon = await stripe<{ id: string }>('POST', '/coupons', { percent_off: percentOff, duration: 'once', name: `Referral ${code}` }, `coupon-${code}`);
+// The price per school at a given number of schools, as the volume tiers charge it.
+export function perSchoolAmount(amount: number, volume: { from: number; percent_off: number }[], schools: number): number {
+  const step = [...volume].sort((a, b) => b.from - a.from).find((v) => schools >= v.from);
+  return Math.round(amount * (1 - (step?.percent_off ?? 0) / 100));
+}
+
+// A referral partner's code: its discount for the first payment, or for its first months.
+export async function createPromotionCode(code: string, percentOff: number, months: number | null = null) {
+  const coupon = await stripe<{ id: string }>('POST', '/coupons', { percent_off: percentOff, ...(months ? { duration: 'repeating', duration_in_months: months } : { duration: 'once' }), name: `Referral ${code}` }, `coupon-${code}-${months ?? 'once'}`);
   return stripe<{ id: string }>('POST', '/promotion_codes', { coupon: coupon.id, code }, `promo-${code}`);
 }

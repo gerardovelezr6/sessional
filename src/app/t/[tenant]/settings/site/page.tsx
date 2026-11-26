@@ -5,7 +5,7 @@ import { resolveSection } from '@/config/resolve';
 import { editorState, tenantTranslator } from '@/config/store';
 import { directionOf, languageName } from '@/i18n/locales';
 import { catalogs, type MessageKey } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { navWord } from '@/site/nav';
 import { standardSite } from '@/site/presets';
 import { NAV_ITEMS, SITE_PARTS, type SitePart } from '@/site/schema';
@@ -43,7 +43,7 @@ export default async function SiteSettingsPage({ params, searchParams }: { param
 
   return (
     <Shell title={t('siteEditor.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="website" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'site'}>
       <div className="flex flex-col gap-6">
         {done === 'draft' || done === 'published' ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -75,6 +75,7 @@ export default async function SiteSettingsPage({ params, searchParams }: { param
           </section>
         </div>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

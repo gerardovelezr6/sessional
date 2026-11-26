@@ -305,13 +305,15 @@ interface PlanRow {
   description: Record<string, string>;
   limits: Record<string, number | null>;
   features: Record<string, boolean>;
-  prices: { key: string; interval: string; currency: string; amount: number; stripe_price_id?: string | null }[];
+  prices: { key: string; interval: string; currency: string; amount: number; stripe_price_id?: string | null; retired?: boolean }[];
   per_school: boolean;
   public: boolean;
   sort: number;
+  terms?: { months: number; percent_off: number }[];
+  volume?: { from: number; percent_off: number }[];
 }
 const LIMIT_KEYS = ['committees', 'delegates', 'staff', 'active_conferences', 'storage_mb'] as const;
-const FEATURE_KEYS = ['custom_domain', 'own_sender', 'white_label', 'sso', 'legal_pages'] as const;
+const FEATURE_KEYS = ['custom_domain', 'own_sender', 'white_label', 'sso', 'legal_pages', 'organisation'] as const;
 
 // Saves one plan from its form. A price whose amount changed loses its Stripe price (Stripe prices
 // cannot change): "Create prices in Stripe" makes the new one.
@@ -335,8 +337,18 @@ export async function savePlanAction(planKey: string, _s: FormState, form: FormD
     const key = `${interval === 'conference' ? 'pass' : interval}_${currency}`;
     if (prices.some((p) => p.key === key)) continue;
     const was = old?.prices.find((p) => p.key === key);
-    prices.push({ key, interval, currency, amount, stripe_price_id: was && was.amount === amount ? (was.stripe_price_id ?? null) : null });
+    // Not offered: hidden from new buyers; schools already on it keep it.
+    const retired = i < (old?.prices.length ?? 0) && form.get(`price_${i}_offered`) !== 'on';
+    prices.push({ key, interval, currency, amount, stripe_price_id: was && was.amount === amount ? (was.stripe_price_id ?? null) : null, ...(retired ? { retired: true } : {}) });
   }
+  // Contracts (months and discount) and, for per-school plans, volume steps (from how many schools).
+  const pairs = (prefix: string, a: string, b: string, maxA: number) =>
+    [0, 1, 2]
+      .map((i) => ({ [a]: Math.floor(Number(text(`${prefix}_${i}_${a === 'months' ? 'months' : 'from'}`, 4))), [b]: Math.floor(Number(text(`${prefix}_${i}_percent`, 3))) }))
+      .filter((x) => x[a]! >= 2 && x[a]! <= maxA && x[b]! > 0 && x[b]! < 100)
+      .sort((x, y) => x[a]! - y[a]!);
+  const terms = pairs('term', 'months', 'percent_off', 60) as { months: number; percent_off: number }[];
+  const volume = pairs('volume', 'from', 'percent_off', 1000) as { from: number; percent_off: number }[];
   const name = { ...(text('name_en', 60) ? { en: text('name_en', 60) } : {}), ...(text('name_es', 60) ? { es: text('name_es', 60) } : {}) };
   if (!Object.keys(name).length) return { error: t('platform.error.presetName') };
   try {
@@ -345,6 +357,7 @@ export async function savePlanAction(planKey: string, _s: FormState, form: FormD
         key: planKey, name,
         description: { ...(text('description_en', 200) ? { en: text('description_en', 200) } : {}), ...(text('description_es', 200) ? { es: text('description_es', 200) } : {}) },
         limits, features, prices, per_school: form.get('per_school') === 'on', public: form.get('public') === 'on', sort: Number(text('sort', 4)) || 0,
+        terms, ...(form.get('per_school') === 'on' ? { volume } : { volume: [] }),
       },
     }, a);
   } catch (e) {
@@ -366,7 +379,7 @@ export async function syncPricesAction(): Promise<FormState> {
       if (!missing.length) continue;
       const product = await createProduct(`Sessional ${p.name.en ?? p.key}`, p.key);
       for (const x of missing) {
-        x.stripe_price_id = (await createPrice(product.id, x, p.key)).id;
+        x.stripe_price_id = (await createPrice(product.id, x, p.key, p.per_school ? (p.volume ?? []) : [])).id;
         made++;
       }
       await rpc('platform_plan_save', { p_plan: p }, a);
@@ -416,23 +429,53 @@ export async function organisationAction(tenantId: string, _s: FormState, form: 
   return back(`/tenants/${tenantId}?done=billing`);
 }
 
-// A referral partner: a code people type at checkout (a Stripe promotion code) with its discount.
+// A referral partner: a link (and code) for schools, with an optional discount for their first
+// payment or first months. The discount is a Stripe promotion code, applied at checkout by itself.
 export async function referralAction(_s: FormState, form: FormData): Promise<FormState> {
   const a = await admin();
   if (!a) return refused;
   const code = String(form.get('code') ?? '').trim().toUpperCase();
   const name = String(form.get('name') ?? '').trim().slice(0, 120);
   const percent = Math.floor(Number(form.get('percent_off')));
-  if (!/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(code) || !name || !(percent >= 0 && percent <= 100)) return { error: t('platform.billing.referralInvalid') };
+  const monthsRaw = String(form.get('duration_months') ?? '');
+  const months = monthsRaw ? Math.floor(Number(monthsRaw)) : null;
+  if (!/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(code) || !name || !(percent >= 0 && percent <= 100) || (months !== null && !(months >= 1 && months <= 36))) return { error: t('platform.billing.referralInvalid') };
+  const existing = await rpc<{ code: string }[]>('platform_referrals', {}, a).catch(() => []);
+  if (existing.some((r) => r.code === code)) return { error: t('platform.referrals.taken') };
   let promo: string | null = null;
   try {
-    if (percent > 0 && stripeConfigured()) promo = (await createPromotionCode(code, percent)).id;
-    await rpc('platform_referral_save', { p_data: { code, name, percent_off: percent, stripe_promotion_code_id: promo } }, a);
+    if (percent > 0 && stripeConfigured()) promo = (await createPromotionCode(code, percent, months)).id;
+    await rpc('platform_referral_save', { p_data: { code, name, percent_off: percent, duration_months: months, stripe_promotion_code_id: promo } }, a);
   } catch (e) {
     if (e instanceof StripeError) return { error: t('platform.error.invalid', { detail: e.message.slice(0, 120) }) };
     return failed(e);
   }
-  return back('/billing?done=referral');
+  return back('/referrals?done=saved');
+}
+
+export async function referralActiveAction(code: string, active: boolean): Promise<FormState> {
+  const a = await admin();
+  if (!a || !/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(code)) return refused;
+  try {
+    await rpc('platform_referral_save', { p_data: { code, active } }, a);
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/referrals?done=${active ? 'on' : 'off'}`);
+}
+
+// A school that came through a partner without the link (or the wrong one).
+export async function assignReferralAction(tenantId: string, _s: FormState, form: FormData): Promise<FormState> {
+  const a = await admin();
+  if (!a || !UUID.test(tenantId)) return refused;
+  const code = String(form.get('code') ?? '').trim().toUpperCase();
+  try {
+    const ok = await rpc<boolean>('platform_referral_assign', { p_tenant: tenantId, p_code: code || null }, a);
+    if (!ok) return { error: t('platform.referrals.unknown') };
+  } catch (e) {
+    return failed(e);
+  }
+  return back(`/tenants/${tenantId}?done=referral`);
 }
 
 // ───────── Community gallery: review ─────────

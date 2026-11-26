@@ -3,6 +3,7 @@ import { refreshSession } from '@/auth/gotrue';
 import { ACCESS_MAX_AGE, cookieOptions, REFRESH_MAX_AGE } from '@/auth/cookies';
 import { ACCESS_COOKIE, needsRefresh, REFRESH_COOKIE } from '@/auth/tokens';
 import { allowTenantPaths, rootDomain } from '@/platform/env';
+import { REFERRAL_COOKIE, REFERRAL_MAX_AGE, referralCode } from '@/platform/referral';
 import { BASE_PATH_HEADER, decideRoute, SAFE_MODE_HEADER, TENANT_KEY_HEADER, TENANT_PATH_HEADER } from '@/tenancy/route';
 
 // Sends each request to the right part of the product based on its host, and keeps the session
@@ -26,7 +27,13 @@ export async function proxy(request: NextRequest) {
   headers.delete(TENANT_KEY_HEADER);
   headers.delete(TENANT_PATH_HEADER);
   if (request.nextUrl.searchParams.has('safe-mode')) headers.set(SAFE_MODE_HEADER, '1');
-  if (!isTenantPage) return NextResponse.next({ request: { headers } });
+  if (!isTenantPage) {
+    const response = NextResponse.next({ request: { headers } });
+    // A partner's link on the main website: remembered for the signup (30 days).
+    const ref = referralCode(request.nextUrl.searchParams.get('ref'));
+    if (ref) response.cookies.set(REFERRAL_COOKIE, ref, cookieOptions(REFERRAL_MAX_AGE));
+    return response;
+  }
   headers.set(BASE_PATH_HEADER, decision.action === 'next' ? (decision.basePath ?? '') : '');
   const tenantPath = decision.action === 'rewrite' ? decision.path : request.nextUrl.pathname;
   const tenantKey = /^\/t\/([^/]+)/.exec(tenantPath)?.[1];

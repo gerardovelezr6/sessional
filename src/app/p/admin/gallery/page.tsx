@@ -1,5 +1,5 @@
 import { ActionForm } from '@/components/ActionForm';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { SECTION_LABELS } from '@/config/registry';
 import type { SectionName } from '@/config/schema';
 import { rpc } from '@/data/rpc';
@@ -53,7 +53,7 @@ export default async function AdminGallery({ searchParams }: { searchParams: Pro
   const name = (n: Record<string, string>) => localize(n, DEFAULT_LOCALE, t('gallery.untitled'));
 
   return (
-    <Shell title={t('platform.gallery.title')} size="full">
+    <AdminShell title={t('platform.gallery.title')}>
       <div className="flex max-w-5xl flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -150,6 +150,6 @@ export default async function AdminGallery({ searchParams }: { searchParams: Pro
           </ul>
         </section>
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

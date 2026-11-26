@@ -4,7 +4,7 @@ import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import { catalogs, type MessageKey } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { regional } from '@/i18n/regional';
 
@@ -50,7 +50,7 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
 
   return (
     <Shell title={t('audit.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="audit" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'audit'}>
       <div className="flex flex-col gap-4">
         <p className="text-sm">{t('audit.help')}</p>
         <nav aria-label={t('audit.filter')} className="flex flex-wrap gap-1">
@@ -108,6 +108,7 @@ export default async function AuditPage({ params, searchParams }: { params: Prom
           ) : null}
         </section>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

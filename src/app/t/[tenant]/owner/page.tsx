@@ -5,34 +5,34 @@ import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import { localize, type MessageKey } from '@/messages';
 import { PERMISSIONS } from '@/people/permissions';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 
 // The Owner area: every way to shape the school's site and decide who may do what, in one place.
 // For staff only: High Command members are usually students and run the conference from the
 // High Command page instead.
 
-const AREAS: { id: string; path: string; title: MessageKey; body: MessageKey; permission: string }[] = [
-  { id: 'website', path: '/settings/site', title: 'owner.area.website', body: 'owner.area.website.body', permission: 'tenant.manage' },
-  { id: 'branding', path: '/settings?section=theme', title: 'owner.area.branding', body: 'owner.area.branding.body', permission: 'tenant.manage' },
-  { id: 'public', path: '/settings?section=publicSite', title: 'owner.area.public', body: 'owner.area.public.body', permission: 'tenant.manage' },
-  { id: 'identity', path: '/settings?section=identity', title: 'owner.area.identity', body: 'owner.area.identity.body', permission: 'tenant.manage' },
-  { id: 'language', path: '/settings?section=locale', title: 'owner.area.language', body: 'owner.area.language.body', permission: 'tenant.manage' },
-  { id: 'types', path: '/settings/structure', title: 'owner.area.types', body: 'owner.area.types.body', permission: 'tenant.manage' },
-  { id: 'rules', path: '/settings/protocol', title: 'owner.area.rules', body: 'owner.area.rules.body', permission: 'tenant.manage' },
-  { id: 'grading', path: '/settings/grading', title: 'owner.area.grading', body: 'owner.area.grading.body', permission: 'tenant.manage' },
-  { id: 'signin', path: '/settings?section=people', title: 'owner.area.signin', body: 'owner.area.signin.body', permission: 'tenant.manage' },
-  { id: 'access', path: '/settings/access', title: 'owner.area.access', body: 'owner.area.access.body', permission: 'tenant.manage' },
-  { id: 'roles', path: '/people/roles', title: 'owner.area.roles', body: 'owner.area.roles.body', permission: 'roles.manage' },
-  { id: 'audit', path: '/people/audit', title: 'owner.area.audit', body: 'owner.area.audit.body', permission: 'audit.view' },
-  { id: 'gallery', path: '/owner/gallery', title: 'owner.area.gallery', body: 'owner.area.gallery.body', permission: 'tenant.manage' },
-  { id: 'data', path: '/owner/data', title: 'owner.area.data', body: 'owner.area.data.body', permission: 'tenant.manage' },
-  { id: 'domains', path: '/owner/domains', title: 'owner.area.domains', body: 'owner.area.domains.body', permission: 'tenant.manage' },
-  { id: 'email', path: '/owner/email', title: 'owner.area.email', body: 'owner.area.email.body', permission: 'tenant.manage' },
-  { id: 'whitelabel', path: '/settings?section=branding', title: 'owner.area.whitelabel', body: 'owner.area.whitelabel.body', permission: 'tenant.manage' },
-  { id: 'legal', path: '/settings?section=legal', title: 'owner.area.legal', body: 'owner.area.legal.body', permission: 'tenant.manage' },
-  { id: 'billing', path: '/owner/billing', title: 'owner.area.billing', body: 'owner.area.billing.body', permission: 'tenant.manage' },
-  { id: 'reset', path: '/owner/reset', title: 'owner.area.reset', body: 'owner.area.reset.body', permission: 'tenant.manage' },
+const AREAS: { id: string; path: string; title: MessageKey; body: MessageKey; permission: string; group: 'conference' | 'look' | 'people' | 'account' }[] = [
+  { id: 'website', path: '/settings/site', title: 'owner.area.website', body: 'owner.area.website.body', permission: 'tenant.manage', group: 'look' },
+  { id: 'branding', path: '/settings?section=theme', title: 'owner.area.branding', body: 'owner.area.branding.body', permission: 'tenant.manage', group: 'look' },
+  { id: 'public', path: '/settings?section=publicSite', title: 'owner.area.public', body: 'owner.area.public.body', permission: 'tenant.manage', group: 'look' },
+  { id: 'identity', path: '/settings?section=identity', title: 'owner.area.identity', body: 'owner.area.identity.body', permission: 'tenant.manage', group: 'conference' },
+  { id: 'language', path: '/settings?section=locale', title: 'owner.area.language', body: 'owner.area.language.body', permission: 'tenant.manage', group: 'look' },
+  { id: 'types', path: '/settings/structure', title: 'owner.area.types', body: 'owner.area.types.body', permission: 'tenant.manage', group: 'conference' },
+  { id: 'rules', path: '/settings/protocol', title: 'owner.area.rules', body: 'owner.area.rules.body', permission: 'tenant.manage', group: 'conference' },
+  { id: 'grading', path: '/settings/grading', title: 'owner.area.grading', body: 'owner.area.grading.body', permission: 'tenant.manage', group: 'conference' },
+  { id: 'signin', path: '/settings?section=people', title: 'owner.area.signin', body: 'owner.area.signin.body', permission: 'tenant.manage', group: 'people' },
+  { id: 'access', path: '/settings/access', title: 'owner.area.access', body: 'owner.area.access.body', permission: 'tenant.manage', group: 'people' },
+  { id: 'roles', path: '/people/roles', title: 'owner.area.roles', body: 'owner.area.roles.body', permission: 'roles.manage', group: 'people' },
+  { id: 'audit', path: '/people/audit', title: 'owner.area.audit', body: 'owner.area.audit.body', permission: 'audit.view', group: 'people' },
+  { id: 'gallery', path: '/owner/gallery', title: 'owner.area.gallery', body: 'owner.area.gallery.body', permission: 'tenant.manage', group: 'look' },
+  { id: 'data', path: '/owner/data', title: 'owner.area.data', body: 'owner.area.data.body', permission: 'tenant.manage', group: 'account' },
+  { id: 'domains', path: '/owner/domains', title: 'owner.area.domains', body: 'owner.area.domains.body', permission: 'tenant.manage', group: 'account' },
+  { id: 'email', path: '/owner/email', title: 'owner.area.email', body: 'owner.area.email.body', permission: 'tenant.manage', group: 'account' },
+  { id: 'whitelabel', path: '/settings?section=branding', title: 'owner.area.whitelabel', body: 'owner.area.whitelabel.body', permission: 'tenant.manage', group: 'look' },
+  { id: 'legal', path: '/settings?section=legal', title: 'owner.area.legal', body: 'owner.area.legal.body', permission: 'tenant.manage', group: 'account' },
+  { id: 'billing', path: '/owner/billing', title: 'owner.area.billing', body: 'owner.area.billing.body', permission: 'tenant.manage', group: 'account' },
+  { id: 'reset', path: '/owner/reset', title: 'owner.area.reset', body: 'owner.area.reset.body', permission: 'tenant.manage', group: 'account' },
 ];
 
 interface RoleRow {
@@ -61,15 +61,28 @@ export default async function OwnerPage({ params }: { params: Promise<{ tenant: 
       <div className="w-full max-w-7xl">
         <h1 className="page-title text-2xl">{t('owner.title')}</h1>
         <p className="mb-5 mt-3 text-sm">{t('owner.subtitle')}</p>
-        <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="overview" />
-        <section aria-label={t('owner.title')} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {AREAS.filter((a) => ctx.can(a.permission)).map((a) => (
-            <a key={a.id} href={`${base}${a.path}`} className="card flex flex-col gap-1 hover:border-border-strong">
-              <span className="font-bold text-on-surface">{t(a.title)}</span>
-              <span className="text-sm">{t(a.body)}</span>
-            </a>
-          ))}
-        </section>
+        <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current="overview">
+        {(['conference', 'look', 'people', 'account'] as const).map((g) => {
+          const areas = AREAS.filter((a) => a.group === g && ctx.can(a.permission));
+          if (!areas.length) return null;
+          return (
+            <section key={g} aria-labelledby={`group-${g}`} className="mb-6">
+              <h2 id={`group-${g}`} className="mb-3 text-lg font-bold text-on-surface">
+                {t(`owner.nav.${g}` as MessageKey)}
+              </h2>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {areas.map((a) => (
+                  <li key={a.id}>
+                    <a href={`${base}${a.path}`} className="card flex h-full flex-col gap-1 hover:border-border-strong">
+                      <span className="font-bold text-on-surface">{t(a.title)}</span>
+                      <span className="text-sm">{t(a.body)}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
         <section className="card mt-6 flex flex-col gap-2" aria-labelledby="staff-title">
           <h2 id="staff-title" className="text-lg font-bold text-on-surface">
             {t('owner.staff.title')}
@@ -84,6 +97,7 @@ export default async function OwnerPage({ params }: { params: Promise<{ tenant: 
             </p>
           ) : null}
         </section>
+        </OwnerNav>
       </div>
       <PoweredBy locale={locale} />
     </main>

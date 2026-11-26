@@ -119,6 +119,19 @@
   }
 
   /* The settings menu: a vertical list on wide screens, a row on narrow ones. */
+  /* Data tables: labels aligned with their columns, rows separated, numbers in even columns. */
+  .table { @apply w-full border-collapse text-start; }
+  .table th {
+    @apply border-b border-border-strong px-3 py-2 text-start align-bottom text-xs font-bold text-on-surface-muted;
+    text-transform: var(--s-label-transform);
+    letter-spacing: var(--s-label-tracking);
+  }
+  .table td { @apply border-b border-border px-3 py-2 text-start align-top; }
+  .table tbody tr:last-child td { border-bottom-width: 0; }
+  .table th:first-child, .table td:first-child { padding-inline-start: 0; }
+  .table th:last-child, .table td:last-child { padding-inline-end: 0; }
+  .table .num { @apply text-end tabular-nums; }
+
   .side-nav a {
     @apply block text-sm font-semibold text-on-surface-muted;
     padding: 0.4rem 0.75rem;

@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
-import { SectionPicker } from '@/components/SectionPicker';
 import { Shell } from '@/components/Shell';
-import { OwnerTabs } from '@/site/AdminTabs';
-import { SECTION_HELP, SECTION_LABELS, SECTION_MENU } from '@/config/registry';
+import { OwnerNav } from '@/site/OwnerNav';
+import { SECTION_HELP, SECTION_LABELS } from '@/config/registry';
 import { resolveSection } from '@/config/resolve';
 import { SECTION_NAMES, type SectionName } from '@/config/schema';
 import { editorState, tenantTranslator } from '@/config/store';
@@ -96,35 +95,11 @@ export default async function SettingsPage({ params, searchParams }: { params: P
     />
   );
 
+  // Sections with an unpublished draft are marked in the menu.
+  const drafts = Object.fromEntries(Object.keys(state).filter((k) => state[k as keyof typeof state]?.draft).map((k) => [k, true]));
   return (
     <Shell title={t('settings.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current={section === 'theme' ? 'branding' : 'settings'} />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
-        <div className="lg:hidden">
-          <SectionPicker
-            label={t('settings.sections')}
-            current={section}
-            groups={SECTION_MENU.map((g) => ({ label: t(g.label), options: g.sections.map((name) => ({ value: name, href: `${base}/settings?section=${name}`, label: `${t(SECTION_LABELS[name])}${state[name]?.draft ? ' •' : ''}` })) }))}
-          />
-        </div>
-        <nav aria-label={t('settings.sections')} className="side-nav hidden flex-col gap-4 lg:flex">
-          {SECTION_MENU.map((group) => (
-            <div key={group.label}>
-              <p className="label-text mb-1 px-3">{t(group.label)}</p>
-              <ul className="flex flex-wrap gap-1 lg:flex-col">
-                {group.sections.map((name) => (
-                  <li key={name}>
-                    <a href={`${base}/settings?section=${name}`} aria-current={name === section ? 'page' : undefined}>
-                      {t(SECTION_LABELS[name])}
-                      {state[name]?.draft ? ' •' : ''}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
-
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={section} marks={drafts}>
         <section id={section} className="card flex min-w-0 flex-col gap-6" aria-labelledby={`${section}-title`}>
           <header className="flex flex-col gap-1">
             <h2 id={`${section}-title`} className="text-xl font-bold text-on-surface">
@@ -363,7 +338,7 @@ export default async function SettingsPage({ params, searchParams }: { params: P
             </div>
           </details>
         </section>
-      </div>
+      </OwnerNav>
     </Shell>
   );
 }

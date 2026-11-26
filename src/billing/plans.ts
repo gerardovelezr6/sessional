@@ -23,6 +23,10 @@ export interface Plan {
   prices: Price[];
   per_school: boolean;
   sort?: number;
+  // Contracts: a term in months with its discount. Empty: the plan has none.
+  terms: { months: number; percent_off: number }[];
+  // Per-school plans: from how many schools the price per school drops, and by how much.
+  volume: { from: number; percent_off: number }[];
 }
 
 // How full one limit is: under 80%, from 80% (a warning), at the limit (nothing more can be added).

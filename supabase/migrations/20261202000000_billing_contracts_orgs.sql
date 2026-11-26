@@ -376,3 +376,15 @@ grant execute on function public.organisation_overview(uuid), public.organisatio
   public.platform_referral_assign(uuid, text) to authenticated, service_role;
 revoke all on function public.referral_public(text), public.signup_referral_set(uuid, text) from public, anon, authenticated;
 grant execute on function public.referral_public(text), public.signup_referral_set(uuid, text) to service_role;
+
+-- The admin's view of a school's billing, now with its referral and contract.
+create or replace function public.platform_tenant_billing(p_tenant uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  perform app.require_platform_admin();
+  return app.entitlements(p_tenant) || jsonb_build_object(
+    'overrides', (select b.limit_overrides from public.tenant_billing b where b.tenant_id = p_tenant),
+    'usage', app.usage(p_tenant),
+    'referral_code', (select b.referral_code from public.tenant_billing b where b.tenant_id = p_tenant),
+    'commitment_until', (select b.commitment_until from public.tenant_billing b where b.tenant_id = p_tenant));
+end $$;

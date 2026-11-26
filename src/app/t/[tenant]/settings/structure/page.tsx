@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { resolveSection } from '@/config/resolve';
 import { editorState, tenantTranslator } from '@/config/store';
 import { assetUrl } from '@/data/storage';
@@ -52,7 +52,7 @@ export default async function StructurePage({ params, searchParams }: { params: 
 
   return (
     <Shell title={t('structure.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current={'types'} />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'structure'}>
       <div className="flex flex-col gap-6">
         {done === 'draft' || done === 'published' ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -75,6 +75,7 @@ export default async function StructurePage({ params, searchParams }: { params: 
           />
         </div>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

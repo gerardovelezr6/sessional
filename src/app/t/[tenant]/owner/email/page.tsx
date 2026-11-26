@@ -9,7 +9,7 @@ import { assetUrl } from '@/data/storage';
 import type { MessageKey } from '@/messages';
 import { mailConfigured } from '@/platform/mail';
 import { composeEmail, EMAIL_KINDS } from '@/platform/school-mail';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext, tenantOrigin } from '@/tenancy/context';
 import { checkSenderAction, removeSenderAction, setSenderAction, testEmailAction } from './actions';
 
@@ -43,7 +43,7 @@ export default async function EmailPage({ params, searchParams }: { params: Prom
 
   return (
     <Shell title={t('mail.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="overview" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'email'}>
       <div className="flex max-w-5xl flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -152,6 +152,7 @@ export default async function EmailPage({ params, searchParams }: { params: Prom
           ) : null}
         </section>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

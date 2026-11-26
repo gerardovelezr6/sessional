@@ -15,6 +15,7 @@ import { resolveTenant } from '@/tenancy/directory';
 import { parseTenantKey, TENANT_KEY_HEADER } from '@/tenancy/route';
 import { PRODUCT_NAME } from '@/platform/product';
 import { defaultThemeCss } from '@/theme/default-tokens';
+import { displayPrefs } from '@/a11y/display';
 
 export const metadata: Metadata = {
   title: PRODUCT_NAME,
@@ -41,8 +42,10 @@ async function documentLanguage(): Promise<{ lang: string; dir: 'ltr' | 'rtl' }>
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { lang, dir } = await documentLanguage();
+  // The person's own display needs (Account menu → Display), on every page.
+  const display = await displayPrefs();
   return (
-    <html lang={lang} dir={dir}>
+    <html lang={lang} dir={dir} data-contrast={display.contrast ? 'more' : undefined} data-text={display.large ? 'large' : undefined}>
       <head>
         {/* Tokens are part of the first HTML response, so default colours never flash. */}
         <style id="s-tokens" dangerouslySetInnerHTML={{ __html: defaultThemeCss }} />

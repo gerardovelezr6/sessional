@@ -1,4 +1,5 @@
 'use server';
+import { safePath } from '@/platform/safe-path';
 import { cookies, headers } from 'next/headers';
 import { cookieOptions } from '@/auth/cookies';
 import type { FormState } from '@/components/ActionForm';
@@ -16,7 +17,7 @@ export async function enterAccessCodeAction(tenantKey: string, _s: FormState, fo
   const gate = (await tenantConfig(tenant.id)).access.gate;
   const base = await basePath();
   const next = String(form.get('next') ?? '');
-  const back = next.startsWith('/') && !next.startsWith('//') && !next.includes('\\') ? next : `${base}/`;
+  const back = safePath(next, `${base}/`);
   if (!gate) return { redirectTo: back };
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   if (!allow(`gate:${tenant.id}:${ip}`, 10, 10 * 60 * 1000)) return { error: t('gate.error.tooMany') };

@@ -202,3 +202,13 @@ only for tests.
 **White-label and legal pages.** No setup needed. They follow the school's plan features
 (`white_label`, `legal_pages`) in Admin → Plans. A school with no plan (created by hand) has every
 feature.
+
+## 7. Monitoring (Phase 17)
+
+- Point an uptime monitor at `https://sessional.app/api/health`, every minute, alerting after two
+  failures. Any service works: Vercel Monitoring, Better Stack, UptimeRobot. It returns 503 when
+  the database or sign-in is down.
+- Share `https://sessional.app/status` with schools: it shows the same checks, and any notice you
+  post in Admin → Announcements for everyone.
+- Quarterly, run the restore drill against a copy of production (`docs/RUNBOOK.md`, "Backups and
+  restore").

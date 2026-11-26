@@ -92,7 +92,7 @@ test('a review that doesn’t approve says why; the next version is reviewed aga
   const mine = school.getByRole('region', { name: 'What your school shared' });
   await expect(mine).toContainText('Not approved');
   await expect(mine).toContainText('Why: Please add a Spanish description.');
-  await school.getByLabel('As').selectOption({ label: 'Next version of “Square corners” (Design)' });
+  await school.getByRole('combobox', { name: /^As/ }).selectOption({ label: 'Next version of “Square corners” (Design)' });
   await school.getByLabel('Description in Spanish').fill('Un estilo sobrio con esquinas rectas.');
   await school.getByLabel('What’s new in this version, in English').fill('Spanish description.');
   await school.getByRole('checkbox').check();

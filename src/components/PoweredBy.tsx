@@ -25,10 +25,10 @@ export async function PoweredBy({ locale = DEFAULT_LOCALE }: { locale?: Locale }
         </p>
       )}
       <nav aria-label={t('legal.links')} className="flex gap-3">
-        <a className="underline-offset-2 hover:underline" href={`${legal}/privacy${school?.ownLegal ? '' : lang}`}>
+        <a className="inline-flex min-h-6 items-center underline-offset-2 hover:underline" href={`${legal}/privacy${school?.ownLegal ? '' : lang}`}>
           {t('legal.privacy.title')}
         </a>
-        <a className="underline-offset-2 hover:underline" href={`${legal}/terms${school?.ownLegal ? '' : lang}`}>
+        <a className="inline-flex min-h-6 items-center underline-offset-2 hover:underline" href={`${legal}/terms${school?.ownLegal ? '' : lang}`}>
           {t('legal.terms.title')}
         </a>
       </nav>

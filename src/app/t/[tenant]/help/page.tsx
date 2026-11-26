@@ -40,6 +40,11 @@ export default async function Help({ params }: { params: Promise<{ tenant: strin
                 {t('help.new.title')}
               </a>
             </li>
+            <li className="mt-2">
+              <a className="font-semibold text-on-surface underline-offset-2 hover:underline" href={`${site}/help${lang === 'es' ? '?lang=es' : ''}`}>
+                {t('help.center')}
+              </a>
+            </li>
           </ul>
         </nav>
         <div className="flex flex-col gap-6">

@@ -1,6 +1,6 @@
 import { ActionForm } from '@/components/ActionForm';
 import { ConfirmButton } from '@/components/ConfirmButton';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { rpc } from '@/data/rpc';
 import { countryName } from '@/i18n/countries';
 import { regional } from '@/i18n/regional';
@@ -37,7 +37,7 @@ export default async function AdminInbox({ searchParams }: { searchParams: Promi
   const month = new Intl.DateTimeFormat(regional(DEFAULT_LOCALE), { month: 'long', year: 'numeric', timeZone: 'UTC' });
   const waiting = list.filter((r) => r.status === 'new').length;
   return (
-    <Shell title={t('platform.inbox.title')} size="full">
+    <AdminShell title={t('platform.inbox.title')}>
       <div className="flex max-w-4xl flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -109,6 +109,6 @@ export default async function AdminInbox({ searchParams }: { searchParams: Promi
           ))}
         </ul>
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

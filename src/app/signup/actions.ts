@@ -7,17 +7,18 @@ import { passwordProblems } from '@/people/password';
 import { looksAutomated, senderKey } from '@/platform/contact';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { sendMail } from '@/platform/mail';
+import { captchaPassed } from '@/platform/captcha';
 import { hashOf, isSecret, parseSignup, secret, TERMS_VERSION, type SignupField } from '@/platform/signup';
 
 export interface SignupState {
-  status: 'idle' | 'sent' | 'invalid' | 'rate' | 'failed';
+  status: 'idle' | 'sent' | 'invalid' | 'rate' | 'failed' | 'captcha';
   fields?: SignupField[];
   slugProblem?: 'format' | 'reserved' | 'taken';
   // What was typed, to put back in the form (React clears a form after its action runs).
   values?: Record<string, string>;
 }
 
-const KEEP = ['name', 'email', 'school', 'slug', 'locale', 'adult', 'terms'];
+const KEEP = ['name', 'email', 'school', 'slug', 'locale', 'adult', 'terms', 'ref'];
 const typed = (data: FormData) => Object.fromEntries(KEEP.map((k) => [k, String(data.get(k) ?? '')]));
 
 const scheme = () => (isSecureOrigin() ? 'https' : 'http');
@@ -31,6 +32,7 @@ export async function signupAction(_prev: SignupState, data: FormData): Promise<
   const v = parsed.value;
   const h = await headers();
   const address = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'unknown';
+  if (!(await captchaPassed(data, address))) return { status: 'captcha', values: typed(data) };
   const link = secret();
   try {
     const r = await rpc<{ id?: string; error?: string }>(
@@ -41,6 +43,9 @@ export async function signupAction(_prev: SignupState, data: FormData): Promise<
     if (r.error === 'rate') return { status: 'rate', values: typed(data) };
     if (r.error?.startsWith('slug_')) return { status: 'invalid', fields: ['slug'], slugProblem: r.error.slice(5) as SignupState['slugProblem'], values: typed(data) };
     if (!r.id) return { status: 'failed', values: typed(data) };
+    // A partner's code: kept with the signup if it's a real one (unknown codes are dropped quietly).
+    const ref = String(data.get('ref') ?? '').trim().toUpperCase();
+    if (/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(ref)) await rpc('signup_referral_set', { p_id: r.id, p_code: ref }, 'service').catch(() => null);
     const t = translator(v.locale);
     const url = `${scheme()}://${rootDomain()}/signup/confirm?i=${r.id}&h=${link}`;
     const sent = await sendMail({

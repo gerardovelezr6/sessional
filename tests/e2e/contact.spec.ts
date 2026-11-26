@@ -93,8 +93,18 @@ test('a platform admin reads requests in the inbox, marks them answered and dele
 });
 
 // Scrolls so that a step is this far through its part of the story.
+// On wide screens the steps and the stage are pinned together while their track scrolls by; this
+// scrolls to the given fraction of a step (index from 0).
 const scrollThrough = (step: import('@playwright/test').Locator, fraction: number) =>
-  step.evaluate((el: HTMLElement, f) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.65 + el.offsetHeight * f), fraction);
+  step.evaluate((el: HTMLElement, f) => {
+    const track = document.querySelector('.story-track') as HTMLElement;
+    const pinned = document.querySelector('.story-pinned') as HTMLElement;
+    const steps = [...document.querySelectorAll('.story-steps > li')];
+    const i = steps.indexOf(el);
+    const top = track.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(pinned).top);
+    const distance = track.offsetHeight - pinned.offsetHeight;
+    window.scrollTo(0, top + (distance * (i + f)) / steps.length);
+  }, fraction);
 
 test('“How a session runs” is told by scrolling: the pinned stage plays each step', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -125,17 +135,38 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   expect(top).toBeLessThan(200);
 });
 
-test('the opening shows the story’s stage beside the headline, not a second console', async ({ page }) => {
+test('the steps and the stage move as one: the stage is level with the list, one step open at a time, no room left over', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  await expect(page.getByRole('figure', { name: 'The chair’s console during a general debate' })).toHaveCount(0);
-  const stage = page.locator('.story-stage');
-  await expect(stage).toBeVisible();
-  await expect(page.getByText('Scroll to start ↓')).toBeVisible();
-  // The stage starts level with the headline.
-  const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
-  const box = await stage.boundingBox();
-  expect(Math.abs(box!.y - h1!.y)).toBeLessThan(160);
+  // The opening has the Secretariat's view, not the story's stage.
+  await expect(page.locator('section[aria-labelledby="hero-title"] .story-stage')).toHaveCount(0);
+  const track = await page.locator('.story-track').evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: el.getBoundingClientRect().height }));
+  const pinnedHeight = await page.locator('.story-pinned').evaluate((el) => (el as HTMLElement).offsetHeight);
+  for (let y = track.top - 96; y < track.top + track.height - pinnedHeight - 96; y += 140) {
+    await page.evaluate((top) => window.scrollTo(0, top), y);
+    await page.waitForTimeout(380);
+    const r = await page.evaluate(() => {
+      const frame = document.querySelector('.story-stage')!.closest('.landing-frame')!.getBoundingClientRect();
+      const list = document.querySelector('.story-steps')!.getBoundingClientRect();
+      const label = document.querySelector('.story-stage')!.parentElement!.querySelector('.font-mono')!.textContent ?? '';
+      const shown = Number(/Step (\d+) of/.exec(label)?.[1] ?? 0);
+      const steps = [...document.querySelectorAll('.story-steps > li')];
+      const open = steps.findIndex((li) => li.getAttribute('aria-current') === 'step') + 1;
+      const bodies = steps.filter((li) => li.querySelector('.story-body')!.getBoundingClientRect().height > 12).length;
+      // Each step is only as tall as what it shows: title, and the open one's text.
+      const snug = steps.every((li) => li.getBoundingClientRect().height < 220);
+      return { y: window.scrollY, shown, open, level: Math.abs(frame.top - list.top), bodies, snug };
+    });
+    expect(r.level, `stage level with the list at ${r.y}`).toBeLessThan(2);
+    expect(r.bodies, `one step open at ${r.y}`).toBe(1);
+    expect(r.snug, `no room left over at ${r.y}`).toBe(true);
+    if (r.shown) expect(r.open, `the stage plays the open step at ${r.y}`).toBe(r.shown);
+  }
+  // The section ends right after the last step finishes: awards shown, the next section next.
+  await page.evaluate((top) => window.scrollTo(0, top), track.top + track.height - pinnedHeight - 96);
+  await expect(page.locator('.story-stage')).toContainText('Best Delegate');
+  const gap = await page.evaluate(() => document.querySelector('#screens')!.getBoundingClientRect().top - document.querySelector('.story-pinned')!.getBoundingClientRect().bottom);
+  expect(gap).toBeLessThan(100);
 });
 
 test('the three screens run on one clock while on screen, can be paused, and start paused for less motion', async ({ page, browser }) => {
@@ -158,15 +189,6 @@ test('the three screens run on one clock while on screen, can be paused, and sta
   await calm.context().close();
 });
 
-test('the pinned stage stops before the line that closes the story', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/');
-  await page.locator('#screens').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 500));
-  const stage = await page.locator('.story-stage').locator('xpath=ancestor::div[contains(@class,"sticky")][1]').boundingBox();
-  const line = await page.locator('#screens').boundingBox();
-  expect(stage!.y + stage!.height).toBeLessThan(line!.y - 32);
-});
-
 test('organizer features are grouped in tabs that work from the keyboard, and the section nav marks where you are', async ({ page }) => {
   await page.goto('/');
   const tabs = page.getByRole('tablist', { name: 'When' });
@@ -186,4 +208,32 @@ test('organizer features are grouped in tabs that work from the keyboard, and th
   const top = await page.getByRole('heading', { level: 2, name: 'Pricing' }).evaluate((h) => h.getBoundingClientRect().top);
   const header = await page.locator('header').first().evaluate((h) => h.getBoundingClientRect().bottom);
   expect(top).toBeGreaterThanOrEqual(header);
+});
+
+test('the opening shows the Secretariat’s view of every committee, live, with a pause, and still for less motion', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const board = page.getByRole('figure', { name: /^Example: the Secretariat’s view of every committee/ });
+  await expect(board).toBeVisible();
+  await expect(board).toContainText('Security Council');
+  await expect(board).toContainText('Example data');
+  const before = await board.locator('ul').textContent();
+  await expect(board.locator('ul')).not.toHaveText(before!, { timeout: 4000 });
+  await board.getByRole('button', { name: 'Pause' }).click();
+  const stopped = await board.locator('ul').textContent();
+  await page.waitForTimeout(1500);
+  await expect(board.locator('ul')).toHaveText(stopped!);
+
+  // On a phone it stacks below the opening and nothing is cut short.
+  const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  await phone.goto('/');
+  const small = phone.getByRole('figure', { name: /^Example: the Secretariat’s view/ });
+  const wide = await small.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+  expect(wide).toBe(true);
+  await phone.context().close();
+
+  const calm = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+  await calm.goto('/');
+  await expect(calm.getByRole('figure', { name: /^Example: the Secretariat’s view/ }).getByRole('button', { name: 'Play' })).toHaveAttribute('aria-pressed', 'true');
+  await calm.context().close();
 });

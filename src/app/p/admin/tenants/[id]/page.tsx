@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { ConfirmButton } from '@/components/ConfirmButton';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator, type MessageKey } from '@/messages';
 import { requireAdmin } from '@/platform/admin';
@@ -9,7 +9,7 @@ import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { FLAGS } from '@/platform/flags';
 import { healthOf, isPast, LEVEL_TONE, type Usage } from '@/platform/health';
 import { basePath } from '@/tenancy/context';
-import { deleteAction, flagOverrideAction, impersonateAction, organisationAction, purgeAction, restoreAction, suspendAction, tenantBillingAction } from '../../actions';
+import { assignReferralAction, deleteAction, flagOverrideAction, impersonateAction, organisationAction, purgeAction, restoreAction, suspendAction, tenantBillingAction } from '../../actions';
 
 // Admin → a school: status, usage and health, its members (and signing in as one of them, for a
 // stated reason and a limited time), flags, recent activity and the diagnostic bundle.
@@ -34,7 +34,7 @@ interface Detail {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DONE: Record<string, MessageKey> = {
-  billing: 'platform.done.billing', suspended: 'platform.done.suspended', unsuspended: 'platform.done.unsuspended', deleted: 'platform.done.deleted', restored: 'platform.done.restored', flag: 'platform.done.flag',
+  billing: 'platform.done.billing', referral: 'platform.done.billing', suspended: 'platform.done.suspended', unsuspended: 'platform.done.unsuspended', deleted: 'platform.done.deleted', restored: 'platform.done.restored', flag: 'platform.done.flag',
 };
 
 export default async function AdminSchool({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ done?: string }> }) {
@@ -50,12 +50,17 @@ export default async function AdminSchool({ params, searchParams }: { params: Pr
   const h = healthOf(s.usage, s.status);
   const open = s.status !== 'suspended' && s.status !== 'deleted';
   const address = `${isSecureOrigin() ? 'https' : 'http'}://${s.slug}.${rootDomain()}/`;
-  const bill = await rpc<{ metered: boolean; plan: string | null; billing_status: string | null; overrides?: Record<string, number> } | null>('platform_tenant_billing', { p_tenant: s.id }, a).catch(() => null);
+  const bill = await rpc<{ metered: boolean; plan: string | null; billing_status: string | null; overrides?: Record<string, number>; referral_code?: string | null } | null>('platform_tenant_billing', { p_tenant: s.id }, a).catch(() => null);
   const plans = await rpc<{ key: string; name: Record<string, string> }[]>('platform_plans', {}, a);
   const orgs = (await rpc<{ organisations: { id: string; name: string }[] }>('platform_billing_overview', {}, a)).organisations;
 
   return (
-    <Shell title={s.name} subtitle={`${s.slug} · ${t(`platform.status.${s.status}` as MessageKey)}`} size="full" crumbs={[{ href: `${base}/`, label: t('platform.nav.schools') }, { label: s.name }]}>
+    <AdminShell title={s.name} intro={`${s.slug} · ${t(`platform.status.${s.status}` as MessageKey)}`}>
+      <p className="-mt-3 text-sm">
+        <a className="font-semibold underline underline-offset-2" href={`${base}/`}>
+          {t('platform.backToSchools')}
+        </a>
+      </p>
       <div className="flex flex-col gap-6">
         {done && DONE[done] ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -232,6 +237,13 @@ export default async function AdminSchool({ params, searchParams }: { params: Pr
                 <input className="input" name="name" maxLength={120} />
               </label>
             </ActionForm>
+            <ActionForm action={assignReferralAction.bind(null, s.id)} submitLabel={t('platform.referrals.assign')} variant="secondary">
+              <p className="text-sm">{t('platform.referrals.assignHelp')}</p>
+              <label className="flex flex-col gap-1">
+                <span className="label">{t('platform.referrals.referredBy')}</span>
+                <input className="input w-48 font-mono uppercase" name="code" defaultValue={bill?.referral_code ?? ''} maxLength={30} autoComplete="off" spellCheck={false} />
+              </label>
+            </ActionForm>
           </div>
         </section>
 
@@ -293,6 +305,6 @@ export default async function AdminSchool({ params, searchParams }: { params: Pr
           </ul>
         </section>
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

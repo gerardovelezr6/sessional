@@ -1,5 +1,5 @@
 import { ActionForm } from '@/components/ActionForm';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator } from '@/messages';
 import { requireAdmin } from '@/platform/admin';
@@ -15,7 +15,7 @@ export default async function AdminFlags({ searchParams }: { searchParams: Promi
   const data = await rpc<{ global: Record<string, { enabled: boolean; note: string }>; overrides: { key: string; enabled: boolean; tenant_id: string; slug: string }[] }>('platform_flags', {}, a);
   const { done } = await searchParams;
   return (
-    <Shell title={t('platform.flags.title')} size="full">
+    <AdminShell title={t('platform.flags.title')}>
       <div className="flex flex-col gap-4">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -65,6 +65,6 @@ export default async function AdminFlags({ searchParams }: { searchParams: Promi
           );
         })}
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

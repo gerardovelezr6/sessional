@@ -9,7 +9,7 @@ import { regional } from '@/i18n/regional';
 import type { MessageKey } from '@/messages';
 import { rootDomain } from '@/platform/env';
 import { hostingConfigured } from '@/platform/hosting';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { addDomainAction, checkDomainAction, primaryDomainAction, removeDomainAction } from './actions';
 
@@ -45,7 +45,7 @@ export default async function DomainsPage({ params, searchParams }: { params: Pr
 
   return (
     <Shell title={t('domains.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="overview" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'domains'}>
       <div className="flex max-w-5xl flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -142,6 +142,7 @@ export default async function DomainsPage({ params, searchParams }: { params: Pr
           </section>
         ))}
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

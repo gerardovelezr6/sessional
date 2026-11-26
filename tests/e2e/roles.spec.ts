@@ -103,7 +103,7 @@ test('someone is disabled, loses access, is enabled again, then removed', async 
 test('the audit log shows who did what', async ({ page }) => {
   await signIn(page, 'owner@people.test');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
-  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Audit log' }).click();
+  await page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Audit log' }).click();
   const log = page.getByRole('table', { name: 'Audit log' });
   await expect(log.getByRole('row', { name: /Removed a person.*Lee Leaver|Removed a person/ }).first()).toContainText('Pat People');
   await expect(log.getByText('Added a role').first()).toBeVisible();
@@ -224,10 +224,12 @@ test('the Owner area gathers every customisation, and says who can see it', asyn
   await signIn(page, 'owner@people.test');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner');
+  const cards = page.locator('main a.card');
   for (const name of ['Website', 'Branding', 'Conference details', 'Languages and words', 'Committee types', 'Rules of procedure', 'Grading and awards', 'People and sign-in', 'Access code', 'Roles and permissions', 'Audit log']) {
-    await expect(page.getByRole('region', { name: 'Owner' }).getByRole('link', { name: new RegExp(`^${name}`) })).toBeVisible();
+    await expect(cards.filter({ hasText: new RegExp(`^${name}`) })).toBeVisible();
   }
-  await expect(page.getByText('Owner', { exact: true }).last()).toBeVisible();
-  await page.getByRole('region', { name: 'Owner' }).getByRole('link', { name: /^Branding/ }).click();
-  await expect(page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Branding' })).toHaveAttribute('aria-current', 'page');
+  // The cards are grouped under the same headings as the menu.
+  for (const group of ['Your conference', 'Look and website', 'People and access', 'School and account']) await expect(page.getByRole('region', { name: group })).toBeVisible();
+  await cards.filter({ hasText: /^Branding/ }).click();
+  await expect(page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Design' })).toHaveAttribute('aria-current', 'page');
 });

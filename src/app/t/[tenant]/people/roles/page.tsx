@@ -6,7 +6,7 @@ import { rpc } from '@/data/rpc';
 import { directionOf, languageName } from '@/i18n/locales';
 import { catalogs, type MessageKey } from '@/messages';
 import { PERMISSIONS } from '@/people/permissions';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { deleteRoleAction, saveRolesAction } from './actions';
 import { RolesEditor, type RoleView } from './RolesEditor';
@@ -35,7 +35,7 @@ export default async function RolesPage({ params, searchParams }: { params: Prom
 
   return (
     <Shell title={t('roles.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="roles" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'roles'}>
       <div className="flex flex-col gap-4">
         {done === 'saved' || done === 'deleted' ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -61,6 +61,7 @@ export default async function RolesPage({ params, searchParams }: { params: Prom
           )}
         </div>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

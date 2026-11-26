@@ -7,7 +7,7 @@ import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import { isShareable, SHAREABLE } from '@/gallery/sections';
 import { localize } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { installGalleryAction } from '../../settings/actions';
 
@@ -44,7 +44,7 @@ export default async function GalleryPage({ params, searchParams }: { params: Pr
 
   return (
     <Shell title={t('gallery.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="overview" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'gallery'}>
       <div className="flex max-w-5xl flex-col gap-5">
         <p className="text-sm">{t('gallery.help')}</p>
         <p>
@@ -90,6 +90,7 @@ export default async function GalleryPage({ params, searchParams }: { params: Pr
           <p className="card">{t(section ? 'gallery.emptySection' : 'gallery.empty')}</p>
         )}
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

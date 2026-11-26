@@ -63,7 +63,7 @@ test('a chair neither manages conferences nor downloads the school', async ({ pa
 test('the school downloads everything as JSON, CSV and PDF', async ({ page }) => {
   await signIn(page, 'history', 'owner@history.test');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
-  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Export & import' }).click();
+  await page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Export & import' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Export and import');
   const counts = page.getByRole('list', { name: 'What the school holds' });
   await expect(counts.getByRole('listitem').filter({ hasText: /^Conferences/ })).toContainText('2');

@@ -9,7 +9,7 @@ import { rpc } from '@/data/rpc';
 import { packSummary } from '@/gallery/sections';
 import { regional } from '@/i18n/regional';
 import { localize } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { installGalleryAction } from '../../../settings/actions';
 import type { GalleryCard } from '../page';
@@ -38,7 +38,7 @@ export default async function GalleryPackPage({ params }: { params: Promise<{ te
 
   return (
     <Shell title={name} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="overview" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'gallery'}>
       <div className="flex max-w-4xl flex-col gap-5">
         <p>
           <a className="text-sm font-semibold underline underline-offset-2" href={`${base}/owner/gallery?section=${pack.section}`}>
@@ -84,6 +84,7 @@ export default async function GalleryPackPage({ params }: { params: Promise<{ te
           </ol>
         </section>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

@@ -1,6 +1,6 @@
 import { ActionForm } from '@/components/ActionForm';
 import { ConfirmButton } from '@/components/ConfirmButton';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, localize, translator, type MessageKey } from '@/messages';
 import { requireAdmin } from '@/platform/admin';
@@ -25,7 +25,7 @@ export default async function AdminAnnouncements({ searchParams }: { searchParam
   const when = new Intl.DateTimeFormat(DEFAULT_LOCALE, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
   const live = (r: Row) => isPast(r.starts_at) && (!r.ends_at || !isPast(r.ends_at));
   return (
-    <Shell title={t('platform.announcements.title')} size="full">
+    <AdminShell title={t('platform.announcements.title')}>
       <div className="flex max-w-4xl flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -85,6 +85,6 @@ export default async function AdminAnnouncements({ searchParams }: { searchParam
           ))}
         </ul>
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

@@ -196,8 +196,8 @@ describe('plans, organisations, referrals', () => {
     expect(overview.organisations.find((o) => o.id === org)?.schools.map((s) => s.id)).toEqual([A]);
     await call('admin', 'public.platform_referral_save($1)', [JSON.stringify({ code: `P${run}`.toUpperCase(), name: 'Partner', percent_off: 10 })], true);
     await db.query(`update tenant_billing set referral_code = $2 where tenant_id = $1`, [A, `P${run}`.toUpperCase()]);
-    const refs = await call<{ code: string; schools: number }[]>('admin', 'public.platform_referrals()');
-    expect(refs.find((r) => r.code === `P${run}`.toUpperCase())).toMatchObject({ schools: 1 });
+    const refs = await call<{ code: string; schools: { id: string }[] }[]>('admin', 'public.platform_referrals()');
+    expect(refs.find((r) => r.code === `P${run}`.toUpperCase())?.schools.map((x) => x.id)).toEqual([A]);
     await db.query(`delete from referral_partners where code = $1`, [`P${run}`.toUpperCase()]);
     await db.query(`delete from billing_accounts where id = $1`, [org]);
   });

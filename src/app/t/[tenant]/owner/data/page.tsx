@@ -5,7 +5,7 @@ import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
 import { EXPORT_TABLES } from '@/data/export';
 import { catalogs, type MessageKey } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { ImportForm } from './ImportForm';
 
@@ -31,7 +31,7 @@ export default async function DataPage({ params }: { params: Promise<{ tenant: s
 
   return (
     <Shell title={t('data.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="data" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'data'}>
       <div className="flex flex-col gap-6">
         <section className="card flex flex-col gap-3" aria-labelledby="export-title">
           <h2 id="export-title" className="text-lg font-bold text-on-surface">
@@ -74,6 +74,7 @@ export default async function DataPage({ params }: { params: Promise<{ tenant: s
           )}
         </section>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

@@ -1,5 +1,5 @@
 import { ActionForm } from '@/components/ActionForm';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { stripeConfigured } from '@/billing/stripe';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator, type MessageKey } from '@/messages';
@@ -14,13 +14,16 @@ interface PlanRow {
   description: Record<string, string>;
   limits: Record<string, number | null>;
   features: Record<string, boolean>;
-  prices: { key: string; interval: string; currency: string; amount: number; stripe_price_id?: string | null }[];
+  prices: { key: string; interval: string; currency: string; amount: number; stripe_price_id?: string | null; retired?: boolean }[];
   per_school: boolean;
   public: boolean;
   sort: number;
+  terms: { months: number; percent_off: number }[];
+  volume: { from: number; percent_off: number }[];
 }
 const LIMIT_KEYS = ['committees', 'delegates', 'staff', 'active_conferences', 'storage_mb'] as const;
-const FEATURE_KEYS = ['custom_domain', 'own_sender', 'white_label', 'sso', 'legal_pages'] as const;
+const FEATURE_KEYS = ['custom_domain', 'own_sender', 'white_label', 'sso', 'legal_pages', 'organisation'] as const;
+const pad = <T,>(list: T[], n: number, empty: T) => [...list, ...Array.from({ length: Math.max(0, n - list.length) }, () => empty)];
 
 export default async function AdminPlans({ searchParams }: { searchParams: Promise<{ done?: string; n?: string }> }) {
   const t = translator(DEFAULT_LOCALE);
@@ -29,7 +32,7 @@ export default async function AdminPlans({ searchParams }: { searchParams: Promi
   const { done, n } = await searchParams;
   const missing = plans.reduce((m, p) => m + p.prices.filter((x) => !x.stripe_price_id).length, 0);
   return (
-    <Shell title={t('platform.plans.title')} size="full">
+    <AdminShell title={t('platform.plans.title')}>
       <div className="flex flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -108,10 +111,51 @@ export default async function AdminPlans({ searchParams }: { searchParams: Promi
                         <span className="label">{t('platform.plans.amount')}</span>
                         <input className="input w-32" name={`price_${i}_amount`} inputMode="decimal" defaultValue={x.amount ? (x.amount / 100).toFixed(2) : ''} />
                       </label>
+                      {x.key === 'new' ? null : (
+                        <label className="flex items-center gap-2 pb-2 text-sm">
+                          <input type="checkbox" className="checkbox" name={`price_${i}_offered`} defaultChecked={!x.retired} />
+                          {t('platform.plans.offered')}
+                        </label>
+                      )}
                       <span className="pb-2 font-mono text-xs">{x.key === 'new' ? '' : (x.stripe_price_id ?? t('platform.plans.notInStripe'))}</span>
                     </div>
                   ))}
+                  <p className="text-xs">{t('platform.plans.offeredHelp')}</p>
                 </fieldset>
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="label">{t('platform.plans.terms')}</legend>
+                  <p className="text-xs">{t('platform.plans.termsHelp')}</p>
+                  {pad(p.terms ?? [], 3, { months: 0, percent_off: 0 }).map((x, i) => (
+                    <div key={`term-${i}`} className="flex flex-wrap items-end gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span className="label">{t('platform.plans.termMonths')}</span>
+                        <input className="input w-24" name={`term_${i}_months`} inputMode="numeric" defaultValue={x.months || ''} />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="label">{t('platform.plans.percentOff')}</span>
+                        <input className="input w-24" name={`term_${i}_percent`} inputMode="numeric" defaultValue={x.percent_off || ''} />
+                      </label>
+                    </div>
+                  ))}
+                </fieldset>
+                {p.per_school ? (
+                  <fieldset className="flex flex-col gap-2">
+                    <legend className="label">{t('platform.plans.volume')}</legend>
+                    <p className="text-xs">{t('platform.plans.volumeHelp')}</p>
+                    {pad(p.volume ?? [], 3, { from: 0, percent_off: 0 }).map((x, i) => (
+                      <div key={`vol-${i}`} className="flex flex-wrap items-end gap-2">
+                        <label className="flex flex-col gap-1">
+                          <span className="label">{t('platform.plans.volumeFrom')}</span>
+                          <input className="input w-24" name={`volume_${i}_from`} inputMode="numeric" defaultValue={x.from || ''} />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                          <span className="label">{t('platform.plans.percentOff')}</span>
+                          <input className="input w-24" name={`volume_${i}_percent`} inputMode="numeric" defaultValue={x.percent_off || ''} />
+                        </label>
+                      </div>
+                    ))}
+                  </fieldset>
+                ) : null}
                 <div className="flex flex-wrap gap-4">
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" className="checkbox" name="public" defaultChecked={p.public} />
@@ -131,6 +175,6 @@ export default async function AdminPlans({ searchParams }: { searchParams: Promi
           </details>
         ))}
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

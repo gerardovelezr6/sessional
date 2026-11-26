@@ -1,4 +1,4 @@
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { DEFAULT_LOCALE, translator, type MessageKey } from '@/messages';
 import { requireAdmin } from '@/platform/admin';
 import { basePath } from '@/tenancy/context';
@@ -25,11 +25,11 @@ export default async function AdminSupport() {
     ...Object.fromEntries(statuses.map((s) => [`status_${s}`, t(`platform.status.${s}` as MessageKey)])),
   };
   return (
-    <Shell title={t('platform.support.title')} size="wide">
+    <AdminShell title={t('platform.support.title')}>
       <div className="flex flex-col gap-5">
         <p className="text-sm">{t('platform.support.help')}</p>
         <SupportSearch find={findPersonAction} base={base} L={L} />
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

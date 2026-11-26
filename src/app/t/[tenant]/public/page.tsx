@@ -6,6 +6,8 @@ import { dayIn, spanIn } from '@/schedule/time';
 import { basePath, requireTenant } from '@/tenancy/context';
 import { regional } from '@/i18n/regional';
 import { localize } from '@/messages';
+import { rpc } from '@/data/rpc';
+import { sizeOf, type ConferenceDocument } from '@/documents/format';
 
 // The school's public conference page: committees, their topics, and the schedule. No sign-in.
 // Off unless the Owner turned it on (Settings → Public pages); then a missing page, not a refusal.
@@ -23,6 +25,8 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
   const tz = config.identity.timeZone;
   const dayName = new Intl.DateTimeFormat(regional(locale), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   const days = [...new Set(site.schedule.map((s) => dayIn(s.starts_at, tz)))].sort();
+  // Documents the school made public, when its public pages are on.
+  const docs = pagesOn ? await rpc<ConferenceDocument[]>('conference_documents_public', { p_tenant: tenant.id }, 'service').catch(() => []) : [];
 
   return (
     <Shell title={site.conference.name} subtitle={t('public.subtitle', { school: tenant.name })} size="full" locale={locale}>
@@ -71,6 +75,26 @@ export default async function PublicPage({ params }: { params: Promise<{ tenant:
                 </ul>
               </div>
             ))}
+          </section>
+        ) : null}
+        {docs.length ? (
+          <section aria-labelledby="public-documents" className="flex flex-col gap-3">
+            <h2 id="public-documents" className="text-lg font-bold text-on-surface">
+              {t('confdocs.title')}
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {docs.map((d) => (
+                <li key={d.id} className="card flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="min-w-0">
+                    <a className="font-semibold text-on-surface underline-offset-2 hover:underline" href={`${base}/documents/${d.id}`}>
+                      {d.title}
+                    </a>
+                    {d.description ? <span className="block text-sm">{d.description}</span> : null}
+                  </span>
+                  <span className="text-xs">{sizeOf(d.size_bytes, locale)}</span>
+                </li>
+              ))}
+            </ul>
           </section>
         ) : null}
         {localize(config.consent.publicNotice, locale) ? <p className="whitespace-pre-line text-sm">{localize(config.consent.publicNotice, locale)}</p> : null}

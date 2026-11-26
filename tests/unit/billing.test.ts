@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { blockersFor, direction, meter, money, type Plan } from '@/billing/plans';
 
-const plan = (key: string): Plan => ({ key, name: { en: key }, description: {}, limits: {}, features: {}, prices: [], per_school: false });
+const plan = (key: string): Plan => ({ key, name: { en: key }, description: {}, limits: {}, features: {}, prices: [], per_school: false, terms: [], volume: [] });
 
 describe('billing rules', () => {
   it('meters warn from 80% and stop at the limit; no limit is unlimited', () => {

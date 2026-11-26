@@ -1,6 +1,6 @@
 import { ActionForm } from '@/components/ActionForm';
 import { ConfirmButton } from '@/components/ConfirmButton';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { SECTION_LABELS } from '@/config/registry';
 import type { SectionName } from '@/config/schema';
 import { rpc } from '@/data/rpc';
@@ -26,7 +26,7 @@ export default async function AdminPresets({ searchParams }: { searchParams: Pro
   const list = await rpc<Row[]>('platform_presets_list', {}, a);
   const { done } = await searchParams;
   return (
-    <Shell title={t('platform.presets.title')} size="full">
+    <AdminShell title={t('platform.presets.title')}>
       <div className="flex max-w-4xl flex-col gap-5">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -78,6 +78,6 @@ export default async function AdminPresets({ searchParams }: { searchParams: Pro
           ))}
         </ul>
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

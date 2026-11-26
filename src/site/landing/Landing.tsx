@@ -9,13 +9,14 @@ import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
 import { Reveal } from './Reveal';
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
+import { SecretariatBoard, type BoardLabels } from './Secretariat';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
 import { Tabs } from './Tabs';
 
 // The marketing page. Left-aligned, plain words, real pieces of the product; nothing promised that
-// is not built, except under "Coming next", which says so. Long lists are grouped or folded so the
-// page stays short, and a sticky list of sections shows where you are.
+// is not built. Long lists are grouped or folded so the page stays short, and a sticky list of
+// sections shows where you are.
 
 export interface PlanRow {
   key: string;
@@ -33,6 +34,7 @@ interface Props {
   plans: PlanRow[] | null;
   // Self-serve signup works only when email can be sent (to prove the address).
   signup: boolean;
+  captcha: { siteKey: string; script: string } | null;
 }
 
 const ORGANIZERS = {
@@ -40,7 +42,6 @@ const ORGANIZERS = {
   during: ['analytics', 'access', 'documents', 'print'],
   after: ['grading', 'history', 'export', 'audit'],
 } as const;
-const NEXT = ['email', 'gallery', 'help'] as const;
 const FAQ = ['accounts', 'wifi', 'rules', 'spanish', 'data', 'cost'] as const;
 const LIMITS = ['committees', 'delegates', 'staff', 'active_conferences'] as const;
 const NOT_COUNTRIES = new Set(['EU', 'UN']);
@@ -88,12 +89,28 @@ function contactLabels(t: Translate): ContactLabels {
     failed: t('contact.form.failed'),
     privacy: t('contact.form.privacy'),
     website: t('contact.form.website'),
+    captcha: t('captcha.label'),
+    captchaFailed: t('captcha.failed'),
   };
 }
 
 const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
+// The Secretariat board's words, placeholders left for the client to fill.
+const BOARD_KINDS = ['speech', 'moderated', 'unmoderated', 'vote', 'roll', 'recess', 'crisis'] as const;
+const BOARD_CODES = ['fr', 'cn', 'gb', 'br', 'ke', 'mx', 'jp', 'ch', 'gh', 'al', 'ec', 'us', 'ru'];
+function boardLabels(locale: string): BoardLabels {
+  const raw = (k: string) => messageFor(k, locale).text;
+  return {
+    label: raw('landing.board.label'), title: raw('landing.board.title'), live: raw('landing.board.live'), example: raw('landing.board.example'),
+    pause: raw('landing.board.pause'), play: raw('landing.board.play'), summary: raw('landing.board.summary'), present: raw('landing.board.present'),
+    names: Object.fromEntries(['sc', 'disec', 'hrc', 'who', 'ecosoc', 'crisis'].map((k) => [k, raw(`landing.board.name.${k}`)])),
+    status: Object.fromEntries([...BOARD_KINDS, 'passed'].map((k) => [k, raw(`landing.board.status.${k}`)])) as BoardLabels['status'],
+    detail: Object.fromEntries(BOARD_KINDS.map((k) => [k, raw(`landing.board.detail.${k}`)])) as BoardLabels['detail'],
+  };
+}
+const boardCountries = (locale: string) => Object.fromEntries(BOARD_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 // The story's words, with ICU placeholders left for the client to fill.
 function storyLabels(t: Translate, locale: string): StoryLabels {
   const raw = (k: string) => messageFor(k, locale).text;
@@ -104,7 +121,7 @@ function storyLabels(t: Translate, locale: string): StoryLabels {
   };
 }
 
-export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
+export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props) {
   const lang = locale === 'es' ? '?lang=es' : '';
   const nameOf = (p: PlanRow) => p.name[locale] ?? p.name.en ?? p.key;
   const money = (amount: number, currency: string) => `${new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
@@ -120,7 +137,6 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
     { id: 'organizers', text: t('landing.nav.organisers') },
     { id: 'pricing', text: t('landing.nav.pricing') },
     { id: 'contact', text: t('landing.nav.contact') },
-    { id: 'next', text: t('landing.nav.next') },
   ];
   return (
     <div className="landing-page flex flex-1 flex-col bg-surface text-on-surface-muted">
@@ -147,13 +163,10 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
       </header>
 
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          {/* The opening and "How a session runs" are one story: the stage stands beside the headline
-              and plays the session as you scroll down through the steps. */}
-          <section className="pb-16 pt-12" aria-labelledby="hero-title">
-            <Story
-              names={storyNames(locale)}
-              L={storyLabels(t, locale)}
-              lead={
+          {/* The opening: what Sessional does, and one main action. */}
+          {/* Beside it on wide screens (below it on narrow ones): the Secretariat's live view. */}
+          <section className="grid grid-cols-1 items-center gap-10 pb-14 pt-12 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="hero-title">
+            <div className="max-w-3xl">
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
@@ -184,9 +197,17 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
               </div>
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-              }
+            </div>
+            <SecretariatBoard L={boardLabels(locale)} countries={boardCountries(locale)} locale={locale} />
+          </section>
+
+          {/* How a session runs: the stage plays each step beside its text as you scroll. */}
+          <section className="landing-rule pb-16 pt-12" aria-labelledby="session-title">
+            <Story
+              names={storyNames(locale)}
+              L={storyLabels(t, locale)}
               heading={
-                <div id="session" className="landing-rule flex scroll-mt-24 flex-col gap-3 pt-10">
+                <div id="session" className="flex scroll-mt-24 flex-col gap-3">
                   <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
                     {t('landing.session.title')}
                   </h2>
@@ -337,20 +358,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
               </p>
             </div>
             <div className="landing-frame bg-surface-raised p-5 text-on-surface-muted sm:p-6">
-              <ContactForm L={contactLabels(t)} locale={locale} countries={countries} />
+              <ContactForm L={contactLabels(t)} locale={locale} countries={countries} captcha={captcha} />
             </div>
           </section>
-
-          <Section id="next" title={t('landing.next.title')} intro={t('landing.next.intro')}>
-            <ul className="grid grid-cols-1 gap-x-10 md:grid-cols-3">
-              {NEXT.map((n) => (
-                <li key={n} className="border-t border-border py-4">
-                  <span className="font-semibold text-on-surface">{t(`landing.next.${n}.title` as MessageKey)}</span>
-                  <span className="mt-1 block text-sm">{t(`landing.next.${n}.body` as MessageKey)}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
 
           <Section id="questions" title={t('landing.faq.title')}>
             <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
@@ -365,33 +375,72 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
         </main>
 
       <footer className="border-t border-border">
-        {/* Google's sign-in review asks the home page to say plainly what the app does. */}
-        <p className="mx-auto w-full max-w-6xl px-5 pt-6 text-sm">{t('home.about')}</p>
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-6 text-sm">
-          <span>{t('landing.footer.made')}</span>
-          <nav aria-label={t('legal.links')} className="flex gap-6">
-            <Link className="underline underline-offset-4 hover:decoration-2" href="/privacy">
-              {t('legal.privacy.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href="/terms">
-              {t('legal.terms.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/changelog${lang}`}>
-              {t('changelog.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/gallery${lang}`}>
-              {t('gallery.public.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/help${lang}`}>
-              {t('landing.footer.help')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/status${lang}`}>
-              {t('landing.footer.status')}
-            </Link>
-          </nav>
-          <a className="ms-auto underline underline-offset-4 hover:decoration-2" href={appUrl}>
-            {t('landing.signIn')}
-          </a>
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-5 py-10 text-sm md:grid-cols-[2fr_1fr_1fr_1fr]">
+          <div className="col-span-2 flex flex-col gap-3 md:col-span-1">
+            <p className="font-semibold text-on-surface">{t('landing.footer.made')}</p>
+            {/* Google's sign-in review asks the home page to say plainly what the app does. */}
+            <p className="max-w-md">{t('home.about')}</p>
+          </div>
+            <nav aria-label={t('landing.footer.product')} className="flex flex-col gap-3">
+              <h2 className="label-text">{t('landing.footer.product')}</h2>
+              <ul className="flex flex-col gap-2">
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"#session"}>
+                    {t('landing.nav.session')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"#pricing"}>
+                    {t('landing.nav.pricing')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/changelog${lang}`}>
+                    {t('changelog.title')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/gallery${lang}`}>
+                    {t('gallery.public.title')}
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+            <nav aria-label={t('landing.footer.helpGroup')} className="flex flex-col gap-3">
+              <h2 className="label-text">{t('landing.footer.helpGroup')}</h2>
+              <ul className="flex flex-col gap-2">
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/help${lang}`}>
+                    {t('landing.footer.help')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/support${lang}`}>
+                    {t('landing.footer.support')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/status${lang}`}>
+                    {t('landing.footer.status')}
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+            <nav aria-label={t('legal.links')} className="flex flex-col gap-3">
+              <h2 className="label-text">{t('legal.links')}</h2>
+              <ul className="flex flex-col gap-2">
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"/privacy"}>
+                    {t('legal.privacy.title')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"/terms"}>
+                    {t('legal.terms.title')}
+                  </Link>
+                </li>
+              </ul>
+            </nav>
         </div>
       </footer>
     </div>

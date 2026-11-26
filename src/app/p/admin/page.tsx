@@ -1,11 +1,9 @@
-import { ActionForm } from '@/components/ActionForm';
-import { Shell } from '@/components/Shell';
+import { AdminShell } from '@/app/p/admin/AdminShell';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator, type MessageKey } from '@/messages';
 import { requireAdmin } from '@/platform/admin';
 import { healthOf, LEVEL_TONE, type Usage } from '@/platform/health';
 import { basePath } from '@/tenancy/context';
-import { adminSignOutAction } from './actions';
 
 // Admin → Schools: every school with its status, usage and health score, searchable.
 
@@ -31,7 +29,7 @@ export default async function AdminSchools({ searchParams }: { searchParams: Pro
   const byStatus = list.reduce<Record<string, number>>((m, x) => ({ ...m, [x.status]: (m[x.status] ?? 0) + 1 }), {});
 
   return (
-    <Shell title={t('platform.schools.title')} size="full">
+    <AdminShell title={t('platform.schools.title')}>
       <div className="flex flex-col gap-5">
         {done === 'purged' ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -96,8 +94,7 @@ export default async function AdminSchools({ searchParams }: { searchParams: Pro
           </table>
         </div>
         {list.length === 0 ? <p className="text-sm">{t('platform.schools.none')}</p> : null}
-        <ActionForm action={adminSignOutAction} submitLabel={t('auth.signOut')} variant="secondary" />
       </div>
-    </Shell>
+    </AdminShell>
   );
 }

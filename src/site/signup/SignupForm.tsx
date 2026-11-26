@@ -2,6 +2,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { signupAction, type SignupState } from '@/app/signup/actions';
+import { Captcha } from '@/components/Captcha';
 
 // The signup form on the main website. The address is suggested from the school's name as it is
 // typed and can be changed; every error sits by its field and the first takes focus.
@@ -28,6 +29,10 @@ export interface SignupLabels {
   rate: string;
   failed: string;
   website: string;
+  referral: string;
+  referralHint: string;
+  captcha: string;
+  captchaFailed: string;
 }
 
 const ORDER = ['name', 'email', 'school', 'slug', 'adult', 'terms'] as const;
@@ -51,7 +56,26 @@ function Submit({ L }: { L: SignupLabels }) {
   );
 }
 
-export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: SignupLabels; locale: 'en' | 'es'; domain: string; termsHref: string; privacyHref: string }) {
+export function SignupForm({
+  L,
+  locale,
+  domain,
+  termsHref,
+  privacyHref,
+  referral,
+  referralNote,
+  captcha,
+}: {
+  L: SignupLabels;
+  locale: 'en' | 'es';
+  domain: string;
+  termsHref: string;
+  privacyHref: string;
+  // A partner's code the person arrived with (their link), and what it gives them.
+  referral: string;
+  referralNote: string | null;
+  captcha: { siteKey: string; script: string } | null;
+}) {
   const [state, action] = useActionState<SignupState, FormData>(signupAction, { status: 'idle' });
   const [slug, setSlug] = useState('');
   const [touched, setTouched] = useState(false);
@@ -155,6 +179,11 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
         </div>
       </fieldset>
       <div className="flex flex-col gap-1">
+        {label('ref', L.referral)}
+        <input className="input w-56 font-mono uppercase" {...field('ref')} defaultValue={v.ref ?? referral} autoComplete="off" spellCheck={false} maxLength={30} />
+        <span className="text-xs">{referralNote ?? L.referralHint}</span>
+      </div>
+      <div className="flex flex-col gap-1">
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" {...field('adult')} defaultChecked={v.adult === 'on'} className="mt-1" required />
           <span>{L.adult}</span>
@@ -182,7 +211,9 @@ export function SignupForm({ L, locale, domain, termsHref, privacyHref }: { L: S
         <input id="signup-website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
       <input ref={started} type="hidden" name="started" />
+      {captcha ? <Captcha siteKey={captcha.siteKey} script={captcha.script} locale={locale} label={L.captcha} reset={state} /> : null}
       <div ref={status} tabIndex={-1} aria-live="polite">
+        {state.status === 'captcha' ? <p className="error-text">{L.captchaFailed}</p> : null}
         {state.status === 'invalid' ? <p className="error-text">{L.invalid}</p> : null}
         {state.status === 'rate' ? <p className="error-text">{L.rate}</p> : null}
         {state.status === 'failed' ? <p className="error-text">{L.failed}</p> : null}

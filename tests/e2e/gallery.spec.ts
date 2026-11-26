@@ -117,7 +117,7 @@ test('another school installs it as a draft, publishes it, and rolls it back', a
   await saveAndPublish(design);
 
   await page.goto(take('/owner'));
-  await page.getByRole('link', { name: /^Community gallery/ }).click();
+  await page.getByRole('link', { name: 'Community gallery', exact: true }).click();
   await page.getByRole('navigation', { name: 'Kind' }).getByRole('link', { name: 'Design' }).click();
   const card = page.getByRole('listitem').filter({ hasText: 'Square corners' });
   await expect(card).toContainText('Design · Shared by Sharing School · Version 2 · not installed yet');

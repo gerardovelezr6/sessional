@@ -5,7 +5,7 @@ import { resolveSection } from '@/config/resolve';
 import { editorState, tenantTranslator } from '@/config/store';
 import { directionOf, languageName } from '@/i18n/locales';
 import { catalogs, type MessageKey } from '@/messages';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { saveAccessAction } from './actions';
 import { AccessForm } from './AccessForm';
@@ -33,7 +33,7 @@ export default async function AccessSettingsPage({ params, searchParams }: { par
 
   return (
     <Shell title={t('accessCode.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="access" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'access'}>
       <div className="flex max-w-3xl flex-col gap-4">
         {done && DONE[done] ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -53,6 +53,7 @@ export default async function AccessSettingsPage({ params, searchParams }: { par
           />
         </div>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

@@ -1,3 +1,7 @@
+import { cookies } from 'next/headers';
+import { rpc } from '@/data/rpc';
+import { captchaClient } from '@/platform/captcha';
+import { REFERRAL_COOKIE, referralCode } from '@/platform/referral';
 import type { Metadata } from 'next';
 import { translator } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
@@ -10,8 +14,9 @@ export const metadata: Metadata = { title: 'Start a free trial · Sessional' };
 
 // Self-serve signup on the main website. Without an email service there is no way to prove an
 // address, so the page says to write to us instead.
-export default async function SignupPage({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
-  const locale = (await searchParams).lang === 'es' ? 'es' : 'en';
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ lang?: string; ref?: string }> }) {
+  const params = await searchParams;
+  const locale = params.lang === 'es' ? 'es' : 'en';
   const t = translator(locale);
   const lang = locale === 'es' ? '?lang=es' : '';
   const L: SignupLabels = {
@@ -43,7 +48,21 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
     rate: t('signup.error.rate'),
     failed: t('signup.error.failed'),
     website: t('contact.form.website'),
+    referral: t('signup.field.referral'),
+    referralHint: t('signup.field.referralHint'),
+    captcha: t('captcha.label'),
+    captchaFailed: t('captcha.failed'),
   };
+  // A partner's link (?ref=CODE), here or on any page of the website before (kept in a cookie).
+  const code = referralCode(params.ref ?? (await cookies()).get(REFERRAL_COOKIE)?.value) ?? '';
+  const partner = code
+    ? await rpc<{ name: string; percent_off: number; duration_months: number | null } | null>('referral_public', { p_code: code }, 'service').catch(() => null)
+    : null;
+  const referralNote = partner
+    ? partner.percent_off
+      ? t(partner.duration_months ? 'billing.referral.months' : 'billing.referral.once', { name: partner.name, percent: partner.percent_off, months: partner.duration_months ?? 0 })
+      : t('signup.referral.plain', { name: partner.name })
+    : null;
   return (
     <SitePage t={t} locale={locale} title={t('signup.title')} intro={t('signup.intro')} path="/signup">
       {mailConfigured() ? (
@@ -56,7 +75,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
             ))}
           </ul>
           <div className="landing-frame bg-surface-raised p-5 sm:p-6">
-            <SignupForm L={L} locale={locale} domain={rootDomain()} termsHref={`/terms${lang}`} privacyHref={`/privacy${lang}`} />
+            <SignupForm L={L} locale={locale} domain={rootDomain()} termsHref={`/terms${lang}`} privacyHref={`/privacy${lang}`} referral={partner ? code : ''} referralNote={referralNote} captcha={captchaClient()} />
           </div>
         </>
       ) : (

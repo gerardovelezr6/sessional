@@ -3,7 +3,7 @@ import 'server-only';
 // Who runs Sessional, for the privacy policy and terms. Set in the hosting settings (Vercel →
 // Environment Variables), never in code: LEGAL_OPERATOR (a person or company name),
 // LEGAL_CONTACT_EMAIL and LEGAL_COUNTRY (whose law applies). Until set, the pages say so plainly.
-export const LEGAL_UPDATED = '2026-11-15';
+export const LEGAL_UPDATED = '2026-11-26';
 
 export function legalDetails() {
   const value = (name: string) => process.env[name]?.trim() || `[${name}]`;

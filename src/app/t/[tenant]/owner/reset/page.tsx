@@ -4,7 +4,7 @@ import { Notice } from '@/components/Notice';
 import { Shell } from '@/components/Shell';
 import { tenantTranslator } from '@/config/store';
 import { rpc } from '@/data/rpc';
-import { OwnerTabs } from '@/site/AdminTabs';
+import { OwnerNav } from '@/site/OwnerNav';
 import { basePath, requireTenant, tenantContext } from '@/tenancy/context';
 import { resetSchoolAction } from './actions';
 
@@ -24,7 +24,7 @@ export default async function ResetPage({ params, searchParams }: { params: Prom
 
   return (
     <Shell title={t('reset.title')} size="full" locale={locale}>
-      <OwnerTabs base={base} t={t} can={(x) => ctx.can(x)} current="reset" />
+      <OwnerNav base={base} t={t} can={(x) => ctx.can(x)} current={'reset'}>
       <div className="flex max-w-3xl flex-col gap-4">
         {done ? (
           <p role="status" className="card font-semibold text-on-surface">
@@ -58,6 +58,7 @@ export default async function ResetPage({ params, searchParams }: { params: Prom
           )}
         </section>
       </div>
+      </OwnerNav>
     </Shell>
   );
 }

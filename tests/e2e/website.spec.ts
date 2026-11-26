@@ -27,10 +27,10 @@ test('the classic layout: initials beside the name, a short menu, the administra
   const tabs = page.getByRole('navigation', { name: 'Administration' });
   await expect(tabs.getByRole('link', { name: 'Live analytics' })).toHaveAttribute('aria-current', 'page');
   await tabs.getByRole('link', { name: 'Global documents' }).click();
-  await expect(page.getByText('Coming soon')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Global documents');
   await menu(page).getByRole('link', { name: 'Owner' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner');
-  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Website' }).click();
+  await page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Website' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Website');
 });
 

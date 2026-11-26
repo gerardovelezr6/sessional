@@ -57,8 +57,17 @@ Each control below names the test that keeps it true. A control without a test i
 - The gallery shows the sharing school's name, never a person's. Signers' names on certificates never leave the school. (`tests/unit/gallery.test.ts`)
 - Custom CSS from a school passes a sanitizer that refuses `url()`, `@import`, expressions and contrast-breaking values. (`tests/unit/custom-css.test.ts`)
 
+**Public forms**
+- Signup, contact and support check a Cloudflare Turnstile token on the server (the secret never reaches the browser), on top of the honeypot, the minimum time and per-network rate limits in the database. Without the token the message is refused and what was typed stays. (`src/platform/captcha.ts`, `tests/e2e/support-page.spec.ts`)
+
+**Conference documents**
+- Files sit in a private bucket; only the server reads and writes them, with the service key, after the database says who may see which (staff, members, or public when the public pages are on). A file's type is checked by its first bytes, not its name; size is capped at 20 MB; paths must start with the school's id. Downloads are `no-store` and `nosniff`. (`src/documents/files.ts`, `tests/db/documents.test.ts`, `tests/e2e/documents.spec.ts`)
+
+**Billing**
+- The page that returns from Checkout accepts only a session that Stripe says belongs to this school, and applies it through the same idempotent function as the webhook. Organization managers act only on schools of an organization they manage; the database checks it. (`src/billing/sync.ts`, `tests/db/billing-v2.test.ts`)
+
 **Audit trail**
-- Administrative actions are recorded in the school's audit log, with the platform admin marked when acting through impersonation. Covered actions: roles, members, settings, domains, sender, gallery, billing and data export.
+- Administrative actions are recorded in the school's audit log, with the platform admin marked when acting through impersonation. Covered actions: roles, members, settings, domains, sender, gallery, billing, conference documents and data export.
 
 ## Found and fixed in this review
 

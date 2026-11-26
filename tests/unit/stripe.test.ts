@@ -31,3 +31,15 @@ describe('Stripe', () => {
     ]);
   });
 });
+
+describe('per-school volume pricing', () => {
+  it('every school costs the price of the step the organization has reached', async () => {
+    const { perSchoolAmount } = await import('@/billing/stripe');
+    const volume = [{ from: 5, percent_off: 10 }, { from: 10, percent_off: 20 }];
+    expect(perSchoolAmount(119000, volume, 1)).toBe(119000);
+    expect(perSchoolAmount(119000, volume, 4)).toBe(119000);
+    expect(perSchoolAmount(119000, volume, 5)).toBe(107100);
+    expect(perSchoolAmount(119000, volume, 12)).toBe(95200);
+    expect(perSchoolAmount(119000, [], 12)).toBe(119000);
+  });
+});

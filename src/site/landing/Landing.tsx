@@ -9,6 +9,7 @@ import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
 import { Reveal } from './Reveal';
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
+import { SecretariatBoard, type BoardLabels } from './Secretariat';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
 import { Tabs } from './Tabs';
@@ -96,6 +97,20 @@ function contactLabels(t: Translate): ContactLabels {
 const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
+// The Secretariat board's words, placeholders left for the client to fill.
+const BOARD_KINDS = ['speech', 'moderated', 'unmoderated', 'vote', 'roll', 'recess', 'crisis'] as const;
+const BOARD_CODES = ['fr', 'cn', 'gb', 'br', 'ke', 'mx', 'jp', 'ch', 'gh', 'al', 'ec', 'us', 'ru'];
+function boardLabels(locale: string): BoardLabels {
+  const raw = (k: string) => messageFor(k, locale).text;
+  return {
+    label: raw('landing.board.label'), title: raw('landing.board.title'), live: raw('landing.board.live'), example: raw('landing.board.example'),
+    pause: raw('landing.board.pause'), play: raw('landing.board.play'), summary: raw('landing.board.summary'), present: raw('landing.board.present'),
+    names: Object.fromEntries(['sc', 'disec', 'hrc', 'who', 'ecosoc', 'crisis'].map((k) => [k, raw(`landing.board.name.${k}`)])),
+    status: Object.fromEntries([...BOARD_KINDS, 'passed'].map((k) => [k, raw(`landing.board.status.${k}`)])) as BoardLabels['status'],
+    detail: Object.fromEntries(BOARD_KINDS.map((k) => [k, raw(`landing.board.detail.${k}`)])) as BoardLabels['detail'],
+  };
+}
+const boardCountries = (locale: string) => Object.fromEntries(BOARD_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 // The story's words, with ICU placeholders left for the client to fill.
 function storyLabels(t: Translate, locale: string): StoryLabels {
   const raw = (k: string) => messageFor(k, locale).text;
@@ -149,7 +164,8 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
 
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
           {/* The opening: what Sessional does, and one main action. */}
-          <section className="pb-14 pt-12" aria-labelledby="hero-title">
+          {/* Beside it on wide screens (below it on narrow ones): the Secretariat's live view. */}
+          <section className="grid grid-cols-1 items-center gap-10 pb-14 pt-12 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="hero-title">
             <div className="max-w-3xl">
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
@@ -182,6 +198,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
             </div>
+            <SecretariatBoard L={boardLabels(locale)} countries={boardCountries(locale)} locale={locale} />
           </section>
 
           {/* How a session runs: the stage plays each step beside its text as you scroll. */}

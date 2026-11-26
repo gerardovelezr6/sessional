@@ -93,12 +93,12 @@ test('a platform admin reads requests in the inbox, marks them answered and dele
 });
 
 // Scrolls so that a step is this far through its part of the story.
-// Scrolls so that the given fraction of a step has passed the stage's reading line (40% down the
+// Scrolls so that the given fraction of a step has passed the stage's reading line (halfway down the
 // pinned stage), which is how the page decides which step the stage plays.
 const scrollThrough = (step: import('@playwright/test').Locator, fraction: number) =>
   step.evaluate((el: HTMLElement, f) => {
     const frame = document.querySelector('.story-stage')!.closest('.sticky') as HTMLElement;
-    const line = parseFloat(getComputedStyle(frame).top) + frame.offsetHeight * 0.4;
+    const line = parseFloat(getComputedStyle(frame).top) + frame.offsetHeight * 0.5;
     window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - line + el.offsetHeight * f);
   }, fraction);
 
@@ -213,4 +213,32 @@ test('organizer features are grouped in tabs that work from the keyboard, and th
   const top = await page.getByRole('heading', { level: 2, name: 'Pricing' }).evaluate((h) => h.getBoundingClientRect().top);
   const header = await page.locator('header').first().evaluate((h) => h.getBoundingClientRect().bottom);
   expect(top).toBeGreaterThanOrEqual(header);
+});
+
+test('the opening shows the Secretariat’s view of every committee, live, with a pause, and still for less motion', async ({ page, browser }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const board = page.getByRole('figure', { name: /^Example: the Secretariat’s view of every committee/ });
+  await expect(board).toBeVisible();
+  await expect(board).toContainText('Security Council');
+  await expect(board).toContainText('Example data');
+  const before = await board.locator('ul').textContent();
+  await expect(board.locator('ul')).not.toHaveText(before!, { timeout: 4000 });
+  await board.getByRole('button', { name: 'Pause' }).click();
+  const stopped = await board.locator('ul').textContent();
+  await page.waitForTimeout(1500);
+  await expect(board.locator('ul')).toHaveText(stopped!);
+
+  // On a phone it stacks below the opening and nothing is cut short.
+  const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  await phone.goto('/');
+  const small = phone.getByRole('figure', { name: /^Example: the Secretariat’s view/ });
+  const wide = await small.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+  expect(wide).toBe(true);
+  await phone.context().close();
+
+  const calm = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+  await calm.goto('/');
+  await expect(calm.getByRole('figure', { name: /^Example: the Secretariat’s view/ }).getByRole('button', { name: 'Play' })).toHaveAttribute('aria-pressed', 'true');
+  await calm.context().close();
 });

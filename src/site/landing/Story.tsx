@@ -51,7 +51,7 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
       frame = 0;
       const box = stage.current?.getBoundingClientRect();
       const wide = window.innerWidth >= 1024;
-      const line = box ? (wide ? box.top + box.height * 0.4 : box.bottom + 24) : window.innerHeight * 0.65;
+      const line = box ? (wide ? box.top + box.height * 0.5 : box.bottom + 24) : window.innerHeight * 0.65;
       let current = 0;
       let progress = 0;
       let any = false;
@@ -62,10 +62,10 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
         if (r.top <= line) {
           any = true;
           current = i;
-          // The last step has extra room below it (so the stage stays until it ends); its
-          // animation runs over the step itself.
-          const room = i === STORY_STEPS.length - 1 && wide ? Math.max(0, r.height - window.innerHeight * 0.42) : 0;
-          progress = Math.min(1, Math.max(0, (line - r.top) / (r.height - room)));
+          // The last step finishes exactly when the section ends (when the stage stops being
+          // pinned), so there is no empty room after it.
+          const span = i === STORY_STEPS.length - 1 && wide && box ? r.height - (box.bottom - line) : r.height;
+          progress = Math.min(1, Math.max(0, (line - r.top) / Math.max(1, span)));
           // The accent line reaches from the step's top to just below its text, which stays
           // pinned beside the stage on wide screens, so the line grows as you scroll.
           const text = el.querySelector(':scope > div')?.getBoundingClientRect();
@@ -128,10 +128,11 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
               steps.current[i] = el;
             }}
             aria-current={i === step ? 'step' : undefined}
-            className="relative min-h-[36vh] border-t border-border pb-6 pt-8 ps-5 lg:min-h-[42vh] lg:last:min-h-[78vh]"
+            className={`relative min-h-[36vh] border-t border-border pb-6 pt-8 ps-5 transition-opacity duration-300 motion-reduce:transition-none lg:min-h-[28rem] ${i === step || !started ? '' : 'lg:opacity-30'}`}
           >
             {i === step && started ? <span aria-hidden="true" className="story-line absolute start-0 top-0 w-1 bg-accent" style={{ height: reach }} /> : null}
-            {/* On wide screens the text stays level with the stage's top while its step plays. */}
+            {/* On wide screens each step is as tall as the stage, so one step's text sits beside it at a time,
+                level with its top; the others fade. */}
             <div className="flex flex-col gap-2 lg:sticky lg:top-28">
               <span className="flex items-baseline gap-3">
                 <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>

@@ -3214,5 +3214,7 @@
   "legal.terms.s12.title": "Suspensión y terminación",
   "legal.terms.s12.body": "Podemos suspender el acceso que incumpla estos términos o ponga en riesgo a otros, avisando a la escuela cuando sea posible. Una escuela puede dejar de usar Sessional cuando quiera, sujeto a cualquier contrato que haya elegido; su información se borra entonces como se describe en el aviso de privacidad.",
   "legal.terms.s13.title": "Cambios, ley y contacto",
-  "legal.terms.s13.body": "Podemos actualizar estos términos y mostraremos la fecha arriba; los cambios importantes se anuncian primero a las escuelas, y los cambios de precios o planes nunca aplican a un periodo ya pagado ni a un contrato en curso. Estos términos se rigen por las leyes de {country}. Preguntas sobre estos términos: {email}."
+  "legal.terms.s13.body": "Podemos actualizar estos términos y mostraremos la fecha arriba; los cambios importantes se anuncian primero a las escuelas, y los cambios de precios o planes nunca aplican a un periodo ya pagado ni a un contrato en curso. Estos términos se rigen por las leyes de {country}. Preguntas sobre estos términos: {email}.",
+  "landing.footer.product": "Sessional",
+  "landing.footer.helpGroup": "Ayuda"
 }

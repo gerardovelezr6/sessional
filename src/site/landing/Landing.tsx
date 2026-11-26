@@ -148,13 +148,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
       </header>
 
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          {/* The opening and "How a session runs" are one story: the stage stands beside the headline
-              and plays each step beside its text as you scroll down. */}
-          <section className="pb-16 pt-12" aria-labelledby="hero-title">
-            <Story
-              names={storyNames(locale)}
-              L={storyLabels(t, locale)}
-              lead={
+          {/* The opening: what Sessional does, and one main action. */}
+          <section className="pb-14 pt-12" aria-labelledby="hero-title">
+            <div className="max-w-3xl">
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
@@ -185,9 +181,16 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               </div>
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-              }
+            </div>
+          </section>
+
+          {/* How a session runs: the stage plays each step beside its text as you scroll. */}
+          <section className="landing-rule pb-16 pt-12" aria-labelledby="session-title">
+            <Story
+              names={storyNames(locale)}
+              L={storyLabels(t, locale)}
               heading={
-                <div id="session" className="landing-rule flex scroll-mt-24 flex-col gap-3 pt-10">
+                <div id="session" className="flex scroll-mt-24 flex-col gap-3">
                   <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
                     {t('landing.session.title')}
                   </h2>
@@ -355,36 +358,72 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
         </main>
 
       <footer className="border-t border-border">
-        {/* Google's sign-in review asks the home page to say plainly what the app does. */}
-        <p className="mx-auto w-full max-w-6xl px-5 pt-6 text-sm">{t('home.about')}</p>
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-5 py-6 text-sm">
-          <span>{t('landing.footer.made')}</span>
-          <nav aria-label={t('legal.links')} className="flex gap-6">
-            <Link className="underline underline-offset-4 hover:decoration-2" href="/privacy">
-              {t('legal.privacy.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href="/terms">
-              {t('legal.terms.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/changelog${lang}`}>
-              {t('changelog.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/gallery${lang}`}>
-              {t('gallery.public.title')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/help${lang}`}>
-              {t('landing.footer.help')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/support${lang}`}>
-              {t('landing.footer.support')}
-            </Link>
-            <Link className="underline underline-offset-4 hover:decoration-2" href={`/status${lang}`}>
-              {t('landing.footer.status')}
-            </Link>
-          </nav>
-          <a className="ms-auto underline underline-offset-4 hover:decoration-2" href={appUrl}>
-            {t('landing.signIn')}
-          </a>
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-5 py-10 text-sm md:grid-cols-[2fr_1fr_1fr_1fr]">
+          <div className="col-span-2 flex flex-col gap-3 md:col-span-1">
+            <p className="font-semibold text-on-surface">{t('landing.footer.made')}</p>
+            {/* Google's sign-in review asks the home page to say plainly what the app does. */}
+            <p className="max-w-md">{t('home.about')}</p>
+          </div>
+            <nav aria-label={t('landing.footer.product')} className="flex flex-col gap-3">
+              <h2 className="label-text">{t('landing.footer.product')}</h2>
+              <ul className="flex flex-col gap-2">
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"#session"}>
+                    {t('landing.nav.session')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"#pricing"}>
+                    {t('landing.nav.pricing')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/changelog${lang}`}>
+                    {t('changelog.title')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/gallery${lang}`}>
+                    {t('gallery.public.title')}
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+            <nav aria-label={t('landing.footer.helpGroup')} className="flex flex-col gap-3">
+              <h2 className="label-text">{t('landing.footer.helpGroup')}</h2>
+              <ul className="flex flex-col gap-2">
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/help${lang}`}>
+                    {t('landing.footer.help')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/support${lang}`}>
+                    {t('landing.footer.support')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={`/status${lang}`}>
+                    {t('landing.footer.status')}
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+            <nav aria-label={t('legal.links')} className="flex flex-col gap-3">
+              <h2 className="label-text">{t('legal.links')}</h2>
+              <ul className="flex flex-col gap-2">
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"/privacy"}>
+                    {t('legal.privacy.title')}
+                  </Link>
+                </li>
+                <li>
+                  <Link className="underline-offset-4 hover:underline" href={"/terms"}>
+                    {t('legal.terms.title')}
+                  </Link>
+                </li>
+              </ul>
+            </nav>
         </div>
       </footer>
     </div>

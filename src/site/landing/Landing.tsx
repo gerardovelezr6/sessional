@@ -14,8 +14,8 @@ import { SectionNav } from './SectionNav';
 import { Tabs } from './Tabs';
 
 // The marketing page. Left-aligned, plain words, real pieces of the product; nothing promised that
-// is not built, except under "Coming next", which says so. Long lists are grouped or folded so the
-// page stays short, and a sticky list of sections shows where you are.
+// is not built. Long lists are grouped or folded so the page stays short, and a sticky list of
+// sections shows where you are.
 
 export interface PlanRow {
   key: string;
@@ -33,6 +33,7 @@ interface Props {
   plans: PlanRow[] | null;
   // Self-serve signup works only when email can be sent (to prove the address).
   signup: boolean;
+  captcha: { siteKey: string; script: string } | null;
 }
 
 const ORGANIZERS = {
@@ -40,7 +41,6 @@ const ORGANIZERS = {
   during: ['analytics', 'access', 'documents', 'print'],
   after: ['grading', 'history', 'export', 'audit'],
 } as const;
-const NEXT = ['email', 'gallery', 'help'] as const;
 const FAQ = ['accounts', 'wifi', 'rules', 'spanish', 'data', 'cost'] as const;
 const LIMITS = ['committees', 'delegates', 'staff', 'active_conferences'] as const;
 const NOT_COUNTRIES = new Set(['EU', 'UN']);
@@ -88,6 +88,8 @@ function contactLabels(t: Translate): ContactLabels {
     failed: t('contact.form.failed'),
     privacy: t('contact.form.privacy'),
     website: t('contact.form.website'),
+    captcha: t('captcha.label'),
+    captchaFailed: t('captcha.failed'),
   };
 }
 
@@ -104,7 +106,7 @@ function storyLabels(t: Translate, locale: string): StoryLabels {
   };
 }
 
-export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
+export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props) {
   const lang = locale === 'es' ? '?lang=es' : '';
   const nameOf = (p: PlanRow) => p.name[locale] ?? p.name.en ?? p.key;
   const money = (amount: number, currency: string) => `${new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
@@ -120,7 +122,6 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
     { id: 'organizers', text: t('landing.nav.organisers') },
     { id: 'pricing', text: t('landing.nav.pricing') },
     { id: 'contact', text: t('landing.nav.contact') },
-    { id: 'next', text: t('landing.nav.next') },
   ];
   return (
     <div className="landing-page flex flex-1 flex-col bg-surface text-on-surface-muted">
@@ -147,13 +148,8 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
       </header>
 
         <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          {/* The opening and "How a session runs" are one story: the stage stands beside the headline
-              and plays the session as you scroll down through the steps. */}
-          <section className="pb-16 pt-12" aria-labelledby="hero-title">
-            <Story
-              names={storyNames(locale)}
-              L={storyLabels(t, locale)}
-              lead={
+          {/* The opening: what Sessional does, and one main action. */}
+          <section className="max-w-3xl pb-14 pt-12" aria-labelledby="hero-title">
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
@@ -184,9 +180,15 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
               </div>
               <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-              }
+          </section>
+
+          {/* How a session runs: the stage plays the session beside the steps as you scroll. */}
+          <section className="landing-rule pb-16 pt-12" aria-labelledby="session-title">
+            <Story
+              names={storyNames(locale)}
+              L={storyLabels(t, locale)}
               heading={
-                <div id="session" className="landing-rule flex scroll-mt-24 flex-col gap-3 pt-10">
+                <div id="session" className="flex scroll-mt-24 flex-col gap-3">
                   <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
                     {t('landing.session.title')}
                   </h2>
@@ -337,20 +339,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
               </p>
             </div>
             <div className="landing-frame bg-surface-raised p-5 text-on-surface-muted sm:p-6">
-              <ContactForm L={contactLabels(t)} locale={locale} countries={countries} />
+              <ContactForm L={contactLabels(t)} locale={locale} countries={countries} captcha={captcha} />
             </div>
           </section>
-
-          <Section id="next" title={t('landing.next.title')} intro={t('landing.next.intro')}>
-            <ul className="grid grid-cols-1 gap-x-10 md:grid-cols-3">
-              {NEXT.map((n) => (
-                <li key={n} className="border-t border-border py-4">
-                  <span className="font-semibold text-on-surface">{t(`landing.next.${n}.title` as MessageKey)}</span>
-                  <span className="mt-1 block text-sm">{t(`landing.next.${n}.body` as MessageKey)}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
 
           <Section id="questions" title={t('landing.faq.title')}>
             <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2">
@@ -384,6 +375,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup }: Props) {
             </Link>
             <Link className="underline underline-offset-4 hover:decoration-2" href={`/help${lang}`}>
               {t('landing.footer.help')}
+            </Link>
+            <Link className="underline underline-offset-4 hover:decoration-2" href={`/support${lang}`}>
+              {t('landing.footer.support')}
             </Link>
             <Link className="underline underline-offset-4 hover:decoration-2" href={`/status${lang}`}>
               {t('landing.footer.status')}

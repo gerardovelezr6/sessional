@@ -35,6 +35,8 @@ const ROOT = [
   ['the help center', '/help'],
   ['a help article', '/help/high-command-guide?lang=es'],
   ['the home page in Spanish', '/?lang=es'],
+  ['the support page', '/support'],
+  ['the terms', '/terms'],
 ] as const;
 
 for (const mode of ['normal', 'high contrast and larger text'] as const) {
@@ -74,6 +76,8 @@ for (const mode of ['normal', 'high contrast and larger text'] as const) {
         ['design settings', '/settings?section=theme'],
         ['help', '/help'],
         ['community gallery', '/owner/gallery'],
+        ['billing', '/owner/billing'],
+        ['conference documents', '/admin/documents'],
       ] as const) {
         await page.goto(at('alpha.localhost', path));
         await audit(page, name);
@@ -96,6 +100,8 @@ for (const mode of ['normal', 'high contrast and larger text'] as const) {
         ['gallery review', '/gallery'],
         ['inbox', '/inbox'],
         ['support', '/support'],
+        ['referrals', '/referrals'],
+        ['billing overview', '/billing'],
       ] as const) {
         await page.goto(at('admin.localhost', path));
         await audit(page, name);

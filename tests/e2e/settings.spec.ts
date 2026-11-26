@@ -27,11 +27,15 @@ test('a chair sees no settings link and cannot open settings', async ({ page }) 
 test('settings open from the header, one section at a time, with a grouped menu', async ({ page }) => {
   await signIn(page, 'owner@epsilon.test');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
-  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Settings' }).click();
+  // One grouped menu for the whole Owner area; settings sections are items in it.
+  const menu = page.getByRole('navigation', { name: 'Owner menu' });
+  for (const group of ['Start', 'Your conference', 'Look and website', 'People and access', 'School and account']) await expect(menu.getByText(group, { exact: true })).toBeVisible();
+  await expect(menu.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+  await expect(menu.getByRole('link', { name: 'Organization' })).toHaveCount(0);
+  await menu.getByRole('link', { name: 'Identity' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
-  const menu = page.getByRole('navigation', { name: 'Sections' });
-  await expect(menu.getByRole('link')).toHaveText(['Identity', 'Modules', 'Website', 'Public pages', 'Printing', 'Announcements', 'Design', 'Committee types', 'Rules of procedure', 'Grading and awards', 'Language', 'Words', 'Translations', 'People and sign-in', 'Access code', 'Email', 'White-label and sign-in', 'Legal pages', 'Consent']);
   await expect(menu.getByRole('link', { name: 'Identity' })).toHaveAttribute('aria-current', 'page');
+  await expect(menu.locator('[aria-current]')).toHaveCount(1);
   await expect(page.locator('section#identity')).toBeVisible();
   await expect(page.locator('section#theme')).toHaveCount(0);
 
@@ -88,7 +92,7 @@ test('a saved draft is not live; preview shows it only to the editor; publishing
   await expect(language.getByRole('status')).toHaveText('Draft saved. It is not live until you publish it.');
   await expect(language.getByText(/^You have unpublished changes, saved /)).toBeVisible();
   // The menu marks the section with a draft.
-  await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Language •' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Language •' })).toBeVisible();
   await expect(language.getByLabel('Show Spanish (español) first')).toBeChecked();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Settings');
 

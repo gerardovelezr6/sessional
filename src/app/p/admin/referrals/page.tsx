@@ -30,6 +30,7 @@ export default async function AdminReferrals({ searchParams }: { searchParams: P
   const referrals = await rpc<Referral[]>('platform_referrals', {}, a);
   const { done } = await searchParams;
   const site = `${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}`;
+  const linkOf = (code: string) => new URL(`/?ref=${encodeURIComponent(code)}`, site).toString();
   const discount = (r: Referral) =>
     !r.percent_off ? t('platform.referrals.noDiscount') : r.duration_months ? t('platform.referrals.discountMonths', { percent: r.percent_off, months: r.duration_months }) : t('platform.referrals.discountOnce', { percent: r.percent_off });
 
@@ -87,7 +88,7 @@ export default async function AdminReferrals({ searchParams }: { searchParams: P
                     </td>
                     <td>
                       <span className="block font-mono text-xs" translate="no">
-                        {`${site}/?ref=${r.code}`}
+                        {linkOf(r.code)}
                       </span>
                       <span className="block text-xs">{t('platform.referrals.code', { code: r.code })}</span>
                     </td>

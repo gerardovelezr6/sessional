@@ -30,9 +30,9 @@ export interface StoryLabels {
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ''));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-// `lead` is the page's opening (headline and actions) and `heading` the section's title: both sit in
-// the left column above the steps, so the stage stands beside the headline from the top of the page.
-export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Record<string, string>; lead: React.ReactNode; heading: React.ReactNode }) {
+// `heading` is the section's title. The stage stands beside it, its top level with the title, and
+// stays pinned beside the steps until the section ends.
+export function Story({ L, names, heading }: { L: StoryLabels; names: Record<string, string>; heading: React.ReactNode }) {
   const [step, setStep] = useState(0);
   const [p, setP] = useState(0);
   const [started, setStarted] = useState(false);
@@ -80,10 +80,9 @@ export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Reco
   const key = STORY_STEPS[step]!;
   return (
     <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[1fr_1.1fr]">
-      <div className="lg:col-start-1">{lead}</div>
-      <div className="lg:col-start-1">{heading}</div>
-      {/* The pinned stage: beside the headline on wide screens; under the section title on phones. */}
-      <div className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:top-24 lg:mt-12">
+      <div className="lg:col-start-1 lg:row-start-1">{heading}</div>
+      {/* The pinned stage: beside the section on wide screens, level with its title; under the title on phones. */}
+      <div className="sticky top-[6.5rem] z-10 self-start md:top-20 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:top-24">
         <div className="landing-frame bg-surface-raised" aria-hidden="true">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs">
             <span className="font-semibold text-on-surface">{S.committee}</span>
@@ -107,7 +106,7 @@ export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Reco
         </div>
       </div>
 
-      <ol className="story-steps flex flex-col lg:col-start-1">
+      <ol className="story-steps flex flex-col lg:col-start-1 lg:row-start-2">
         {STORY_STEPS.map((s, i) => (
           <li
             key={s}
@@ -115,7 +114,7 @@ export function Story({ L, names, lead, heading }: { L: StoryLabels; names: Reco
               steps.current[i] = el;
             }}
             aria-current={i === step ? 'step' : undefined}
-            className="flex min-h-[36vh] flex-col justify-center gap-2 border-s-4 border-t border-s-transparent border-t-border py-6 ps-4 transition-colors duration-300 motion-reduce:transition-none lg:min-h-[42vh] aria-[current=step]:border-s-accent"
+            className="flex min-h-[36vh] flex-col justify-start gap-2 border-s-4 border-t border-s-transparent border-t-border pb-6 pt-8 ps-4 transition-colors duration-300 motion-reduce:transition-none lg:min-h-[42vh] aria-[current=step]:border-s-accent"
           >
             <span className="flex items-baseline gap-3">
               <span className="landing-serif text-3xl text-on-surface">{i + 1}</span>

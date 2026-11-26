@@ -699,6 +699,33 @@ removes images and people's names).
   rules, invites a chair who accepts, runs a session in one of several committees, pairs a
   projection screen, grades, exports, pays, and nowhere is there a trace of PASMUN.
 
+## Contracts, organizations, documents, support (after Phase 17)
+
+- **Plans** carry `terms` (contract months and discount) and `volume` (per-school discount steps).
+  Retired prices stay for schools on them but `plans_public` hides them. A contract's discount is a
+  repeating Stripe coupon; `term_months` in Checkout's metadata sets `tenant_billing.commitment_until`.
+  During a contract, downgrades are refused and cancelling sets Stripe's `cancel_at` to its end.
+- **Payment status without the webhook**: `src/billing/sync.ts` reads the Checkout session (on
+  return, `session_id` in the URL) or the subscription ("Check payment status") and applies it
+  through `billing_stripe_event` with an id derived from its content, so it is idempotent with the
+  webhook.
+- **Organizations (Circuit)**: `organisation_members` names who manages an organization's account.
+  `organisation_overview`, `organisation_add_school` (creates the school on the same account and the
+  subscription's quantity follows) and `organisation_add_manager`. Subscription status is copied to
+  every school of the account. Owner → Organization copies settings between schools as drafts.
+- **Referrals**: `?ref=` on the main site sets the `s_ref` cookie; signup records the code, and the
+  school inherits it. At Checkout the partner's promotion code is applied without typing.
+  Admin → Referrals lists partners, their link and schools; a school can be assigned by hand.
+- **Owner menu**: `src/site/OwnerNav.tsx`, one grouped side menu for the Owner area, with settings
+  sections as items (no second menu on Settings). Admin console: `AdminShell` with a grouped sidebar.
+- **Conference documents**: private bucket `conference-documents`, table `conference_documents`
+  (audience staff, members or public), High Command → Global documents, `/documents` for members,
+  the public page for public ones. Files are read and written only by the server.
+- **Support**: `/support` on the main site files into `contact_requests` with `kind = 'support'`
+  and a topic; the admin inbox shows both kinds.
+- **Captcha**: `src/platform/captcha.ts` (Cloudflare Turnstile) on signup, contact and support;
+  off without its keys.
+
 ## Documentation map
 
 | File | For |

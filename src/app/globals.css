@@ -119,6 +119,15 @@
   }
 
   /* The settings menu: a vertical list on wide screens, a row on narrow ones. */
+  /* File pickers look like the other buttons. */
+  input[type='file'] { @apply text-sm text-on-surface-muted; }
+  input[type='file']::file-selector-button {
+    @apply me-3 cursor-pointer rounded-control border-border-strong bg-surface-raised text-sm font-semibold text-on-surface;
+    border-style: solid;
+    border-width: var(--s-border-width);
+    padding: var(--s-space-control-y) var(--s-space-control-x);
+  }
+
   /* Data tables: labels aligned with their columns, rows separated, numbers in even columns. */
   .table { @apply w-full border-collapse text-start; }
   .table th {

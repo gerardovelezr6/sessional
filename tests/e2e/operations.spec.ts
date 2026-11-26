@@ -126,7 +126,7 @@ test('only the Owner resets the school, by typing its name', async ({ page, brow
 
   await signIn(page, 'owner@ops.test');
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Owner' }).click();
-  await page.getByRole('navigation', { name: 'Owner settings' }).getByRole('link', { name: 'Reset' }).click();
+  await page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Reset' }).click();
   await expect(page.getByText(/^2 conferences, 2 committees/)).toBeVisible();
   await page.getByLabel(/Type the school’s name to confirm/).fill('ops school');
   await page.getByRole('button', { name: 'Remove every conference' }).click();

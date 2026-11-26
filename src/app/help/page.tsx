@@ -34,7 +34,7 @@ export default async function HelpCenter({ searchParams }: { searchParams: Promi
       </div>
       <p className="mt-8 text-sm">
         {t('helpCenter.more')}{' '}
-        <a className="font-semibold underline underline-offset-2" href={`/${lang}#contact`}>
+        <a className="font-semibold underline underline-offset-2" href={`/support${lang}`}>
           {t('helpCenter.write')}
         </a>
       </p>

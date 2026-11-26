@@ -9,8 +9,9 @@ You run the conference: committees, chairs, the schedule and announcements. You 
 2. **Delegations.** **Import** reads your spreadsheet (CSV, Excel or Google Sheets). It shows a preview with the rows it can't read and why, imports the good ones, and can be undone.
 3. **Chairs.** Assign each chair to their committees. Ask your advisor to invite anyone who isn't in **People** yet.
 4. **Schedule.** **Schedule** lists every session, ceremony and break; the home page and public pages show it.
-5. **Print.** **Print** makes placards, sign-in sheets, agendas and certificates in your school's design.
-6. **Rehearse.** Run a session in a committee with your chairs a few days before.
+5. **Documents.** **Global documents** holds files for the whole conference: rules of procedure, the delegate handbook, the dress code. Choose who sees each: staff, everyone signed in, or the public pages. Don't upload anything with students' personal information.
+6. **Print.** **Print** makes placards, sign-in sheets, agendas and certificates in your school's design.
+7. **Rehearse.** Run a session in a committee with your chairs a few days before.
 
 ## During the conference
 - **Live analytics** shows every committee at once: in session or not, roll call, the current speaker, votes.

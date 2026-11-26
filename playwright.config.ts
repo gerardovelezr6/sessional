@@ -52,6 +52,11 @@ export default defineConfig({
         VERCEL_PROJECT_ID: 'prj_test',
         VERCEL_API_URL: `http://localhost:${MOCK_PORT}/vercel`,
         DOH_URL: `http://localhost:${MOCK_PORT}/doh`,
+        // The "are you a person" check on public forms, against a stand-in that always passes.
+        TURNSTILE_SITE_KEY: 'turnstile-site',
+        TURNSTILE_SECRET_KEY: 'turnstile-secret',
+        TURNSTILE_SCRIPT_URL: `http://localhost:${MOCK_PORT}/turnstile.js`,
+        TURNSTILE_VERIFY_URL: `http://localhost:${MOCK_PORT}/turnstile/verify`,
       },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

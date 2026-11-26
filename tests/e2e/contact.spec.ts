@@ -125,17 +125,27 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   expect(top).toBeLessThan(200);
 });
 
-test('the opening shows the story’s stage beside the headline, not a second console', async ({ page }) => {
+test('the story’s stage sits in its own section, level with its heading, and stays while the steps scroll by', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  await expect(page.getByRole('figure', { name: 'The chair’s console during a general debate' })).toHaveCount(0);
+  // The opening is text only.
+  await expect(page.locator('#hero-title').locator('xpath=ancestor::section[1]').locator('.story-stage')).toHaveCount(0);
   const stage = page.locator('.story-stage');
+  await page.locator('#session').scrollIntoViewIfNeeded();
   await expect(stage).toBeVisible();
-  await expect(page.getByText('Scroll to start ↓')).toBeVisible();
-  // The stage starts level with the headline.
-  const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
-  const box = await stage.boundingBox();
-  expect(Math.abs(box!.y - h1!.y)).toBeLessThan(160);
+  // The stage starts level with the section’s heading.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const heading = await page.getByRole('heading', { level: 2, name: 'How a session runs' }).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+  const top = await stage.evaluate((el) => el.closest('.sticky')!.getBoundingClientRect().top + window.scrollY);
+  expect(Math.abs(top - heading)).toBeLessThan(24);
+  // Halfway through the section it is still on screen.
+  const section = page.locator('section[aria-labelledby="session-title"]');
+  const box = (await section.evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: el.getBoundingClientRect().height })));
+  await page.evaluate((y) => window.scrollTo(0, y), box.top + box.height / 2 - 200);
+  await page.waitForTimeout(300);
+  const seen = await stage.boundingBox();
+  expect(seen!.y).toBeGreaterThanOrEqual(0);
+  expect(seen!.y + seen!.height).toBeLessThanOrEqual(800);
 });
 
 test('the three screens run on one clock while on screen, can be paused, and start paused for less motion', async ({ page, browser }) => {

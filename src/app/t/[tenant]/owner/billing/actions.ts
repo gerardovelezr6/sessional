@@ -63,7 +63,7 @@ export async function choosePlanAction(tenantKey: string, planKey: string, price
   const plan = plans.find((p) => p.key === planKey);
   const price = plan?.prices.find((p) => p.key === priceKey);
   if (!plan || !price?.stripe_price_id) return { error: t('billing.error.price') };
-  const term = months ? plan.terms.find((x) => x.months === months) : undefined;
+  const term = months ? (plan.terms ?? []).find((x) => x.months === months) : undefined;
   if (months && (!term || price.interval === 'conference')) return { error: t('billing.error.price') };
   const state = await rpc<{ usage: Usage; plan: string | null } | null>('billing_state', { p_tenant: tenant.id }, { token }).catch(() => null);
   try {

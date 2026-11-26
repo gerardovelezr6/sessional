@@ -25,7 +25,7 @@ const outbox = async (page: Page, to: string) => (await (await page.request.get(
 test('a custom domain: the guidance matches a live DNS check, then it verifies and becomes the main address', async ({ page, browser }) => {
   await signIn(page, brand('/login'), 'owner@brand.test');
   await page.goto(brand('/owner'));
-  await page.getByRole('link', { name: /^Domains/ }).click();
+  await page.getByRole('link', { name: 'Domains', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Domains');
   const form = page.getByRole('region', { name: 'Add a domain' });
 

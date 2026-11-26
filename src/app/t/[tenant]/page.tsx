@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { rpc } from '@/data/rpc';
 import { redirect } from 'next/navigation';
 import { PoweredBy } from '@/components/PoweredBy';
 import { Shell } from '@/components/Shell';
@@ -158,6 +159,8 @@ export default async function TenantHome({ params, searchParams }: { params: Pro
     }
   };
   const blocks = site.home.filter((b) => b.visible).map((b) => ({ key: b.key, node: render(b) }));
+  // The conference's documents, for members (Documents under High Command).
+  const docs = (await rpc<{ id: string; title: string }[] | null>('conference_documents_list', { p_tenant: tenant.id }, { token: ctx.token }).catch(() => null)) ?? [];
 
   return (
     <main id="main" className="flex flex-1 flex-col items-center px-4 py-8">
@@ -170,6 +173,23 @@ export default async function TenantHome({ params, searchParams }: { params: Pro
         )}
         <GettingStarted t={t} base={base} ctx={ctx} tenantId={tenant.id} tenantKey={key} firstCommittee={mine[0]?.id ?? committees[0]?.id ?? null} welcome={(await searchParams).welcome} />
         {blocks.map((b) => (b.node ? <div key={b.key}>{b.node}</div> : null))}
+        {docs.length ? (
+          <section className="flex flex-wrap items-center gap-2" aria-labelledby="home-documents">
+            <h2 id="home-documents" className="label-text me-2">
+              {t('confdocs.title')}
+            </h2>
+            {docs.slice(0, 6).map((d) => (
+              <a key={d.id} href={`${base}/documents/${d.id}`} className="btn btn-secondary btn-sm">
+                {d.title}
+              </a>
+            ))}
+            {docs.length > 6 ? (
+              <a href={`${base}/documents`} className="text-sm font-semibold underline underline-offset-2">
+                {t('confdocs.all', { count: docs.length })}
+              </a>
+            ) : null}
+          </section>
+        ) : null}
       </div>
       <PoweredBy locale={locale} />
     </main>

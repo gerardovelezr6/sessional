@@ -143,14 +143,14 @@ test('a forged image path pointing at another school is refused', async ({ page 
 
 test('the settings menu marks the section being edited, in the school\'s style', async ({ page }) => {
   const design = await openDesign(page);
-  const current = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Design' });
+  const current = page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Design' });
   await expect(current).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('navigation', { name: 'Sections' }).locator('[aria-current]')).toHaveCount(1);
+  await expect(page.getByRole('navigation', { name: 'Owner menu' }).locator('[aria-current]')).toHaveCount(1);
   expect(await current.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('inset');
 
   // After saving, the same section is shown again.
   await choose(design, 'Tabs', 'Outlined');
   await design.getByRole('button', { name: 'Save draft' }).click();
   await page.waitForURL(/section=theme/);
-  await expect(page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Design •' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('navigation', { name: 'Owner menu' }).getByRole('link', { name: 'Design •' })).toHaveAttribute('aria-current', 'page');
 });

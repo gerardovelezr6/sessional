@@ -153,11 +153,19 @@ Stay in **test mode** until the checklist at the end is done.
    `https://sessional.app/api/stripe/webhook`, with the events `checkout.session.completed`,
    `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`,
    `invoice.paid`, `invoice.payment_failed`. Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+   Vercel's preview protection blocks Stripe from reaching preview deployments; that is fine: when
+   someone returns from Checkout, the billing page confirms the payment with Stripe itself, and
+   **Check payment status** does the same later. The webhook still matters for renewals and
+   failed payments, so point it at Production (or turn off protection for one preview while testing).
 3. **Daily job.** Add `CRON_SECRET` (any long random string). `vercel.json` already asks Vercel to
    call `/api/cron/billing` once a day with it; it re-reads subscriptions from Stripe and moves
    schools whose trial, grace or pass ran out.
 4. **Prices.** Sign in to `admin.sessional.app` → Plans, adjust prices if you like, then press
-   **Create the missing prices in Stripe**.
+   **Create the missing prices in Stripe**. Starter and Institution are monthly only; their yearly
+   prices are kept for schools already on them but no longer offered. Circuit's price is per school
+   and drops with volume (its steps are on the plan), so press the button again after this
+   upgrade: it creates Circuit's tiered prices. Contract discounts (24 and 36 months) are Stripe
+   coupons, created the first time a school chooses one.
 5. **Customer portal.** Stripe → Settings → Billing → Customer portal → Activate (payment methods,
    invoices, billing details). Plan changes are made in Sessional, not in the portal.
 6. **Run the database changes** (`supabase/schema.sql` from `main`, as for every phase).
@@ -170,6 +178,16 @@ Before the first real charge (open question 7):
 - Stripe Tax: set your origin address and registrations, then set `STRIPE_AUTOMATIC_TAX=on`.
   Until then Checkout collects the customer's tax ID and address but adds no tax.
 - Switch Vercel to Pro (Hobby is non-commercial), and create the live webhook and live prices.
+
+### The "are you a person" check (Cloudflare Turnstile)
+
+Signup, the contact form and the support page check that a person sends them. Optional: without
+the keys the honeypot, timing checks and rate limits still apply.
+
+1. Cloudflare dashboard → Turnstile → Add widget. Hostname: `sessional.app` (add your preview
+   domain too). Mode: **Managed**.
+2. In Vercel add `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (secret: Production and Preview,
+   never in code). Redeploy.
 
 ## 6. Schools' emails, domains and white-label (Phase 15)
 

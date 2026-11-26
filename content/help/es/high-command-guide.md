@@ -9,8 +9,9 @@ Organizas la conferencia: comités, mesas, horario y anuncios. No puedes cambiar
 2. **Delegaciones.** **Importar** lee tu hoja de cálculo (CSV, Excel o Google Sheets). Muestra una vista previa con las filas que no puede leer y por qué, importa las buenas y se puede deshacer.
 3. **Mesas.** Asigna cada mesa a sus comités. Pide a tu asesor que invite a quien todavía no esté en **Personas**.
 4. **Horario.** **Horario** reúne cada sesión, ceremonia y receso; el inicio y las páginas públicas lo muestran.
-5. **Imprimir.** **Imprimir** genera plaquetas, hojas de registro, órdenes del día y constancias con el diseño de tu escuela.
-6. **Ensaya.** Unos días antes, dirige una sesión de prueba con tus mesas.
+5. **Documentos.** **Documentos generales** guarda archivos para toda la conferencia: el reglamento, el manual del delegado, el código de vestimenta. Elige quién ve cada uno: el personal, todas las personas con sesión iniciada o las páginas públicas. No subas nada con información personal de estudiantes.
+6. **Imprimir.** **Imprimir** genera plaquetas, hojas de registro, órdenes del día y constancias con el diseño de tu escuela.
+7. **Ensaya.** Unos días antes, dirige una sesión de prueba con tus mesas.
 
 ## Durante la conferencia
 - **Estadísticas en vivo** muestra todos los comités a la vez: si están en sesión, el pase de lista, quién habla y las votaciones.

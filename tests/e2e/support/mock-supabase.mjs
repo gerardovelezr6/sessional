@@ -287,6 +287,7 @@ const rpcs = {
 const EDITS = {};
 // Uploaded files: path -> { type, bytes }.
 const FILES = new Map();
+const DOCS = new Map(); // private conference documents, by path
 const DENIED = { status: 403, body: { code: '42501', message: 'new row violates row-level security policy' } };
 function sectionOf(tenant, section) {
   return ((EDITS[tenant] ??= {})[section] ??= { published_version: null, draft: null, versions: [] });
@@ -1449,11 +1450,20 @@ const PLANS = [
     prices: [{ key: 'month_usd', interval: 'month', currency: 'usd', amount: 1900 }, { key: 'month_mxn', interval: 'month', currency: 'mxn', amount: 34900 }] },
   { key: 'conference', name: { en: 'Conference', es: 'Conferencia' }, description: { en: 'One real conference.' }, limits: { committees: 25, delegates: 750, staff: 60, active_conferences: 1, storage_mb: 10240 }, features: { custom_domain: true }, per_school: false, public: true, sort: 2,
     prices: [{ key: 'year_usd', interval: 'year', currency: 'usd', amount: 59000 }, { key: 'year_mxn', interval: 'year', currency: 'mxn', amount: 1069000 }] },
+  { key: 'institution', name: { en: 'Institution', es: 'Institución' }, description: { en: 'A school that runs conferences every year.' }, limits: { committees: 60, delegates: 2000, staff: 200, active_conferences: 2, storage_mb: 51200 }, features: { custom_domain: true, own_sender: true, white_label: true, legal_pages: true }, per_school: false, public: true, sort: 3,
+    terms: [{ months: 24, percent_off: 15 }, { months: 36, percent_off: 20 }],
+    prices: [{ key: 'month_usd', interval: 'month', currency: 'usd', amount: 14900 }, { key: 'month_mxn', interval: 'month', currency: 'mxn', amount: 269900 }] },
+  { key: 'circuit', name: { en: 'Circuit', es: 'Circuito' }, description: { en: 'An organization running several schools.' }, limits: { committees: 40, delegates: 1500, staff: 120, active_conferences: 2, storage_mb: 20480 }, features: { custom_domain: true, own_sender: true, white_label: true, legal_pages: true, organisation: true }, per_school: true, public: true, sort: 4,
+    terms: [{ months: 24, percent_off: 15 }, { months: 36, percent_off: 20 }], volume: [{ from: 5, percent_off: 10 }, { from: 10, percent_off: 20 }],
+    prices: [{ key: 'month_usd', interval: 'month', currency: 'usd', amount: 12900 }, { key: 'month_mxn', interval: 'month', currency: 'mxn', amount: 229900 }] },
 ].map((p) => ({ ...p, prices: p.prices.map((x) => ({ ...x, stripe_price_id: priceId(p.key, x.key) })) }));
 const tenantBilling = {}; // tenant -> billing row
 const billingAccounts = []; // { id, name, customer, organisation }
 const stripeEvents = new Set();
 const referralPartners = [];
+const organisationManagers = []; // { account_id, user_id }
+let stripeWebhooksOn = true;
+const checkoutSessions = new Map();
 const planOf = (key) => PLANS.find((p) => p.key === key) ?? PLANS[0];
 const billingUsage = (tenant) => {
   const conf = activeConference(tenant);
@@ -1491,13 +1501,21 @@ Object.assign(rpcs, {
   billing_state: ({ p_tenant }, userId) => {
     if (!can(userId, p_tenant, 'tenant.manage')) return { body: null };
     const b = tenantBilling[p_tenant];
-    return { body: { ...entitlementsOf(p_tenant), usage: billingUsage(p_tenant), organisation: accountOf(p_tenant)?.organisation ?? null, has_customer: !!accountOf(p_tenant)?.customer, has_subscription: !!b?.subscription } };
+    const a = accountOf(p_tenant);
+    const r = referralPartners.find((x) => x.code === b?.referral_code);
+    const siblings = a ? Object.values(tenantBilling).filter((x) => x.account_id === a.id).length : 1;
+    return { body: { ...entitlementsOf(p_tenant), usage: billingUsage(p_tenant), organisation: a?.organisation ?? null, organisation_name: a?.organisation ? a.name : null,
+      organisation_manager: !!a?.organisation && organisationManagers.some((m) => m.account_id === a.id && m.user_id === userId), pays: !a?.organisation || !!b?.subscription, schools: siblings,
+      has_customer: !!a?.customer, has_subscription: !!(b?.subscription ?? a?.subscription), commitment_months: b?.commitment_months ?? null, commitment_until: b?.commitment_until ?? null,
+      referral: r ? { code: r.code, name: r.name, percent_off: r.percent_off, duration_months: r.duration_months ?? null } : null } };
   },
   billing_server_get: ({ p_tenant }) => {
     const t = tenantRow(p_tenant);
     const b = tenantBilling[p_tenant];
     const a = accountOf(p_tenant);
-    return { body: { tenant_id: t.id, slug: t.slug, name: t.name, status: t.status, plan_key: b?.plan_key ?? null, price_key: b?.price_key ?? null, billing_status: b?.billing_status ?? null, account_id: a?.id ?? null, customer: a?.customer ?? null, organisation: a?.organisation ?? false, subscription: b?.subscription ?? null, schools: 1 } };
+    return { body: { tenant_id: t.id, slug: t.slug, name: t.name, status: t.status, plan_key: b?.plan_key ?? null, price_key: b?.price_key ?? null, billing_status: b?.billing_status ?? null, account_id: a?.id ?? null, customer: a?.customer ?? null, organisation: a?.organisation ?? false, subscription: b?.subscription ?? null,
+      account_subscription: a?.subscription ?? null, schools: a ? Object.values(tenantBilling).filter((x) => x.account_id === a.id).length : 1, commitment_until: b?.commitment_until ?? null,
+      referral_promotion: referralPartners.find((r) => r.code === b?.referral_code && r.active)?.stripe_promotion_code_id ?? null, referral_code: b?.referral_code ?? null } };
   },
   billing_server_set: ({ p_tenant, p_data }) => {
     const b = (tenantBilling[p_tenant] ??= { plan_key: null, billing_status: 'trialing', limit_overrides: {}, cancel_at_period_end: false });
@@ -1521,12 +1539,29 @@ Object.assign(rpcs, {
     if (p_event.type === 'checkout.session.completed') {
       b.subscription = o.subscription ?? b.subscription;
       if (o.metadata?.referral_code) b.referral_code = o.metadata.referral_code;
+      if (o.metadata?.term_months) {
+        b.commitment_months = Number(o.metadata.term_months);
+        const until = new Date();
+        until.setMonth(until.getMonth() + b.commitment_months);
+        b.commitment_until = until.toISOString();
+      }
+      if (o.metadata?.manager && planOf(o.metadata.plan)?.features?.organisation) {
+        const a = accountOf(tenant);
+        if (a) {
+          a.organisation = true;
+          a.subscription = o.subscription;
+          if (!organisationManagers.some((m) => m.account_id === a.id && m.user_id === o.metadata.manager)) organisationManagers.push({ account_id: a.id, user_id: o.metadata.manager });
+        }
+      }
       result = 'linked';
     } else if (p_event.type.startsWith('customer.subscription.')) {
       const plan = PLANS.find((p) => p.prices.some((x) => x.stripe_price_id === o.items.data[0].price.id));
       Object.assign(b, { subscription: o.id, billing_status: p_event.type.endsWith('deleted') ? 'canceled' : o.status, plan_key: plan?.key ?? b.plan_key,
-        current_period_end: new Date(o.items.data[0].current_period_end * 1000).toISOString(), cancel_at_period_end: !!o.cancel_at_period_end, grace_until: ['active', 'trialing'].includes(o.status) ? null : b.grace_until });
+        current_period_end: new Date(o.items.data[0].current_period_end * 1000).toISOString(), cancel_at_period_end: !!o.cancel_at_period_end || !!o.cancel_at, grace_until: ['active', 'trialing'].includes(o.status) ? null : b.grace_until });
       if (plan?.key === b.scheduled_plan_key) b.scheduled_plan_key = null;
+      // An organization's schools share its subscription's state.
+      const a = accountOf(tenant);
+      if (a?.organisation) for (const [id, x] of Object.entries(tenantBilling)) if (x.account_id === a.id && id !== tenant) { Object.assign(x, { billing_status: b.billing_status, plan_key: b.plan_key, current_period_end: b.current_period_end }); applyBillingState(id); }
       result = 'subscription';
     } else if (p_event.type === 'invoice.payment_failed') {
       Object.assign(b, { billing_status: 'past_due', grace_until: b.grace_until ?? new Date(Date.now() + 7 * 86400000).toISOString() });
@@ -1556,7 +1591,7 @@ Object.assign(rpcs, {
     applyBillingState(p_tenant);
     return { body: entitlementsOf(p_tenant) };
   },
-  platform_tenant_billing: ({ p_tenant }, userId) => (platformAdmins.has(userId) ? { body: { ...entitlementsOf(p_tenant), overrides: tenantBilling[p_tenant]?.limit_overrides ?? null, usage: billingUsage(p_tenant) } } : NOT_ADMIN),
+  platform_tenant_billing: ({ p_tenant }, userId) => (platformAdmins.has(userId) ? { body: { ...entitlementsOf(p_tenant), overrides: tenantBilling[p_tenant]?.limit_overrides ?? null, usage: billingUsage(p_tenant), referral_code: tenantBilling[p_tenant]?.referral_code ?? null, commitment_until: tenantBilling[p_tenant]?.commitment_until ?? null } } : NOT_ADMIN),
   platform_organisation_attach: ({ p_tenant, p_organisation, p_name }, userId) => {
     if (!platformAdmins.has(userId)) return NOT_ADMIN;
     let a = billingAccounts.find((x) => x.id === p_organisation && x.organisation);
@@ -1573,11 +1608,31 @@ Object.assign(rpcs, {
     for (const b of Object.values(tenantBilling)) byStatus[b.billing_status] = (byStatus[b.billing_status] ?? 0) + 1;
     return { body: { organisations: billingAccounts.filter((a) => a.organisation).map((a) => ({ id: a.id, name: a.name, schools: Object.entries(tenantBilling).filter(([, b]) => b.account_id === a.id).map(([id]) => ({ id, slug: tenantRow(id)?.slug, status: tenantRow(id)?.status })) })), by_status: byStatus, events: [...stripeEvents].map((id) => ({ id, type: '', result: '', received_at: new Date().toISOString() })) } };
   },
-  platform_referrals: (_b, userId) => (platformAdmins.has(userId) ? { body: referralPartners.map((r) => ({ ...r, schools: Object.values(tenantBilling).filter((b) => b.referral_code === r.code).length, paying: 0 })) } : NOT_ADMIN),
+  platform_referrals: (_b, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    return { body: referralPartners.map((r) => {
+      const schools = Object.entries(tenantBilling).filter(([, b]) => b.referral_code === r.code).map(([id, b]) => ({ id, slug: tenantRow(id)?.slug, name: tenantRow(id)?.name, billing_status: b.billing_status, plan: b.plan_key }));
+      return { ...r, duration_months: r.duration_months ?? null, signups: signups.filter((x) => x.referral_code === r.code).length, paying: schools.filter((x) => x.billing_status === 'active').length, schools };
+    }) };
+  },
   platform_referral_save: ({ p_data }, userId) => {
     if (!platformAdmins.has(userId)) return NOT_ADMIN;
-    referralPartners.push({ code: p_data.code, name: p_data.name, percent_off: p_data.percent_off, active: true, stripe_promotion_code_id: p_data.stripe_promotion_code_id });
+    const r = referralPartners.find((x) => x.code === p_data.code);
+    if (r) {
+      for (const k of ['name', 'percent_off', 'duration_months', 'stripe_promotion_code_id', 'active']) if (k in p_data && p_data[k] !== undefined) r[k] = p_data[k];
+    } else referralPartners.push({ code: p_data.code, name: p_data.name, percent_off: p_data.percent_off, duration_months: p_data.duration_months ?? null, active: p_data.active ?? true, stripe_promotion_code_id: p_data.stripe_promotion_code_id ?? null });
     return { body: true };
+  },
+  platform_referral_assign: ({ p_tenant, p_code }, userId) => {
+    if (!platformAdmins.has(userId)) return NOT_ADMIN;
+    if (p_code && !referralPartners.some((r) => r.code === p_code)) return { body: false };
+    (tenantBilling[p_tenant] ??= { plan_key: 'conference', billing_status: 'trialing', trial_ends_at: new Date(Date.now() + 14 * 86400000).toISOString(), limit_overrides: {}, cancel_at_period_end: false }).referral_code = p_code || null;
+    platformAudit(p_tenant, userId, 'platform.referral', p_tenant, { code: p_code });
+    return { body: true };
+  },
+  referral_public: ({ p_code }) => {
+    const r = referralPartners.find((x) => x.code === String(p_code ?? '').toUpperCase() && x.active);
+    return { body: r ? { name: r.name, percent_off: r.percent_off, duration_months: r.duration_months ?? null } : null };
   },
 });
 // Plan limits on committees made from the committee page.
@@ -1603,11 +1658,23 @@ async function stripeStandIn(method, url, raw) {
   if (method === 'POST' && url === '/stripe/v1/customers') return { body: { id: id('cus') } };
   if (method === 'POST' && url === '/stripe/v1/checkout/sessions') {
     const tenant = f.client_reference_id;
-    const sub = { id: id('sub'), object: 'subscription', customer: f.customer, status: 'active', cancel_at_period_end: false, metadata: { tenant_id: tenant }, items: { data: [{ id: id('si'), price: { id: f['line_items[0][price]'] }, quantity: Number(f['line_items[0][quantity]'] ?? 1), current_period_end: Math.floor(Date.now() / 1000) + 365 * 86400 }] } };
+    const metadata = Object.fromEntries(Object.entries(f).filter(([k]) => /^metadata\[\w+\]$/.test(k)).map(([k, v]) => [k.slice(9, -1), v]));
+    const sub = { id: id('sub'), object: 'subscription', customer: f.customer, status: 'active', cancel_at_period_end: false, cancel_at: null, start_date: Math.floor(Date.now() / 1000), metadata, items: { data: [{ id: id('si'), price: { id: f['line_items[0][price]'] }, quantity: Number(f['line_items[0][quantity]'] ?? 1), current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400 }] } };
     stripeSubs.set(sub.id, sub);
-    await webhook('checkout.session.completed', { object: 'checkout.session', mode: f.mode, customer: f.customer, subscription: sub.id, client_reference_id: tenant, metadata: { tenant_id: tenant } });
-    await webhook('customer.subscription.created', sub);
-    return { body: { id: id('cs'), url: f.success_url } };
+    const session = { id: id('cs'), object: 'checkout.session', status: 'complete', payment_status: 'paid', mode: f.mode, customer: f.customer, subscription: sub.id, client_reference_id: tenant, metadata,
+      discounts: f['discounts[0][coupon]'] ? [{ coupon: f['discounts[0][coupon]'] }] : f['discounts[0][promotion_code]'] ? [{ promotion_code: f['discounts[0][promotion_code]'] }] : [] };
+    checkoutSessions.set(session.id, session);
+    if (stripeWebhooksOn) {
+      await webhook('checkout.session.completed', session);
+      await webhook('customer.subscription.created', sub);
+    }
+    return { body: { id: session.id, url: f.success_url.replace('{CHECKOUT_SESSION_ID}', session.id) } };
+  }
+  const cs = /^\/stripe\/v1\/checkout\/sessions\/(cs_\w+)/.exec(url);
+  if (method === 'GET' && cs) {
+    const session = checkoutSessions.get(cs[1]);
+    if (!session) return { status: 404, body: { error: { message: 'No such checkout session' } } };
+    return { body: { ...session, subscription: url.includes('expand') ? stripeSubs.get(session.subscription) ?? session.subscription : session.subscription } };
   }
   if (method === 'POST' && url === '/stripe/v1/billing_portal/sessions') return { body: { id: id('bps'), url: `${f.return_url}?portal=1` } };
   if (method === 'GET' && url.startsWith('/stripe/v1/invoices')) {
@@ -1621,13 +1688,16 @@ async function stripeStandIn(method, url, raw) {
     if (!sub) return { status: 404, body: { error: { message: 'No such subscription' } } };
     if (method === 'POST') {
       if ('cancel_at_period_end' in f) sub.cancel_at_period_end = f.cancel_at_period_end === 'true';
+      if ('cancel_at' in f) sub.cancel_at = f.cancel_at ? Number(f.cancel_at) : null;
       if (f['items[0][price]']) sub.items.data[0].price.id = f['items[0][price]'];
-      await webhook('customer.subscription.updated', sub);
+      if (f['items[0][quantity]']) sub.items.data[0].quantity = Number(f['items[0][quantity]']);
+      if (stripeWebhooksOn) await webhook('customer.subscription.updated', sub);
     }
     return { body: sub };
   }
   if (method === 'POST' && url.startsWith('/stripe/v1/subscription_schedules')) return { body: { id: id('sub_sched') } };
-  if (method === 'POST' && ['/stripe/v1/products', '/stripe/v1/prices', '/stripe/v1/coupons', '/stripe/v1/promotion_codes'].includes(url)) return { body: { id: id(url.split('/').pop().slice(0, 4)) } };
+  if (method === 'POST' && url === '/stripe/v1/coupons') return { body: { id: `coupon_${f['metadata[plan]'] ?? 'x'}_${f.duration_in_months ?? 0}_${f.percent_off}` } };
+  if (method === 'POST' && ['/stripe/v1/products', '/stripe/v1/prices', '/stripe/v1/promotion_codes'].includes(url)) return { body: { id: id(url.split('/').pop().slice(0, 4)) } };
   return { status: 404, body: { error: { message: `no stand-in for ${method} ${url}` } } };
 }
 
@@ -1697,8 +1767,6 @@ Object.assign(rpcs, {
 // --- Phase 15: a school's own domains and sender, and what its plan lets it brand. Stand-ins for
 // the hosting provider (/vercel), public DNS (/doh, records set with POST /__test/dns) and the
 // email provider's domains (/resend/domains). ---
-PLANS.push({ key: 'institution', name: { en: 'Institution', es: 'Institución' }, description: { en: 'A school’s own brand.' }, limits: { committees: 60, delegates: 2000, staff: 200, active_conferences: 2, storage_mb: 51200 },
-  features: { custom_domain: true, own_sender: true, white_label: true, legal_pages: true }, per_school: false, public: false, sort: 3, prices: [] });
 TENANTS.brand = { kind: 'tenant', id: tid(28), slug: 'brand', name: 'Brand School', status: 'active' };
 TENANTS.plain = { kind: 'tenant', id: tid(29), slug: 'plain', name: 'Plain School', status: 'active' };
 seed('owner@brand.test', 'Bree Brand', tid(28), 'owner');
@@ -1950,7 +2018,115 @@ Object.assign(rpcs, {
   gallery_public: () => ({ body: galleryPacks.filter(listed).map(galleryCard) }),
 });
 
-const SERVICE_ONLY = new Set(['resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff', 'tenant_features_server', 'domain_server_set', 'domains_to_check', 'mail_sender_server_set', 'mail_sender_for', 'member_by_email', 'gallery_public']);
+
+// --- Support messages, organizations (Circuit), referral links at signup, conference documents. ---
+const conferenceDocuments = []; // { id, tenant_id, conference_id, title, description, file_path, file_name, mime, size_bytes, audience, created_at }
+const docRow = (d) => without(d, 'tenant_id', 'conference_id', 'file_path');
+const seesDoc = (userId, d) => d.audience !== 'staff' || can(userId, d.tenant_id, 'committee.manage');
+const organisationOf = (tenant, userId) => {
+  const a = accountOf(tenant);
+  return a?.organisation && organisationManagers.some((m) => m.account_id === a.id && m.user_id === userId) ? a : null;
+};
+Object.assign(rpcs, {
+  support_submit: ({ p_data, p_sender }) => {
+    const hour = Date.now() - 3600_000;
+    if (contactRequests.filter((c) => c.sender === p_sender && Date.parse(c.created_at) > hour).length >= 3) return { body: { error: 'rate' } };
+    const row = { id: randomUUID(), created_at: new Date().toISOString(), kind: 'support', topic: p_data.topic, name: p_data.name, email: String(p_data.email).toLowerCase(), role: 'other', organization: p_data.school || null, language: p_data.language ?? 'en', message: p_data.message, sender: p_sender, emailed: false, status: 'new' };
+    contactRequests.push(row);
+    return { body: { id: row.id } };
+  },
+  signup_referral_set: ({ p_id, p_code }) => {
+    const sg = signups.find((x) => x.id === p_id);
+    const ok = !!sg && referralPartners.some((r) => r.code === p_code && r.active);
+    if (ok) sg.referral_code = p_code;
+    return { body: ok };
+  },
+  organisation_overview: ({ p_tenant }, userId) => {
+    const a = organisationOf(p_tenant, userId);
+    if (!a) return { body: null };
+    const schools = Object.entries(tenantBilling).filter(([, b]) => b.account_id === a.id).map(([id]) => {
+      const u = billingUsage(id);
+      return { id, slug: tenantRow(id)?.slug, name: tenantRow(id)?.name, status: tenantRow(id)?.status, manage: can(userId, id, 'tenant.manage'), usage: { committees: u.committees, delegates: u.delegates, staff: u.staff } };
+    });
+    return { body: { id: a.id, name: a.name, plan: tenantBilling[p_tenant]?.plan_key ?? null, schools } };
+  },
+  organisation_add_school: ({ p_tenant, p_slug, p_name }, userId) => {
+    const a = organisationOf(p_tenant, userId);
+    if (!a || !can(userId, p_tenant, 'tenant.manage')) return { status: 403, body: { code: '42501', message: 'not allowed' } };
+    const slug = String(p_slug ?? '').trim().toLowerCase();
+    const problem = slugProblem(slug);
+    if (problem) return { body: { error: `slug_${problem}` } };
+    const id = randomUUID();
+    TENANTS[slug] = { kind: 'tenant', id, slug, name: p_name, status: 'active' };
+    EXTRA_ROLES[id] = [];
+    memberships.push({ tenant_id: id, user_id: userId, role_key: 'owner', status: 'active' });
+    const from = tenantBilling[p_tenant];
+    tenantBilling[id] = { account_id: a.id, plan_key: from.plan_key, billing_status: from.billing_status, current_period_end: from.current_period_end, limit_overrides: {}, cancel_at_period_end: false };
+    applyBillingState(id);
+    return { body: { tenant_id: id, slug, schools: Object.values(tenantBilling).filter((b) => b.account_id === a.id).length } };
+  },
+  organisation_add_manager: ({ p_tenant, p_email }, userId) => {
+    const a = organisationOf(p_tenant, userId);
+    const u = byEmail(String(p_email ?? '').trim().toLowerCase());
+    if (!a || !u) return { body: false };
+    if (!organisationManagers.some((m) => m.account_id === a.id && m.user_id === u.id)) organisationManagers.push({ account_id: a.id, user_id: u.id });
+    return { body: true };
+  },
+  conference_documents_list: ({ p_tenant }, userId) => {
+    if (!memberOf(userId, p_tenant)) return { body: null };
+    const conf = activeConference(p_tenant);
+    return { body: conferenceDocuments.filter((d) => d.tenant_id === p_tenant && d.conference_id === conf?.id && seesDoc(userId, d)).map(docRow) };
+  },
+  conference_document_add: ({ p_tenant, p_data }, userId) => {
+    if (!can(userId, p_tenant, 'committee.manage')) return { status: 403, body: { code: '42501', message: 'not allowed' } };
+    const conf = activeConference(p_tenant);
+    if (!conf) return { body: { error: 'conference' } };
+    if (!String(p_data.file_path).startsWith(`${p_tenant}/`)) return { status: 400, body: { code: '22023', message: 'bad path' } };
+    const d = { id: randomUUID(), tenant_id: p_tenant, conference_id: conf.id, title: String(p_data.title).trim(), description: p_data.description ?? '', file_path: p_data.file_path, file_name: p_data.file_name, mime: p_data.mime, size_bytes: Number(p_data.size_bytes), audience: p_data.audience ?? 'members', created_at: new Date().toISOString() };
+    conferenceDocuments.push(d);
+    auditLog.push({ id: auditLog.length + 1, tenant_id: p_tenant, actor_id: userId, action: 'document.added', target: d.id, meta: {}, created_at: d.created_at });
+    return { body: docRow(d) };
+  },
+  conference_document_update: ({ p_id, p_data }, userId) => {
+    const d = conferenceDocuments.find((x) => x.id === p_id);
+    if (!d || !can(userId, d.tenant_id, 'committee.manage')) return { status: 403, body: { code: '42501', message: 'not allowed' } };
+    if (p_data.title) d.title = String(p_data.title).trim();
+    if ('description' in p_data) d.description = p_data.description;
+    if (p_data.audience) d.audience = p_data.audience;
+    return { body: true };
+  },
+  conference_document_delete: ({ p_id }, userId) => {
+    const i = conferenceDocuments.findIndex((x) => x.id === p_id);
+    if (i < 0 || !can(userId, conferenceDocuments[i].tenant_id, 'committee.manage')) return { status: 403, body: { code: '42501', message: 'not allowed' } };
+    const [d] = conferenceDocuments.splice(i, 1);
+    return { body: d.file_path };
+  },
+  conference_document_file: ({ p_tenant, p_id }, userId) => {
+    const d = conferenceDocuments.find((x) => x.id === p_id && x.tenant_id === p_tenant);
+    return { body: d && memberOf(userId, p_tenant) && seesDoc(userId, d) ? { path: d.file_path, file_name: d.file_name, mime: d.mime } : null };
+  },
+  conference_documents_public: ({ p_tenant }) => {
+    const conf = activeConference(p_tenant);
+    return { body: conferenceDocuments.filter((d) => d.tenant_id === p_tenant && d.conference_id === conf?.id && d.audience === 'public').map((d) => ({ ...docRow(d), path: d.file_path })) };
+  },
+});
+
+// Schools for contracts, payment checks without webhooks, and an organization (Circuit).
+TENANTS.term = { kind: 'tenant', id: tid(33), slug: 'term', name: 'Term School', status: 'trialing' };
+TENANTS.circ = { kind: 'tenant', id: tid(34), slug: 'circ', name: 'Circ Academy', status: 'trialing' };
+seed('owner@term.test', 'Tess Term', tid(33), 'owner');
+seed('owner@circ.test', 'Cyd Circ', tid(34), 'owner');
+seed('second@circ.test', 'Sam Second', tid(34), 'high_command');
+for (const t of [tid(33), tid(34)]) tenantBilling[t] = { plan_key: 'starter', billing_status: 'trialing', trial_ends_at: new Date(Date.now() + 14 * 86400000).toISOString(), limit_overrides: {}, cancel_at_period_end: false };
+
+// A school for conference documents, with its public pages on.
+TENANTS.docs = { kind: 'tenant', id: tid(35), slug: 'docs', name: 'Docs School', status: 'active' };
+seed('owner@docs.test', 'Hana Docs', tid(35), 'owner');
+seed('chair@docs.test', 'Chet Docs', tid(35), 'chair');
+conferences.push({ id: randomUUID(), tenant_id: tid(35), name: 'Docs MUN', status: 'active', secrets_unlocked_at: null, secrets_unlock_rule: 'manual', created_at: new Date().toISOString() });
+CONFIG[tid(35)] = { publicSite: { version: 1, schema_version: 1, data: { enabled: 'on' } } };
+
+const SERVICE_ONLY = new Set(['referral_public', 'signup_referral_set', 'support_submit', 'conference_documents_public', 'resolve_tenant', 'find_account', 'complete_onboarding', 'activate_invitations', 'config_published', 'live_load', 'live_commit', 'display_register', 'display_view', 'live_channel', 'public_site', 'impersonation_claim', 'impersonation_status', 'impersonation_end', 'feature_flags_for', 'platform_announcements_live', 'billing_server_get', 'billing_server_set', 'billing_stripe_event', 'billing_tick', 'billing_subscriptions', 'referral_of_promotion', 'contact_submit', 'contact_mark_emailed', 'signup_start', 'signup_peek', 'signup_finish', 'signup_handoff', 'tenant_features_server', 'domain_server_set', 'domains_to_check', 'mail_sender_server_set', 'mail_sender_for', 'member_by_email', 'gallery_public']);
 
 const auth = {
   'POST /auth/v1/token?grant_type=password': ({ email, password }) => {
@@ -2013,6 +2189,23 @@ createServer((req, res) => {
       FILES.set(upload[1], { type: req.headers['content-type'], bytes });
       return send({ body: { Key: `public-assets/${upload[1]}` } });
     }
+    const doc = /^\/storage\/v1\/object\/conference-documents\/(.+)$/.exec(req.url ?? '');
+    if (doc || (req.method === 'DELETE' && req.url === '/storage/v1/object/conference-documents')) {
+      if (req.headers.apikey !== SERVICE || req.headers.authorization !== `Bearer ${SERVICE}`) return send({ status: 401, body: { message: 'bad key' } });
+      if (req.method === 'POST') {
+        DOCS.set(doc[1], { type: req.headers['content-type'], bytes });
+        return send({ body: { Key: `conference-documents/${doc[1]}` } });
+      }
+      if (req.method === 'GET') {
+        const file = DOCS.get(doc[1]);
+        if (!file) return send({ status: 404, body: { message: 'not found' } });
+        res.writeHead(200, { 'content-type': file.type });
+        return res.end(file.bytes);
+      }
+      for (const k of JSON.parse(bytes.toString('utf8') || '{}').prefixes ?? []) DOCS.delete(k);
+      return send({ body: [] });
+    }
+    if (req.method === 'GET' && req.url === '/__test/documents') return send({ body: [...DOCS.keys()] });
     const read = /^\/storage\/v1\/object\/public\/public-assets\/(.+)$/.exec(req.url ?? '');
     if (req.method === 'GET' && read) {
       const file = FILES.get(read[1]);
@@ -2052,6 +2245,21 @@ createServer((req, res) => {
     if ((req.url ?? '').startsWith('/resend/domains')) {
       if (req.headers.authorization !== 'Bearer re_test_mock') return send({ status: 401, body: { message: 'API key is invalid' } });
       return send(mailDomainsStandIn(req.method, req.url, raw ? JSON.parse(raw) : {}));
+    }
+    // Test hooks: Stripe's webhooks stop arriving (or start again), and what Stripe holds.
+    if (req.method === 'POST' && req.url === '/__test/stripe-webhooks') {
+      stripeWebhooksOn = !!JSON.parse(raw).on;
+      return send({ body: { ok: true } });
+    }
+    if (req.method === 'GET' && (req.url ?? '').startsWith('/__test/stripe-subscriptions')) return send({ body: [...stripeSubs.values()] });
+    // Turnstile stand-in: the widget fills in a passing token at once; the check accepts only it.
+    if (req.method === 'GET' && req.url === '/turnstile.js') {
+      res.writeHead(200, { 'content-type': 'text/javascript' });
+      return res.end(`window.turnstile={render:function(el,o){var i=document.createElement('input');i.type='hidden';i.name=o['response-field-name']||'cf-turnstile-response';i.value='turnstile-pass';el.appendChild(i);var s=document.createElement('span');s.textContent='✓';el.appendChild(s);return 'w'+Math.random();},remove:function(){},reset:function(){}};`);
+    }
+    if (req.method === 'POST' && req.url === '/turnstile/verify') {
+      const q = new URLSearchParams(raw);
+      return send({ body: { success: q.get('secret') === 'turnstile-secret' && q.get('response') === 'turnstile-pass' } });
     }
     // Test hook: a school's billing goes read-only (or back), as the daily job would set it.
     if (req.method === 'POST' && req.url === '/__test/billing-status') {

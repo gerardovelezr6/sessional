@@ -2,6 +2,7 @@
 import { useActionState, useEffect, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { contactAction, type ContactState } from '@/app/contact-actions';
+import { Captcha } from '@/components/Captcha';
 
 // The contact form on the main website. Every field has a visible label; errors sit next to their
 // field and the first one takes focus; the result is announced.
@@ -34,6 +35,8 @@ export interface ContactLabels {
   failed: string;
   privacy: string;
   website: string;
+  captcha: string;
+  captchaFailed: string;
 }
 
 function Submit({ L }: { L: ContactLabels }) {
@@ -47,7 +50,7 @@ function Submit({ L }: { L: ContactLabels }) {
 
 const ORDER = ['name', 'email', 'role', 'organization', 'country', 'conference', 'month', 'committees', 'delegates', 'language', 'message'] as const;
 
-export function ContactForm({ L, locale, countries }: { L: ContactLabels; locale: 'en' | 'es'; countries: [string, string][] }) {
+export function ContactForm({ L, locale, countries, captcha }: { L: ContactLabels; locale: 'en' | 'es'; countries: [string, string][]; captcha: { siteKey: string; script: string } | null }) {
   const [state, action] = useActionState<ContactState, FormData>(contactAction, { status: 'idle' });
   const form = useRef<HTMLFormElement>(null);
   const started = useRef<HTMLInputElement>(null);
@@ -177,7 +180,9 @@ export function ContactForm({ L, locale, countries }: { L: ContactLabels; locale
         <input id="contact-website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
       <input ref={started} type="hidden" name="started" />
+      {captcha ? <Captcha siteKey={captcha.siteKey} script={captcha.script} locale={locale} label={L.captcha} reset={state} /> : null}
       <div ref={status} tabIndex={-1} aria-live="polite" className="sm:col-span-2">
+        {state.status === 'captcha' ? <p className="error-text">{L.captchaFailed}</p> : null}
         {state.status === 'invalid' ? <p className="error-text">{L.invalid}</p> : null}
         {state.status === 'rate' ? <p className="error-text">{L.rate}</p> : null}
         {state.status === 'failed' ? <p className="error-text">{L.failed}</p> : null}

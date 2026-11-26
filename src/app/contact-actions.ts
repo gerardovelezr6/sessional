@@ -1,10 +1,11 @@
 'use server';
 import { headers } from 'next/headers';
 import { rpc } from '@/data/rpc';
+import { captchaPassed } from '@/platform/captcha';
 import { fileContact, looksAutomated, parseContact, sendContactEmail, type ContactField } from '@/platform/contact';
 
 export interface ContactState {
-  status: 'idle' | 'sent' | 'invalid' | 'rate' | 'failed';
+  status: 'idle' | 'sent' | 'invalid' | 'rate' | 'failed' | 'captcha';
   fields?: ContactField[];
   // What was typed, to put back in the form (React clears a form after its action runs).
   values?: Record<string, string>;
@@ -20,6 +21,7 @@ export async function contactAction(_prev: ContactState, data: FormData): Promis
   if (!parsed.ok) return { status: 'invalid', fields: parsed.fields, values: typed(data) };
   const h = await headers();
   const address = h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || 'unknown';
+  if (!(await captchaPassed(data, address))) return { status: 'captcha', values: typed(data) };
   try {
     const r = await fileContact(parsed.value, address);
     if ('error' in r) return { status: 'rate', values: typed(data) };

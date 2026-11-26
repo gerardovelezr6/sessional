@@ -185,12 +185,12 @@ export default async function BillingPage({ params, searchParams }: { params: Pr
                         <ActionForm key={x.key} action={choosePlanAction.bind(null, key, p.key, x.key, 0) as (st: unknown, f: FormData) => Promise<{ error?: string }>} submitLabel={t(`billing.choose.${x.interval}` as MessageKey, { price: money(x.amount, x.currency, locale) })} variant={p.key === s.plan ? 'secondary' : 'primary'} />
                       ))}
                     {p.per_school ? <span className="text-xs">{t('billing.perSchool')}</span> : null}
-                    {p.per_school && p.volume.length ? (
+                    {p.per_school && p.volume?.length ? (
                       <span className="text-xs">
                         {p.volume.map((v) => t('billing.volumeStep', { from: v.from, percent: v.percent_off })).join(' · ')}
                       </span>
                     ) : null}
-                    {p.terms.length ? (
+                    {p.terms?.length ? (
                       <div className="mt-2 flex flex-col gap-2 border-t border-border pt-2">
                         <span className="label-text">{t('billing.contract.title')}</span>
                         {p.terms.flatMap((term) =>

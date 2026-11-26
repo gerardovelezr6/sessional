@@ -211,7 +211,7 @@ export function SignupForm({
         <input id="signup-website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
       <input ref={started} type="hidden" name="started" />
-      {captcha ? <Captcha siteKey={captcha.siteKey} script={captcha.script} locale={locale} label={L.captcha} /> : null}
+      {captcha ? <Captcha siteKey={captcha.siteKey} script={captcha.script} locale={locale} label={L.captcha} reset={state} /> : null}
       <div ref={status} tabIndex={-1} aria-live="polite">
         {state.status === 'captcha' ? <p className="error-text">{L.captchaFailed}</p> : null}
         {state.status === 'invalid' ? <p className="error-text">{L.invalid}</p> : null}

@@ -39,11 +39,32 @@ for f in supabase/migrations/*.sql; do run "$f"; done
 run supabase/tests/drill-seed.sql
 echo "1. Source built and seeded."
 
+# The backup tools must not be newer than the server: a newer pg_restore writes settings an older
+# server doesn't know (pg_restore 17 adds "SET transaction_timeout", which Postgres 16 refuses).
+# Use the server's own version of the tools when installed; otherwise restore through SQL, leaving
+# out only SET lines for settings this server doesn't have.
+SERVER_MAJOR="$(psql "$SOURCE" -tAc 'show server_version_num' | cut -c1-2)"
+CLIENT_MAJOR="$(pg_restore --version | grep -oE '[0-9]+' | head -1)"
+DUMP_BIN=""
+if [ -x "/usr/lib/postgresql/$SERVER_MAJOR/bin/pg_restore" ]; then DUMP_BIN="/usr/lib/postgresql/$SERVER_MAJOR/bin/"; fi
+VIA_SQL=0
+if [ -z "$DUMP_BIN" ] && [ "$CLIENT_MAJOR" -gt "$SERVER_MAJOR" ]; then VIA_SQL=1; fi
+[ "${DRILL_RESTORE_VIA_SQL:-}" = "1" ] && VIA_SQL=1
+
 t0=$(date +%s.%N)
-pg_dump --format=custom --no-comments "$SOURCE" -f "$DUMP"
+"${DUMP_BIN}pg_dump" --format=custom --no-comments "$SOURCE" -f "$DUMP"
 t1=$(date +%s.%N)
 psql "$SERVER/postgres" -v ON_ERROR_STOP=1 -q -c 'create database drill_restored'
-pg_restore --exit-on-error -d "$RESTORED" "$DUMP"
+if [ "$VIA_SQL" = "1" ]; then
+  echo "   (tools $CLIENT_MAJOR, server $SERVER_MAJOR: restoring through SQL)"
+  KNOWN="$(psql "$RESTORED" -tAc 'select string_agg(name, chr(10)) from pg_settings')"
+  "${DUMP_BIN}pg_restore" -f - "$DUMP" \
+    | awk -v known="$KNOWN" 'BEGIN { n = split(known, k, "\n"); for (i = 1; i <= n; i++) ok[k[i]] = 1 }
+        /^SET [a-z_.]+ = / { if (!($2 in ok)) next } { print }' \
+    | psql "$RESTORED" -v ON_ERROR_STOP=1 -q >/dev/null
+else
+  "${DUMP_BIN}pg_restore" --exit-on-error -d "$RESTORED" "$DUMP"
+fi
 t2=$(date +%s.%N)
 awk -v a="$t0" -v b="$t1" -v c="$t2" -v size="$(du -h "$DUMP" | cut -f1)" 'BEGIN { printf "2–3. Backup %.1fs (%s), restore %.1fs.\n", b - a, size, c - b }'
 

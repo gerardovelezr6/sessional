@@ -3186,7 +3186,7 @@
   "support.topic.other": "Otra cosa",
   "support.submit": "Enviar",
   "support.sent.title": "Gracias. Recibimos tu mensaje.",
-  "support.sent.body": "Te responderemos por correo en dos días hábiles. Por favor no envíes datos personales de estudiantes a menos que te los pidamos.",
+  "support.sent.body": "Te responderemos por correo desde {address} en dos días hábiles. Por favor no envíes datos personales de estudiantes a menos que te los pidamos.",
   "support.error.message": "Cuéntanos un poco más (al menos unas palabras).",
   "support.error.rate": "Recibimos varios mensajes desde tu red en la última hora. Intenta más tarde, por favor.",
   "support.error.failed": "Tu mensaje no se pudo enviar. Intenta de nuevo en un momento.",
@@ -3279,5 +3279,11 @@
   "landing.mock.console.resume": "Reanudar cronómetro",
   "landing.mock.checkin.done": "{delegation} quedó marcada como {state}.",
   "landing.mock.checkin.undo": "Deshacer",
-  "landing.screens.try": "Pruébalo: los botones de la consola funcionan, y también registrar a Suiza en la entrada. Las demás pantallas los siguen."
+  "landing.screens.try": "Pruébalo: los botones de la consola funcionan, y también registrar a Suiza en la entrada. Las demás pantallas los siguen.",
+  "brand.mail.footer": "Sessional · Conferencias de Modelo de la ONU para escuelas · sessional.app",
+  "signup.mail.button": "Crear {school}",
+  "support.mail.fromName": "Soporte de Sessional",
+  "support.ack.subject": "Recibimos tu mensaje: {topic}",
+  "support.ack.heading": "Gracias, {name}. Recibimos tu mensaje.",
+  "support.ack.body": "Nos escribiste sobre: {topic}.\n\nRespondemos en un máximo de dos días hábiles, desde {address}. Para agregar algo, responde a este correo.\n\nPor favor no envíes datos personales de estudiantes a menos que te los pidamos."
 }

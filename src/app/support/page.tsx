@@ -1,3 +1,4 @@
+import { supportAddress } from '@/platform/brand-email';
 import type { Metadata } from 'next';
 import { translator } from '@/messages';
 import { captchaClient } from '@/platform/captcha';
@@ -26,7 +27,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     submit: t('support.submit'),
     sending: t('contact.form.sending'),
     sentTitle: t('support.sent.title'),
-    sentBody: t('support.sent.body'),
+    sentBody: t('support.sent.body', { address: supportAddress() }),
     invalid: t('contact.form.invalid'),
     fieldError: { name: t('contact.form.error.name'), email: t('contact.form.error.email'), message: t('support.error.message') },
     rate: t('support.error.rate'),

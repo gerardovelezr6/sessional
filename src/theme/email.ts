@@ -7,6 +7,10 @@ import { resolveToken, type Theme } from './engine';
 export interface EmailContent {
   schoolName: string;
   logoUrl: string | null;
+  // A full-width image across the top instead of the logo (Sessional's own emails: its header
+  // banner, docs/EMAIL.md). Drawn at 560 wide from a 2x file; the alt text stands in when images
+  // are off.
+  banner?: { src: string; alt: string };
   heading: string;
   paragraphs: string[];
   button?: { label: string; url: string };
@@ -28,12 +32,16 @@ export function renderEmail(theme: Theme, content: EmailContent): string {
   const button = content.button
     ? `<p style="margin:24px 0 0"><a href="${safeUrl(content.button.url)}" style="display:inline-block;background:${v('--s-color-primary')};color:${v('--s-color-on-primary')};border-radius:${v('--s-radius-control')};padding:12px 20px;font-weight:700;text-decoration:none">${escape(content.button.label)}</a></p>`
     : '';
-  const paragraphs = content.paragraphs.map((p) => `<p style="margin:12px 0 0;line-height:1.6">${escape(p)}</p>`).join('');
+  const paragraphs = content.paragraphs.map((p) => `<p style="margin:12px 0 0;font-size:16px;line-height:1.6">${escape(p)}</p>`).join('');
 
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:24px 12px;background:${v('--s-color-surface')};font-family:${font};color:${v('--s-color-on-surface')}">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;border-collapse:separate">
-<tr><td style="background:${v('--s-header-bg')};color:${v('--s-header-fg')};padding:16px 24px;border-radius:${v('--s-radius-surface')} ${v('--s-radius-surface')} 0 0">${header}</td></tr>
+${
+    content.banner
+      ? `<tr><td style="padding:0;border:1px solid ${v('--s-color-border')};border-bottom:0;background:${v('--s-color-surface-raised')}"><img src="${safeUrl(content.banner.src)}" alt="${escape(content.banner.alt)}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;font-size:20px;font-weight:700;color:${v('--s-color-on-surface')}"></td></tr>`
+      : `<tr><td style="background:${v('--s-header-bg')};color:${v('--s-header-fg')};padding:16px 24px;border-radius:${v('--s-radius-surface')} ${v('--s-radius-surface')} 0 0">${header}</td></tr>`
+  }
 <tr><td style="background:${v('--s-color-surface-raised')};padding:24px;border:1px solid ${v('--s-color-border')};border-top:0;border-radius:0 0 ${v('--s-radius-surface')} ${v('--s-radius-surface')}">
 <h1 style="margin:0;font-size:20px;color:${v('--s-color-on-surface')}">${escape(content.heading)}</h1>${paragraphs}${button}
 </td></tr>

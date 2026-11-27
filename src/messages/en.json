@@ -3186,7 +3186,7 @@
   "support.topic.other": "Something else",
   "support.submit": "Send",
   "support.sent.title": "Thanks. We have your message.",
-  "support.sent.body": "We’ll answer by email within two working days. Please don’t send personal information about students unless we ask for it.",
+  "support.sent.body": "We’ll answer by email from {address} within two working days. Please don’t send personal information about students unless we ask for it.",
   "support.error.message": "Tell us a little more (at least a few words).",
   "support.error.rate": "We received several messages from your network in the last hour. Please try again later.",
   "support.error.failed": "Your message couldn’t be sent. Please try again in a moment.",
@@ -3279,5 +3279,11 @@
   "landing.mock.console.resume": "Resume timer",
   "landing.mock.checkin.done": "{delegation} is marked {state}.",
   "landing.mock.checkin.undo": "Undo",
-  "landing.screens.try": "Try it: the console’s buttons work, and so does checking Switzerland in at the door. Every other screen follows."
+  "landing.screens.try": "Try it: the console’s buttons work, and so does checking Switzerland in at the door. Every other screen follows.",
+  "brand.mail.footer": "Sessional · Model UN conferences for schools · sessional.app",
+  "signup.mail.button": "Create {school}",
+  "support.mail.fromName": "Sessional Support",
+  "support.ack.subject": "We have your message: {topic}",
+  "support.ack.heading": "Thanks, {name}. We have your message.",
+  "support.ack.body": "You wrote to us about: {topic}.\n\nWe answer within two working days, from {address}. To add something, reply to this email.\n\nPlease don’t send personal information about students unless we ask for it."
 }

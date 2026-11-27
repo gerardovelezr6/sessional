@@ -36,15 +36,15 @@ One product for the whole conference, from the chair's laptop to the Secretariat
 ## Brand Commitments
 
 - Name: **Sessional**, written lowercase in the current wordmark.
-- **Keep the dot idea:** the current logo puts a dot over the "i" (amber on navy), and the app icon is that "i" and dot. The new identity keeps the dot as its recognizable mark; the wordmark, colors and icon may be redrawn from scratch (owner's decision, 2026-11-27).
+- **The identity is Session tiles** (approved 2026-11-27): lowercase "sessional" in Satoshi Light with a magenta square for the dot of the i; the icon is a magenta tile with a lowercase s and the square. Files in `brand/`, rules in `docs/DESIGN.md`.
 - **No flags or national color schemes** in the logo or brand colors, so no country feels favored (owner's decision).
-- The current palette (ink #14213D, paper #F4F1EA, amber #F2A541) is to be replaced: the owner considers it a default look (owner's decision, 2026-11-27).
+- Palette: magenta #C8175D, cobalt #2147D6, white, ink #111111, graphite #4B5058 (teal and lime reserved). It replaced navy, amber and cream everywhere, including the theme new schools start from; there is no "classic" option (owner's decision, 2026-11-27).
 - Website type is Zodiak (display) and Switzer (text) from Fontshare, IBM Plex Mono for figures (owner's decision). Fontshare fonts may be self-hosted for Sessional's own website and assets only, never offered to schools as a font choice, never committed to this public repository.
 - Nothing is published until the owner approves a proposal.
 
 ## Evidence on Hand
 
-- Current brand files: `brand/sessional-wordmark-navy.svg|png`, `brand/sessional-wordmark-white.svg|png`, `brand/sessional-app-icon-navy.png`, `brand/sessional-app-icon-amber.png`.
+- Brand files: `brand/` (wordmarks, icon, maskable icon, avatar) and `brand/kit/` (exports).
 - No customer logos, testimonials, press or usage numbers exist yet; none may be invented.
 
 ## Product Principles

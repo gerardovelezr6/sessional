@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import QRCode from 'qrcode';
@@ -9,6 +10,20 @@ import { mailConfigured } from '@/platform/mail';
 import { captchaClient } from '@/platform/captcha';
 import { Landing, type PlanRow } from '@/site/landing/Landing';
 import { parseTenantKey } from '@/tenancy/route';
+import { PRODUCT_NAME } from '@/platform/product';
+
+// How a shared link to the main page looks (link previews, social posts): the card from brand/kit,
+// in the page's language.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ lang?: string }> }): Promise<Metadata> {
+  const es = (await searchParams).lang === 'es';
+  const t = translator(es ? 'es' : 'en');
+  const image = { url: es ? '/og/sessional-es.png' : '/og/sessional-en.png', width: 1200, height: 630, alt: PRODUCT_NAME };
+  return {
+    metadataBase: new URL(`${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}`),
+    openGraph: { type: 'website', siteName: PRODUCT_NAME, title: t('landing.hero.title'), description: t('landing.hero.body'), locale: es ? 'es_MX' : 'en_US', images: [image] },
+    twitter: { card: 'summary_large_image', title: t('landing.hero.title'), description: t('landing.hero.body'), images: [image.url] },
+  };
+}
 
 // The main page. If the authentication service ever lands a sign-in here (its fallback address),
 // the code is handed on to the school the sign-in started from. Otherwise: what Sessional is.

@@ -6,17 +6,43 @@ picks its own theme and font in Settings, and those choices win.
 
 ## Character
 
-Sessional runs Model UN conferences, so it should feel like a well-printed conference programme
-or a UN document: calm, formal, exact, and never flashy. Students and teachers read it, often in
-Spanish. The page should feel trustworthy to an adult and readable to a 13-year-old.
+Sessional runs Model UN conferences: many committees at once, each one live. The identity is
+**Session tiles**: every committee is a tile, color is content, and the type does the work.
+Students and teachers read it, often in Spanish; it should feel trustworthy to an adult and lively
+to a 13-year-old.
 
-- **Printed, not glossy.** Paper background, ink-dark text, thin rules, square-ish frames. No
-  gradients, glows or drop shadows.
+- **Tiles, not chrome.** Flat color fields carry meaning (a committee, a state); no gradients, glows
+  or drop shadows, and no decorative color.
 - **Real examples, not illustrations.** The page shows the product working (the Secretariat
   board, the story's stage, the three screens) with made-up but believable data, marked as an
   example.
-- **One accent, used sparingly.** Amber marks "this one, now": the current step, the focus ring,
-  the one bright band near the end of the page.
+- **Magenta is the brand, cobalt is the pointer.** Magenta is the logo's tile and the primary
+  action; cobalt marks "this one, now": focus, links, the current step.
+
+## Logo
+
+The wordmark is lowercase **sessional** in Satoshi Light (Fontshare), tracked −0.03em, outlined
+into vector shapes. The dot of the i is a magenta square (0.15em), sitting 0.14em below the line's
+top. The icon is a magenta tile with a lowercase s and the white square.
+
+| File | Use |
+|---|---|
+| `brand/sessional-wordmark.svg` / `.png` | The logo on light grounds (near-black letters, magenta square) |
+| `brand/sessional-wordmark-white.svg` / `.png` | On magenta or dark grounds (all white) |
+| `brand/sessional-wordmark-black.svg` | One color: stamps, faxes, engraving |
+| `brand/sessional-icon.svg` | App icon master; `public/icon.svg` |
+| `brand/sessional-icon-maskable.svg` | Android adaptive icons (content inside the safe circle) |
+| `brand/sessional-avatar.svg` | Social profile pictures (survives a circle crop) |
+| `brand/kit/` | Exports: icon 1024, avatars 400 and 800, link previews (English, Spanish), email header |
+| `public/favicon.ico`, `public/apple-touch-icon.png`, `public/icons/`, `public/manifest.webmanifest` | Browser and home-screen icons |
+| `public/og/` | The home page's link previews (English, Spanish) |
+
+Rules: keep clear space of one square (0.15em) on every side; never recolor the square on its own,
+stretch, outline or add effects; on photos, put the logo on a white or magenta tile. A school's site
+shows its own logo and favicon; Sessional appears there only in the small "Powered by" mark.
+
+The logo's letters were outlined from Satoshi, which the ITF Free Font License allows for logos
+(they are not a derivative of the font); the font files themselves are not in this repository.
 
 ## Type
 
@@ -87,20 +113,24 @@ own website, unmodified. It does not allow:
 
 ## Colour
 
-The colours are the `sessional` theme preset's (`src/theme/presets.ts`); the type change did not
-touch them.
+The `sessional` theme preset (`src/theme/presets.ts`) carries the palette; it is also the theme a
+new school starts from. It replaced navy, amber and cream on 2026-11-27.
 
 | Token | Value | Role |
 |---|---|---|
-| Ink (brand, `--s-color-on-surface`) | `#14213D` | Titles, primary buttons, strong text, the stage's bars |
-| Paper (background, `--s-color-surface`) | `#F4F1EA` | Page background |
-| Amber (accent) | `#F2A541` | The current step's line, focus rings, the contact band |
-| Slate (`--s-color-on-surface-muted`) | `#5B6577` | Body text, captions, steps not playing |
-| Rule (`--s-color-border`) | `#DCE1E9` | Hairlines between rows |
-| Rule, strong (`--s-color-border-strong`) | `#5B6577` | Frames and section rules |
+| Magenta (brand, `--s-color-primary`) | `#C8175D` | The logo's tile and square, primary buttons, the title bar |
+| Cobalt (accent, `--s-color-accent`) | `#2147D6` | Focus rings, the current step's line, the contact band |
+| White (background, `--s-color-surface`) | `#FFFFFF` | Page background |
+| Ink (`--s-color-on-surface`) | `#111111` | Titles and strong text |
+| Graphite (`--s-color-on-surface-muted`) | `#4B5058` | Body text, captions, steps not playing |
+| Rule (`--s-color-border`) | `#E3E5E8` | Hairlines between rows |
+| Rule, strong (`--s-color-border-strong`) | `#4B5058` | Frames and section rules |
+| Teal | `#00797D` | Reserved: a second committee tile |
+| Lime | `#8DB600` | Reserved: a fourth committee tile, dark text only |
 
-Text and backgrounds meet WCAG AA, which the accessibility audit checks on every page. Steps
-that aren't playing use slate, not transparency, so they keep that contrast.
+Contrast: magenta on white 5.6:1, cobalt on white 7.2:1, graphite on white 8.2:1, white on magenta
+5.6:1. Text and backgrounds meet WCAG AA, which the accessibility audit checks on every page.
+Steps that aren't playing use graphite, not transparency, so they keep that contrast.
 
 ## Shape and space
 

@@ -36,12 +36,13 @@ type Preset = Omit<Primitives, 'colorMode'> & {
 };
 
 export const PRESETS: Record<PresetKey, Preset> = {
-  // The product's own identity: navy, amber timer light, paper.
+  // The product's own identity (Session tiles, docs/DESIGN.md): magenta tiles on white, near-black
+  // type, cobalt for focus and links. Also the theme a new school starts from.
   sessional: {
-    brand: '#14213D', accent: '#F2A541', background: '#F4F1EA', font: 'montserrat', radius: 'medium', density: 'comfortable',
+    brand: '#C8175D', accent: '#2147D6', background: '#FFFFFF', font: 'montserrat', radius: 'medium', density: 'comfortable',
     uppercaseLabels: true, shadows: false, contrast: 'standard',
     headerStyle: 'light', pageTitle: 'bar', tabStyle: 'underline',
-    pinned: { '--s-color-on-surface': '#14213D', '--s-color-on-surface-muted': '#5B6577', '--s-color-border': '#DCE1E9', '--s-color-border-strong': '#5B6577' },
+    pinned: { '--s-color-on-surface': '#111111', '--s-color-on-surface-muted': '#4B5058', '--s-color-border': '#E3E5E8', '--s-color-border-strong': '#4B5058' },
   },
   // The classic conference look, and a school's starting point: flat and square, white, Montserrat,
   // slate text under deep-indigo headings, spaced uppercase labels and buttons, a white header.

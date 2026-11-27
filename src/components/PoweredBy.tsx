@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import { DEFAULT_LOCALE, translator, type Locale } from '@/messages';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
 import { schoolBranding } from '@/site/whiteLabel';

@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import { countryCodes, countryName } from '@/i18n/countries';
 import { regional } from '@/i18n/regional';
 import { messageFor, type MessageKey, type Translate } from '@/messages';

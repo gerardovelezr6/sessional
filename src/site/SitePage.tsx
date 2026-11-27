@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import type { Translate } from '@/messages';
 
 // The frame of the main website's inner pages (signup, changelog): the wordmark back home, the

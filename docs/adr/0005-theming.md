@@ -35,8 +35,8 @@ right-to-left works and the ~230 raw-color uses found in the audit cannot come b
 
 ## Presets
 
-Sessional (navy `#14213D`, amber `#F2A541`, paper `#F4F1EA`; the default for marketing and new
-tenants), Flat Institutional (the reference look), Classic Formal, Modern Rounded, High-Contrast
+Sessional (magenta `#C8175D`, cobalt `#2147D6`, white; the default for marketing and new
+tenants; until 2026-11-27 it was navy, amber and paper), Flat Institutional (the reference look), Classic Formal, Modern Rounded, High-Contrast
 Accessible, Playful School. Each is complete for light, dark, projection, login, email and PDF.
 Tenants duplicate, edit, export and import them as packs.
 

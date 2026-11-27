@@ -84,7 +84,7 @@ export function ProjectorLive({ L, names }: { L: { label: string; committee: str
   const [now, ...queue] = order;
   return (
     <figure className="landing-frame bg-primary text-on-primary" aria-label={L.label}>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm opacity-80">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
         <span>{L.committee}</span>
         <span>{L.topic}</span>
       </div>
@@ -96,7 +96,7 @@ export function ProjectorLive({ L, names }: { L: { label: string; committee: str
           </span>
           <span className="font-mono text-6xl font-bold tabular-nums">{clock(left)}</span>
           <Bar left={left} track="bg-on-primary/20" fill="bg-on-primary" />
-          <span className="text-sm opacity-80">{L.caucus}</span>
+          <span className="text-sm">{L.caucus}</span>
         </div>
         <ol className="flex flex-col gap-1 overflow-hidden text-base">
           {queue.slice(0, 5).map((c) => (

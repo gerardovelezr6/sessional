@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import { LEGAL_UPDATED, legalDetails } from '@/platform/legal';
 import { catalogs, translator, type MessageKey } from '@/messages';
 

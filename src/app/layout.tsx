@@ -12,7 +12,6 @@ import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';
 import './globals.css';
-import appIcon from '@brand/sessional-app-icon-navy.png';
 import { headers } from 'next/headers';
 import { tenantTranslator } from '@/config/store';
 import { DEFAULT_LOCALE } from '@/messages';
@@ -24,7 +23,9 @@ import { displayPrefs } from '@/a11y/display';
 
 export const metadata: Metadata = {
   title: PRODUCT_NAME,
-  icons: { icon: appIcon.src, apple: appIcon.src },
+  // Sessional's own icon (brand/); a school's site replaces it with the favicon it uploads.
+  icons: { icon: [{ url: '/favicon.ico', sizes: '16x16 32x32 48x48' }, { url: '/icon.svg', type: 'image/svg+xml' }], apple: '/apple-touch-icon.png' },
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: PRESETS.sessional.background };

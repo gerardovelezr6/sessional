@@ -21,16 +21,23 @@ test('theme tokens arrive in the first HTML response (no flash of defaults)', as
 
   await page.goto('/');
   const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  expect(background).toBe('rgb(244, 241, 234)');
+  expect(background).toBe('rgb(255, 255, 255)');
 });
 
-test('the favicon is the supplied app icon', async ({ page, request }) => {
+test('the favicons, home-screen icons and link preview are the Sessional ones', async ({ page, request }) => {
   await page.goto('/');
-  const href = await page.locator('link[rel="icon"]').first().getAttribute('href');
-  expect(href).toBeTruthy();
-  const res = await request.get(href!);
-  expect(res.ok()).toBe(true);
-  expect(res.headers()['content-type']).toContain('image/png');
+  const types: Record<string, string> = { '/favicon.ico': 'image/x-icon', '/icon.svg': 'image/svg+xml', '/apple-touch-icon.png': 'image/png' };
+  for (const href of await page.locator('link[rel="icon"], link[rel="apple-touch-icon"]').evaluateAll((els) => els.map((e) => e.getAttribute('href')!))) {
+    const res = await request.get(href);
+    expect(res.ok()).toBe(true);
+    expect(res.headers()['content-type']).toContain(types[href]);
+  }
+  const manifest = await (await request.get('/manifest.webmanifest')).json();
+  expect(manifest.theme_color).toBe('#C8175D');
+  for (const icon of manifest.icons) expect((await request.get(icon.src)).ok()).toBe(true);
+  const preview = await page.locator('meta[property="og:image"]').getAttribute('content');
+  expect(preview).toContain('/og/sessional-en.png');
+  expect((await request.get(new URL(preview!).pathname)).ok()).toBe(true);
 });
 
 test('the landing page lists what Sessional does, in English and Spanish, with no “coming next” list', async ({ page }) => {

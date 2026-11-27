@@ -323,12 +323,21 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 /* ── The Sessional website's type (docs/DESIGN.md) ──────────────────────────────────────────────
    Only the product's own pages (home, help, support, signup, status, changelog, gallery, legal)
    carry .site-type; a school's site keeps the font its owner chose. Colours are the theme's.
-   Display: Newsreader, an editorial serif with optical sizes, for headings and large numerals.
-   Text: Public Sans, a plain institutional sans, for reading and interface.
-   Figures: IBM Plex Mono, for clocks, timers, tallies and codes. */
+   Display: Zodiak, a sharp, high-contrast serif, for headings and large numerals.
+   Text: Switzer, a neutral sans, for reading and interface.
+   Figures: IBM Plex Mono, for clocks, timers, tallies and codes.
+   Zodiak and Switzer are Fontshare fonts (ITF Free Font License): self-hosted for this website
+   only, never offered to schools as a font choice. scripts/fetch-fonts.mjs fetches them at build. */
+@font-face { font-family: "Zodiak"; src: url("/fonts/fontshare/zodiak-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Zodiak"; src: url("/fonts/fontshare/zodiak-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 .site-type {
-  --site-display: "Newsreader Variable", "Newsreader", ui-serif, Georgia, serif;
-  --site-text: "Public Sans Variable", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --site-display: "Zodiak", ui-serif, Georgia, serif;
+  --site-text: "Switzer", ui-sans-serif, system-ui, sans-serif;
   --site-figures: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --s-font-sans: var(--site-text);
   --font-sans: var(--site-text);
@@ -337,9 +346,9 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
   font-kerning: normal;
 }
 .site-type .label-text { letter-spacing: 0.09em; }
-/* The display face: headings and the story's step numbers. Medium weight, slightly tight, and the
-   font picks its optical size from the size it is set at. */
-.site-display { font-family: var(--site-display); font-optical-sizing: auto; font-weight: 500; letter-spacing: -0.012em; line-height: 1.12; }
+/* The display face: headings and the story's step numbers. Regular weight (Zodiak's 400), slightly
+   tight. */
+.site-display { font-family: var(--site-display); font-weight: 400; letter-spacing: -0.012em; line-height: 1.12; }
 .site-type .font-mono { font-family: var(--site-figures); font-weight: 500; letter-spacing: 0; }
 
 /* The marketing page: a printed-programme feel. Square-ish frames, no shadows, no gradients. */

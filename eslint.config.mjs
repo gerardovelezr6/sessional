@@ -3,7 +3,7 @@ import nextTs from 'eslint-config-next/typescript';
 import sessional from './eslint-rules/index.mjs';
 
 const config = [
-  { ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'test-results/**', 'playwright-report/**'] },
+  { ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'test-results/**', 'playwright-report/**', '.claude/**', 'public/fonts/**'] },
   ...nextVitals,
   ...nextTs,
   {

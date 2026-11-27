@@ -9,3 +9,7 @@ next-env.d.ts
 test-results
 playwright-report
 .vercel
+
+# Fontshare fonts: fetched at build time (scripts/fetch-fonts.mjs); their license does not allow
+# sharing the files through a public repository.
+/public/fonts/fontshare/

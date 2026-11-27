@@ -20,24 +20,36 @@ Spanish. The page should feel trustworthy to an adult and readable to a 13-year-
 
 ## Type
 
-Three families, each with one job. All three are self-hosted from npm (`@fontsource`), so a
-visitor's browser never asks a font CDN for anything.
+Three families, each with one job. The site serves all three itself, so a visitor's browser never
+asks a font service for anything.
 
 | Role | Family | Used for | Weights |
 |---|---|---|---|
-| Display | **Newsreader** (variable, optical sizes) | Page titles, section titles, plan names, the story's step numbers | 500 |
-| Text | **Public Sans** (variable) | Reading text, the interface, subheadings inside articles, labels, buttons | 400, 600 for emphasis and subheads |
-| Figures | **IBM Plex Mono** | Clocks, timers, tallies, counts, codes, "Step 2 of 6" | 500 |
+| Display | **Zodiak** (Fontshare) | Page titles, section titles, plan names, the story's step numbers | 400 (700 available) |
+| Text | **Switzer** (Fontshare) | Reading text, the interface, subheadings inside articles, labels, buttons | 400, 500, 600, 700; 400 italic |
+| Figures | **IBM Plex Mono** (npm, `@fontsource`) | Clocks, timers, tallies, counts, codes, "Step 2 of 6" | 500 |
 
 Why these:
 
-- **Newsreader** is an editorial serif drawn for long reading on screens. Its optical sizes make
-  large titles crisp and slightly condensed, which gives the formal feel of a printed programme
-  without being stiff.
-- **Public Sans** comes from the US Web Design System: plain, institutional and very legible,
-  with full Latin coverage for Spanish. It stays out of the way so the content and examples lead.
+- **Zodiak** is a sharp, high-contrast serif. At title sizes it reads like the heading of an
+  official document, which suits a product built around resolutions and committees.
+- **Switzer** is a neutral sans in the Swiss tradition: plain, very legible, with full Latin
+  coverage for Spanish. It stays out of the way so the content and examples lead.
 - **IBM Plex Mono** has steady, tabular figures for things that tick (a 1:30 speech, a 31–12–7
   vote). It is distinct from the text face, so numbers read as live data.
+
+### Licensing of Zodiak and Switzer
+
+They are under the ITF Free Font License (fontshare.com). It allows self-hosting them for our
+own website, unmodified. It does not allow:
+
+- sharing the font files through a publicly accessible repository. This repository is public, so
+  the files are not committed: `scripts/fetch-fonts.mjs` downloads the official files from
+  Fontshare into `public/fonts/fontshare/` (git-ignored) before every build and dev server
+  (`npm run fonts`). If Fontshare is unreachable, the build continues with the fallback fonts;
+- offering them to third parties as a font choice. Schools must never be able to pick them in
+  Settings, so they stay out of the theme's font list (`src/theme/presets.ts`);
+- modifying them, including subsetting or converting them.
 
 ### Scale
 
@@ -57,8 +69,7 @@ Why these:
 
 - Display is for titles only. Never use it for body text, buttons or labels.
 - Use only one display title per section. Subheadings below it use the text face, semibold.
-- Display is set at weight 500, tracked −0.012em, line height 1.12. It picks its optical size
-  from the font size on its own.
+- Display is set at weight 400, tracked −0.012em, line height 1.12.
 - Anything that counts or ticks uses `.font-mono`, so its digits line up (tabular figures are on
   for tables, `time` and `.font-mono`).
 - Keep line length to about 68 characters for reading (`max-w-[68ch]`, `max-w-xl`).
@@ -70,8 +81,9 @@ Why these:
   Tailwind's `font-sans` and `font-mono` at them, only inside the website's pages. It is on the
   root of `Landing`, `SitePage` and `LegalPage`.
 - `.site-display` is the display face. Use it on titles; don't add `font-semibold` (its own
-  weight is 500).
-- The fonts are imported once in `src/app/layout.tsx`.
+  weight is 400).
+- IBM Plex Mono is imported in `src/app/layout.tsx`; Zodiak and Switzer are declared with
+  `@font-face` in `src/app/globals.css`.
 
 ## Colour
 

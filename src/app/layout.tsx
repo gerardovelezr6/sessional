@@ -7,8 +7,7 @@ import '@fontsource-variable/nunito';
 import '@fontsource/atkinson-hyperlegible/400.css';
 import '@fontsource/atkinson-hyperlegible/700.css';
 // The Sessional website's own type (docs/DESIGN.md): served from this site, never from a font CDN.
-import '@fontsource-variable/newsreader/opsz.css';
-import '@fontsource-variable/public-sans';
+// Zodiak and Switzer are declared in globals.css (files fetched at build: scripts/fetch-fonts.mjs).
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';

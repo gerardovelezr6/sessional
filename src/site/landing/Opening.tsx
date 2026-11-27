@@ -4,15 +4,15 @@ import { Flag } from '@/components/Flag';
 import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 
 // The opening. The page starts on the wordmark at poster size with the headline under it. Once the
-// visitor scrolls a little way in, it plays by itself (about nine seconds) while it stays pinned:
-// the logo's square grows, a step at a time, until the screen is magenta ("One conference."), the
-// words fade in and out, the magenta fades away to six committee tiles that cut to their own
-// colours (what the Secretariat sees), then the three screens of a committee room count down on one
-// clock. Scrolling on can only move it ahead; scrolling back to the top puts it back at rest. The
-// committee and room parts change in cuts, like a timer or a tally. Without JavaScript, on short
-// screens, and before it loads, the opening is just the wordmark and the headline. For people who
-// ask for less motion it doesn't play by itself and the square doesn't grow: scrolling moves it
-// on, and the screen cuts straight to magenta.
+// visitor scrolls a little way in, the logo's part plays by itself, about four seconds, with the
+// page held still so it isn't skipped: the logo's square grows, a step at a time, until the screen
+// is magenta ("One conference."), the words fade in and out, and the magenta fades away to six
+// committee tiles. From there the scroll moves it on: the tiles cut to their own colours (what the
+// Secretariat sees), then the three screens of a committee room count down on one clock. Scrolling
+// back to the top puts it at rest. Without JavaScript, on short screens, and before it loads, the
+// opening is just the wordmark and the headline. For people who ask for less motion nothing plays
+// by itself and the square doesn't grow: scrolling moves all of it, and the screen cuts straight
+// to magenta.
 
 export interface OpeningLabels {
   label: string;
@@ -47,28 +47,45 @@ const GROW_STEPS = 16;
 // Where each part starts, as a share of the opening's scroll.
 const AT = { grow: 0.05, field: 0.34, split: 0.46, colours: 0.6, room: 0.7 } as const;
 const CLOCK_FROM = 45;
-const CLOCK_STEPS = 5;
-// Once the visitor has scrolled this far in, the sequence plays by itself along this timeline
-// (seconds → share of the opening), unless they ask for less motion. Scrolling further can only
-// move it on; scrolling back to the top puts it back at rest.
+const CLOCK_STEPS = 9;
+// Once the visitor has scrolled this far in, the logo's part plays by itself along this timeline
+// (seconds → share of the opening): the square grows, "One conference.", the magenta fades away to
+// the committee tiles. It is short, and scrolling is held while it plays so it isn't skipped. The
+// committee tiles and the room then follow the scroll, over the rest of the opening's track. For
+// people who ask for less motion nothing plays by itself: the whole opening follows the scroll.
 const START_AT = 0.03;
-const TIMELINE: [number, number][] = [[0, AT.grow], [1.1, AT.field], [3.8, AT.split], [5.4, AT.room], [9.4, 1]];
+const TIMELINE: [number, number][] = [[0, AT.grow], [1.1, AT.field], [3.8, AT.split]];
 const progressAt = (sec: number) => {
   for (let i = 1; i < TIMELINE.length; i++) {
     const [s1, p1] = TIMELINE[i]!;
     const [s0, p0] = TIMELINE[i - 1]!;
     if (sec <= s1) return p0 + ((sec - s0) / (s1 - s0)) * (p1 - p0);
   }
-  return 1;
+  return AT.split;
 };
-const secondsAt = (p: number) => {
-  for (let i = 1; i < TIMELINE.length; i++) {
-    const [s1, p1] = TIMELINE[i]!;
-    const [s0, p0] = TIMELINE[i - 1]!;
-    if (p <= p1) return s0 + ((Math.max(p, p0) - p0) / (p1 - p0)) * (s1 - s0);
-  }
-  return TIMELINE[TIMELINE.length - 1]![0];
-};
+// Holding the page still while the logo's part plays: wheel, touch and keys do nothing, and any
+// scroll already under way (a flick's momentum) is put back.
+const KEYS = new Set([' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End']);
+function holdScroll() {
+  const y = window.scrollY;
+  const stop = (e: Event) => e.preventDefault();
+  const key = (e: KeyboardEvent) => {
+    if (KEYS.has(e.key)) e.preventDefault();
+  };
+  const back = () => {
+    if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  };
+  window.addEventListener('wheel', stop, { passive: false });
+  window.addEventListener('touchmove', stop, { passive: false });
+  window.addEventListener('keydown', key);
+  window.addEventListener('scroll', back);
+  return () => {
+    window.removeEventListener('wheel', stop);
+    window.removeEventListener('touchmove', stop);
+    window.removeEventListener('keydown', key);
+    window.removeEventListener('scroll', back);
+  };
+}
 
 type Frame =
   | { kind: 'rest' }
@@ -116,19 +133,20 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let raf = 0;
     let scrolled = 0; // how far the visitor has scrolled through the opening, 0 to 1
-    let played = 0; // how far the sequence has played by itself, 0 to 1
+    let played = 0; // how far the logo's part has played by itself (up to AT.split)
     let since = -1; // when it started playing (ms, on the page's clock), or -1
+    let release: (() => void) | null = null;
     // The header's height, for the pages' layout; it only changes on resize.
     const header = () => {
       const h = document.querySelector('.landing-page > header') as HTMLElement | null;
       const value = `${h?.offsetHeight ?? 64}px`;
       if (document.documentElement.style.getPropertyValue('--landing-header') !== value) document.documentElement.style.setProperty('--landing-header', value);
     };
-    const show = () => {
+    const show = (at: number) => {
       const st = stage.current;
       const sq = square.current;
       if (!st || !sq) return;
-      const next = frameAt(Math.max(scrolled, played), motion.matches);
+      const next = frameAt(at, motion.matches);
       setFrame((f) => (same(f, next) ? f : next));
       if (next.kind === 'rest' || next.kind === 'grow') {
         const sr = st.getBoundingClientRect();
@@ -144,17 +162,33 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       if (!t || !st) return;
       const distance = Math.max(1, t.offsetHeight - st.offsetHeight);
       scrolled = fits.matches ? Math.min(1, Math.max(0, -t.getBoundingClientRect().top / distance)) : 0;
-      if (scrolled < START_AT / 2 || motion.matches || !fits.matches) {
-        played = 0;
-        since = -1;
-      } else if (since < 0 && played === 0 && scrolled >= START_AT) {
-        since = now - secondsAt(Math.max(AT.grow, scrolled)) * 1000;
+      const auto = fits.matches && !motion.matches;
+      if (!auto) {
+        show(scrolled);
+        return;
+      }
+      if (since < 0 && played === 0 && scrolled >= START_AT) {
+        // Only while it's the thing on screen: arriving further down (a reload, a link to a
+        // section) counts it as played.
+        if (scrolled < 0.25) {
+          since = now;
+          release = holdScroll();
+        } else played = AT.split;
       }
       if (since >= 0) {
-        played = Math.min(1, progressAt((now - since) / 1000));
-        if (played >= 1) since = -1;
+        played = Math.min(AT.split, progressAt((now - since) / 1000));
+        if (played >= AT.split) {
+          since = -1;
+          release?.();
+          release = null;
+        }
+      } else if (played >= AT.split && scrolled < START_AT / 2) {
+        // Back at the top: at rest again, ready to play next time.
+        played = 0;
       }
-      show();
+      // After the logo's part, the rest of the scroll walks through the committees and the room.
+      const manual = AT.split + (Math.max(0, scrolled - START_AT) / (1 - START_AT)) * (1 - AT.split);
+      show(played === 0 ? 0 : played < AT.split ? played : manual);
       if (since >= 0) raf = window.requestAnimationFrame(frameLoop);
     };
     const onScroll = () => {
@@ -179,6 +213,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       fits.removeEventListener('change', onFits);
       motion.removeEventListener('change', onScroll);
       if (raf) window.cancelAnimationFrame(raf);
+      release?.();
     };
   }, []);
 
@@ -196,7 +231,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
   const covered = frame.kind !== 'rest' && frame.kind !== 'grow';
 
   return (
-    <section ref={track} aria-labelledby="hero-title" className={`opening ${pinned ? '-mt-(--landing-header) h-[200svh]' : ''}`}>
+    <section ref={track} aria-labelledby="hero-title" className={`opening ${pinned ? '-mt-(--landing-header) h-[220svh]' : ''}`}>
       <div ref={stage} className={`opening-stage relative overflow-hidden ${pinned ? 'sticky top-0 h-svh' : ''}`}>
         {/* At rest: the wordmark at poster size, and the headline. */}
         <div className={`mx-auto flex w-full max-w-6xl flex-col justify-center gap-8 px-5 pb-10 ${pinned ? 'h-full pt-[calc(var(--landing-header,4rem)+1.5rem)]' : 'pt-10 sm:pt-14'}`}>

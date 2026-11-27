@@ -258,12 +258,23 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   const rest = await at();
   await scrollOpening(page, 0.02);
   expect(await at()).toBe(rest);
-  // A little further in, it plays on its own to the room, with no more scrolling.
+  // A little further in, the logo's part plays on its own to the committees, with the page held
+  // still meanwhile so it isn't skipped.
   await scrollOpening(page, 0.05);
+  const y = await page.evaluate(() => window.scrollY);
   const room = page.getByRole('figure', { name: /^Example: one conference/ });
   await expect(room).toContainText('One conference.', { timeout: 4000 });
-  await expect(room).toContainText('Every committee, at once.', { timeout: 6000 });
-  await expect(room).toContainText('Every screen in the room, on one clock.', { timeout: 6000 });
+  await page.mouse.wheel(0, 1500);
+  await page.waitForTimeout(200);
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - y)).toBeLessThan(2);
+  // It ends on the committee tiles, the magenta gone.
+  await expect(room.getByText('One conference.')).toHaveCount(0, { timeout: 6000 });
+  await expect(room).toContainText('Every committee, at once.');
+  // The committees and the room follow the scroll, not the clock.
+  await page.waitForTimeout(1500);
+  await expect(room).toContainText('Every committee, at once.');
+  await scrollOpening(page, 0.95);
+  await expect(room).toContainText('Every screen in the room, on one clock.');
   // Back at the top, it is at rest again.
   await scrollOpening(page, 0);
   await expect(room).toHaveCount(0);
@@ -316,6 +327,21 @@ test('on a phone the header fits one line and the story’s block fits the scree
   const links = await nav.getByRole('link').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
   expect(links).toBe(1);
   const steps = phone.locator('ol.story-steps > li');
+  // Scrolling down through the story only ever moves forward, and the block stays put.
+  const track = await phone.locator('.story-track').evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: (el as HTMLElement).offsetHeight }));
+  let last = 0;
+  let place: number | null = null;
+  for (let y = track.top; y < track.top + track.height - 700; y += 60) {
+    await phone.evaluate((top) => window.scrollTo(0, top), y);
+    await phone.waitForTimeout(60);
+    const r = await phone.evaluate(() => ({ open: [...document.querySelectorAll('.story-steps > li')].findIndex((li) => li.getAttribute('aria-current') === 'step'), top: Math.round(document.querySelector('.story-pinned')!.getBoundingClientRect().top) }));
+    expect(r.open, `no step backwards at ${y}`).toBeGreaterThanOrEqual(last);
+    last = r.open;
+    if (r.open > 0) {
+      place ??= r.top;
+      expect(Math.abs(r.top - place), `block stays put at ${y}`).toBeLessThan(2);
+    }
+  }
   for (const i of [1, 2, 4, 5]) {
     await scrollThrough(steps.nth(i), 0.9);
     const bottom = await phone.locator('.story-pinned').evaluate((el) => el.getBoundingClientRect().bottom);

@@ -60,9 +60,11 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
   const track = useRef<HTMLDivElement>(null);
   const pinned = useRef<HTMLDivElement>(null);
 
-  // Where the block pins, worked out on resize and when the open step changes (never on every scroll
-  // frame, which made phones stutter): in the middle of what the header leaves of the screen,
-  // centred on the stage (one fixed size), never so low that the open step runs off the bottom.
+  // Where the block pins and how tall it is, worked out only on resize: never on every scroll frame
+  // (phones stuttered) and never when the open step changes (the block's height changes with the
+  // step's text, which moved it, which changed the step: it flickered between steps). In the middle
+  // of what the header leaves of the screen, centred on the stage (one fixed size), never so low
+  // that the open step runs off the bottom. On phones the open step's text has a fixed height.
   const geo = useRef({ top: 0, height: 1 });
   const place = useCallback(() => {
     const pin = pinned.current;
@@ -75,7 +77,6 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
     if (pin.style.top !== `${top}px`) pin.style.top = `${top}px`;
     geo.current = { top, height: pin.offsetHeight };
   }, []);
-  useEffect(() => place(), [step, place]);
 
   useEffect(() => {
     // One read per scroll frame: where the track is. How far the pinned block has travelled
@@ -183,7 +184,7 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
                     steps.current[i] = el;
                   }}
                   aria-current={open ? 'step' : undefined}
-                  className={`border-t border-border py-3 first:border-t-0 lg:first:pt-0 ${open ? 'max-lg:border-t-0 max-lg:py-0' : 'max-lg:sr-only'}`}
+                  className={`border-t border-border py-3 first:border-t-0 lg:first:pt-0 ${open ? 'max-lg:h-[10.5rem] max-lg:overflow-hidden max-lg:border-t-0 max-lg:py-0' : 'max-lg:sr-only'}`}
                 >
                   {/* The step's number and title jump to it. The current number is a cobalt tile;
                       the steps not playing are quieter (muted, still readable). */}

@@ -150,20 +150,23 @@ whole magenta screen fade away.
 
 - **The opening** (`src/site/landing/Opening.tsx`) is the page's one authored moment. It starts on
   the wordmark at poster size with the headline. Once the visitor scrolls a little way in (3% of
-  its scroll), it plays by itself, about nine seconds, while pinned: the logo's own square hides and
-  a square takes its place, growing in sixteen steps (each eased over 150 ms) until the screen is
-  magenta; "One conference." fades in and out, then the whole magenta screen fades away (eased) to
-  six committee tiles that cut to their own colours one by one, then the three screens of a room
-  count down on one clock. Scrolling on can move it ahead; scrolling back to the top puts it at
-  rest. It is pinned only on screens at least 560px tall; without JavaScript, and on short
-  screens, it is just the wordmark and headline. With less motion it doesn't play by itself and
-  the square doesn't grow: scrolling moves it, and the screen cuts straight to magenta.
+  its scroll), the logo's part plays by itself, about four seconds, with scrolling held so it
+  isn't skipped: the logo's own square hides and a square takes its place, growing in sixteen
+  steps (each eased over 150 ms) until the screen is magenta; "One conference." fades in and out,
+  then the whole magenta screen fades away (eased) to six committee tiles. The rest follows the
+  scroll: the tiles cut to their own colours one by one, then the three screens of a room count
+  down on one clock. Scrolling back to the top puts it at rest. Arriving further down the page
+  (a reload, a link to a section) counts it as played. It is pinned only on screens at least
+  560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.
+  With less motion nothing plays by itself and the square doesn't grow: scrolling moves all of
+  it, and the screen cuts straight to magenta.
 - **The story** follows a set of rules the viewer picks (UN-style, Harvard, THIMUN, Spanish-language:
   the product's own presets in `src/protocol/presets.ts`; Spanish pages start on Spanish-language).
   The roll-call answers, quorum, speaking time, motions with the majority each needs, sponsors and
   signatories, and ways to vote all come from the chosen preset. It plays its stage as you scroll,
-  in cuts. Scroll work is one read per frame; where the block pins is worked out only on resize
-  and step change (measuring every frame made phones stutter). On phones the stage is shorter and
+  in cuts. Scroll work is one read per frame; where the block pins and how tall it is are worked
+  out only on resize (measuring every frame made phones stutter, and re-placing it on each step
+  made it flicker between steps). On phones the open step's text has a fixed height. On phones the stage is shorter and
   the header's links fit on one line, so the stage and the open step fit an iPhone screen: squares fill for roll call, placard tiles
   fill for the vote (ink yes, graphite no, outlined abstaining), awards appear as magenta tiles.
   The stage is one fixed size, so nothing around it moves between steps. Each step's number jumps

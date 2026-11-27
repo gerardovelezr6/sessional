@@ -2164,7 +2164,7 @@
   "landing.mock.console.label": "La consola de la mesa en una laptop",
   "landing.mock.console.title": "Consejo de Seguridad · Sesión 2",
   "landing.mock.console.mode": "Lista de oradores",
-  "landing.mock.console.present": "14 de 15 presentes · hay quórum",
+  "landing.mock.console.present": "{n} de 15 presentes · hay quórum",
   "landing.mock.console.yield": "Ceder a la mesa",
   "landing.mock.console.next": "Siguiente orador",
   "landing.mock.console.pause": "Pausar cronómetro",
@@ -3269,5 +3269,9 @@
   "landing.opening.status.crisis": "Actualización de crisis",
   "landing.screens.console": "La consola de la mesa: la lista de oradores, el cronómetro, las mociones y las votaciones en un solo lugar. Sigue funcionando si se cae el wifi.",
   "landing.screens.dashboard": "La Secretaría ve todos los comités a la vez: quién habla, qué se vota, qué sala está en receso.",
-  "landing.screens.checkin": "En la entrada, la mesa escanea con el celular el código del gafete de una delegación y la marca presente."
+  "landing.screens.checkin": "En la entrada, la mesa escanea con el celular el código del gafete de una delegación y la marca presente.",
+  "landing.mock.console.resume": "Reanudar cronómetro",
+  "landing.mock.checkin.done": "{delegation} quedó marcada como {state}.",
+  "landing.mock.checkin.undo": "Deshacer",
+  "landing.screens.try": "Pruébalo: los botones de la consola funcionan, y también registrar a Suiza en la entrada. Las demás pantallas los siguen."
 }

@@ -182,6 +182,23 @@ test('every screen runs on one clock while on screen, can be paused, and starts 
   await expect(page.getByRole('figure', { name: 'The chair’s console on a laptop' })).toContainText('Next speaker');
   await expect(page.getByRole('figure', { name: 'The Secretariat’s view of every committee' })).toContainText('Security Council');
   await expect(page.getByRole('figure', { name: 'A chair’s phone at the door' })).toContainText('Check in Switzerland');
+  // The console works, and the other screens follow it.
+  const console_ = page.getByRole('figure', { name: 'The chair’s console on a laptop' });
+  await console_.getByRole('button', { name: 'Pause timer' }).click();
+  const speaker = () => page.getByRole('figure', { name: 'The projector screen in the committee room' }).locator('.text-3xl').textContent();
+  const before = await speaker();
+  await console_.getByRole('button', { name: 'Next speaker' }).click();
+  await expect.poll(speaker).not.toBe(before);
+  await expect(page.getByRole('figure', { name: 'A delegate’s phone' })).toContainText((await speaker())!);
+  await console_.getByRole('button', { name: 'Resume timer' }).click();
+  // Checking Switzerland in at the door counts it present on the console.
+  await expect(console_).toContainText('14 of 15 present');
+  const door = page.getByRole('figure', { name: 'A chair’s phone at the door' });
+  await door.getByRole('button', { name: 'Mark as Present and voting' }).click();
+  await expect(door).toContainText('Switzerland is marked Present and voting.');
+  await expect(console_).toContainText('15 of 15 present');
+  await door.getByRole('button', { name: 'Undo' }).click();
+  await expect(console_).toContainText('14 of 15 present');
   // Nothing spills out of its column.
   expect(await page.locator('#screens').evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   const projector = page.getByRole('figure', { name: 'The projector screen in the committee room' }).locator('.font-mono');
@@ -242,14 +259,17 @@ test('the opening: the wordmark and headline, then the square becomes the room a
   await scrollOpening(page, 0.03);
   expect(await at()).toBe(rest);
   // The square grows over the page, then the screen is one magenta tile.
-  await scrollOpening(page, 0.4);
+  await scrollOpening(page, 0.37);
   const room = page.getByRole('figure', { name: /^Example: one conference/ });
   await expect(room).toContainText('One conference.');
-  // It fades out as you scroll on, before the committees.
+  // The words fade out, then the whole magenta screen fades away to the committees under it.
   const shown = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el).opacity));
+  const cover = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el.parentElement!.parentElement!).opacity));
   await expect.poll(shown).toBe(1);
+  await expect.poll(cover).toBe(1);
   await scrollOpening(page, 0.455);
-  await expect.poll(shown).toBeLessThan(0.5);
+  await expect.poll(shown).toBe(0);
+  await expect.poll(cover).toBeLessThan(0.5);
   // Then six committee tiles, then the three screens on one clock that runs as you scroll.
   await scrollOpening(page, 0.55);
   await expect(room).toContainText('Every committee, at once.');

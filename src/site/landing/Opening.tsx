@@ -7,8 +7,8 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 // on, the square over the i grows, a step at a time, until the screen is magenta: one conference.
 // It splits into six committee tiles, each cutting to its own colour (what the Secretariat sees),
 // then into the three screens in a committee room, whose shared clock runs as you scroll. Nothing
-// moves by itself: the square's steps ease over 150 ms and "One conference." fades in and out as
-// you scroll;
+// moves by itself: the square's steps ease over 150 ms, "One conference." fades in and out, and the
+// whole magenta screen then fades away to the committee tiles, all as you scroll;
 // everything after is a cut, like a timer or a tally changing. Scrolling back plays it backwards. Without JavaScript, on short screens, and before it loads, the
 // opening is just the wordmark and the headline. With less motion the square does not grow; the
 // screen cuts straight to magenta.
@@ -51,7 +51,7 @@ const CLOCK_STEPS = 9;
 type Frame =
   | { kind: 'rest' }
   | { kind: 'grow'; step: number }
-  | { kind: 'field'; shown: number }
+  | { kind: 'field'; shown: number; cover: number }
   | { kind: 'committees'; coloured: number }
   | { kind: 'room'; left: number };
 
@@ -59,10 +59,11 @@ function frameAt(p: number, reduce: boolean): Frame {
   if (p < AT.grow) return { kind: 'rest' };
   if (p < AT.field) return reduce ? { kind: 'rest' } : { kind: 'grow', step: Math.min(GROW_STEPS - 1, Math.floor(((p - AT.grow) / (AT.field - AT.grow)) * GROW_STEPS)) };
   if (p < AT.split) {
-    // "One conference." fades in over the first third of its part and out over the last third,
-    // in tenths, so scrolling either way plays it.
+    // "One conference." fades in, holds, and fades out; then the whole magenta screen fades away
+    // to the committee tiles underneath. In tenths, so scrolling either way plays it.
     const u = (p - AT.field) / (AT.split - AT.field);
-    return { kind: 'field', shown: Math.round(Math.min(1, u / 0.3, (1 - u) / 0.3) * 10) / 10 };
+    const tenth = (x: number) => Math.round(Math.max(0, Math.min(1, x)) * 10) / 10;
+    return { kind: 'field', shown: tenth(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: tenth((1 - u) / 0.4) };
   }
   if (p < AT.room) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
   return { kind: 'room', left: CLOCK_FROM - Math.min(CLOCK_STEPS - 1, Math.floor(((p - AT.room) / (1 - AT.room)) * CLOCK_STEPS)) };
@@ -164,43 +165,51 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
         {grow ? <div aria-hidden="true" className="absolute bg-primary transition-[left,top,width,height] duration-150 ease-out motion-reduce:transition-none" style={grow} /> : null}
 
         {covered ? (
-          <figure aria-label={L.label} className={`absolute inset-0 ${frame.kind === 'field' ? 'bg-primary text-on-primary' : 'bg-surface text-on-surface'}`}>
+          <figure aria-label={L.label} className="absolute inset-0 bg-surface text-on-surface">
             <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
-              {frame.kind === 'field' ? (
-                <p className="site-display mt-auto mb-auto text-5xl transition-opacity duration-150 motion-reduce:transition-none sm:text-7xl" style={{ opacity: frame.shown }}>{L.one}</p>
-              ) : null}
-
-              {frame.kind === 'committees' ? (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <p className="site-display text-3xl sm:text-5xl">{L.two}</p>
-                    <p className="text-base text-on-surface-muted">{L.twoNote}</p>
-                  </div>
-                  <ul className="grid min-h-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
-                    {COMMITTEES.map((c, i) => (
-                      <li key={c.key} className={`flex min-h-0 flex-col justify-between gap-2 p-3 sm:p-5 ${i < frame.coloured ? c.tile : 'bg-primary text-on-primary'}`}>
-                        <span className="font-mono text-sm font-semibold sm:text-base">{c.abbr}</span>
-                        <span className="flex flex-col gap-1">
-                          <span className="text-sm font-semibold leading-snug sm:text-lg">{L.names[c.key]}</span>
-                          <span className="flex items-center gap-2 text-xs sm:text-sm">
-                            <span aria-hidden="true" className="inline-block h-2 w-2 bg-current" />
-                            {L.status[c.status]}
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-
+              {frame.kind === 'field' || frame.kind === 'committees' ? <Committees L={L} coloured={frame.kind === 'committees' ? frame.coloured : 0} /> : null}
               {frame.kind === 'room' ? <Room L={L} left={frame.left} /> : null}
-
-              <figcaption className={`text-xs ${frame.kind === 'field' ? '' : 'text-on-surface-muted'}`}>{L.example}</figcaption>
+              <figcaption className="text-xs text-on-surface-muted">{L.example}</figcaption>
             </div>
+            {/* The magenta screen sits over the committees and fades away to show them. */}
+            {frame.kind === 'field' ? (
+              <div className="absolute inset-0 bg-primary text-on-primary transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: frame.cover }}>
+                <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
+                  <p className="site-display my-auto text-5xl transition-opacity duration-150 motion-reduce:transition-none sm:text-7xl" style={{ opacity: frame.shown }}>{L.one}</p>
+                  <span className="text-xs" aria-hidden="true">{L.example}</span>
+                </div>
+              </div>
+            ) : null}
           </figure>
         ) : null}
       </div>
     </section>
+  );
+}
+
+// Six committee tiles; the first `coloured` have cut to their own colour, the rest are still magenta.
+function Committees({ L, coloured }: { L: OpeningLabels; coloured: number }) {
+  return (
+    <>
+      <div className="flex flex-col gap-1">
+        <p className="site-display text-3xl sm:text-5xl">{L.two}</p>
+        <p className="text-base text-on-surface-muted">{L.twoNote}</p>
+      </div>
+      <ul className="grid min-h-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
+        {COMMITTEES.map((c, i) => (
+          <li key={c.key} className={`flex min-h-0 flex-col justify-between gap-2 p-3 sm:p-5 ${i < coloured ? c.tile : 'bg-primary text-on-primary'}`}>
+            <span className="font-mono text-sm font-semibold sm:text-base">{c.abbr}</span>
+            <span className="flex flex-col gap-1">
+              <span className="text-sm font-semibold leading-snug sm:text-lg">{L.names[c.key]}</span>
+              <span className="flex items-center gap-2 text-xs sm:text-sm">
+                <span aria-hidden="true" className="inline-block h-2 w-2 bg-current" />
+                {L.status[c.status]}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

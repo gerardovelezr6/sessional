@@ -4,26 +4,35 @@ import { Flag } from '@/components/Flag';
 
 // "Every screen, from the chair's console": the console, the Secretariat's view, the projector and
 // a delegate's phone run off one clock, so when a speaker's time runs out they all move on
-// together, in one cut. It runs only while on screen, can be
-// paused, and starts paused for people who ask for less motion.
+// together, in one cut. It runs only while on screen, can be paused, and starts paused for people
+// who ask for less motion.
+//
+// It can be played with, like the real thing: the console's buttons move to the next speaker, yield
+// the floor or pause the timer, and checking a delegation in at the door counts it present on the
+// console. Every other screen follows.
 
 const TOTAL = 45;
 const START = ['fr', 'br', 'ke', 'jp', 'mx', 'de', 'in', 'za'];
 
+type CheckIn = 'present' | 'present_voting' | null;
 interface SceneValue {
   order: string[];
   left: number;
   paused: boolean;
   toggle: () => void;
+  next: () => void;
+  checkedIn: CheckIn;
+  checkIn: (state: CheckIn) => void;
 }
-const SceneContext = createContext<SceneValue>({ order: START, left: 12, paused: true, toggle: () => undefined });
+const SceneContext = createContext<SceneValue>({ order: START, left: 12, paused: true, toggle: () => undefined, next: () => undefined, checkedIn: null, checkIn: () => undefined });
 const useScene = () => useContext(SceneContext);
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-// One second passes: the speaker's time runs down; at zero the next delegation takes the floor.
-function advance(s: { order: string[]; left: number }) {
-  if (s.left > 0) return { ...s, left: s.left - 1 };
+// One second passes: the speaker's time runs down; at zero (or when the chair moves on) the next
+// delegation takes the floor.
+function advance(s: { order: string[]; left: number }, action: 'tick' | 'next') {
+  if (action === 'tick' && s.left > 0) return { ...s, left: s.left - 1 };
   return { order: [...s.order.slice(1), s.order[0]!], left: TOTAL };
 }
 
@@ -36,7 +45,8 @@ const subscribeMotion = (onChange: () => void) => {
 };
 
 export function Scene({ children }: { children: React.ReactNode }) {
-  const [{ order, left }, tick] = useReducer(advance, { order: START, left: 12 });
+  const [{ order, left }, act] = useReducer(advance, { order: START, left: 12 });
+  const [checkedIn, checkIn] = useState<CheckIn>(null);
   // null: nobody pressed the button yet, so it follows the device's motion setting.
   const [choice, setChoice] = useState<boolean | null>(null);
   const reduce = useSyncExternalStore(subscribeMotion, reducedMotion, () => false);
@@ -52,11 +62,11 @@ export function Scene({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     if (paused || !seen) return;
-    const id = window.setInterval(tick, 1000);
+    const id = window.setInterval(() => act('tick'), 1000);
     return () => window.clearInterval(id);
   }, [paused, seen]);
   return (
-    <SceneContext.Provider value={{ order, left, paused, toggle: () => setChoice(!paused) }}>
+    <SceneContext.Provider value={{ order, left, paused, toggle: () => setChoice(!paused), next: () => act('next'), checkedIn, checkIn }}>
       <div ref={box}>{children}</div>
     </SceneContext.Provider>
   );
@@ -142,14 +152,16 @@ export function PhoneLive({ L, names }: { L: { label: string; school: string; co
 
 // The chair's console on a laptop: the source every other screen follows. The controls are drawn,
 // not working (it's a picture of the console).
-export function ConsoleLive({ L, names }: { L: { label: string; title: string; mode: string; present: string; yield: string; next: string; pause: string; queue: string }; names: Record<string, string> }) {
-  const { order, left } = useScene();
+export function ConsoleLive({ L, names }: { L: { label: string; title: string; mode: string; present: string; yield: string; next: string; pause: string; resume: string; queue: string }; names: Record<string, string> }) {
+  const { order, left, paused, toggle, next, checkedIn } = useScene();
   const [now, ...queue] = order;
+  // Switzerland is the one delegation not yet in; checking it in at the door counts it here.
+  const present = L.present.replace('{n}', String(checkedIn ? 15 : 14));
   return (
     <figure className="landing-frame bg-surface-raised" aria-label={L.label}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2 text-xs">
         <span className="font-semibold text-on-surface">{L.title}</span>
-        <span>{L.present}</span>
+        <span aria-live="polite">{present}</span>
       </div>
       <div className="grid grid-cols-1 gap-5 p-4 sm:grid-cols-[1.5fr_1fr]">
         <div className="flex flex-col gap-3">
@@ -160,10 +172,11 @@ export function ConsoleLive({ L, names }: { L: { label: string; title: string; m
             <span className="ms-auto font-mono text-3xl font-bold text-on-surface">{clock(left)}</span>
           </span>
           <Bar left={left} track="bg-border" fill="bg-accent" />
-          <span className="flex flex-wrap gap-2 text-xs font-semibold" aria-hidden="true">
-            <span className="border border-border-strong px-2.5 py-1.5 text-on-surface">{L.yield}</span>
-            <span className="border border-primary bg-primary px-2.5 py-1.5 text-on-primary">{L.next}</span>
-            <span className="border border-border-strong px-2.5 py-1.5 text-on-surface">{L.pause}</span>
+          {/* These work: try them, and watch the other screens follow. */}
+          <span className="flex flex-wrap gap-2 text-xs font-semibold">
+            <button type="button" onClick={next} className="border border-border-strong px-2.5 py-1.5 text-on-surface transition-colors duration-[120ms] hover:border-on-surface">{L.yield}</button>
+            <button type="button" onClick={next} className="border border-primary bg-primary px-2.5 py-1.5 text-on-primary transition-colors duration-[120ms] hover:bg-on-surface hover:border-on-surface">{L.next}</button>
+            <button type="button" onClick={toggle} aria-pressed={paused} className="border border-border-strong px-2.5 py-1.5 text-on-surface transition-colors duration-[120ms] hover:border-on-surface aria-pressed:bg-on-surface aria-pressed:text-surface">{paused ? L.resume : L.pause}</button>
           </span>
         </div>
         <div className="flex flex-col gap-1 text-sm">
@@ -201,6 +214,40 @@ export function DashboardLive({ L, names, committees }: { L: { label: string; ti
           </li>
         ))}
       </ul>
+    </figure>
+  );
+}
+
+// The check-in page on a chair's phone, after scanning Switzerland's placard. Marking it counts the
+// delegation present on the console; undo puts it back.
+export function CheckinLive({ L }: { name: string; L: { label: string; school: string; scanned: string; title: string; present: string; voting: string; donePresent: string; doneVoting: string; undo: string } }) {
+  const { checkedIn, checkIn } = useScene();
+  return (
+    <figure className="landing-frame mx-auto w-full max-w-56 bg-surface-raised sm:mx-0" aria-label={L.label}>
+      <div className="bg-primary px-3 py-2 text-xs text-on-primary">{L.school}</div>
+      <div className="flex flex-col gap-3 p-3 text-sm">
+        <span className="text-xs">{L.scanned}</span>
+        <span className="flex items-center gap-2">
+          <Flag choice={{ kind: 'country', code: 'ch' }} className="h-6! w-9! bg-cover!" />
+          <span className="font-semibold text-on-surface">{L.title}</span>
+        </span>
+        <span aria-live="polite" className="flex flex-col gap-2 text-xs font-semibold">
+          {checkedIn ? (
+            <>
+              <span className="flex items-center gap-2 text-on-surface">
+                <span aria-hidden="true" className={`inline-block h-3 w-3 shrink-0 ${checkedIn === 'present_voting' ? 'bg-primary' : 'bg-on-surface'}`} />
+                {checkedIn === 'present_voting' ? L.doneVoting : L.donePresent}
+              </span>
+              <button type="button" onClick={() => checkIn(null)} className="self-start underline underline-offset-4 hover:decoration-2">{L.undo}</button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={() => checkIn('present')} className="border border-on-surface bg-on-surface px-2.5 py-2 text-surface transition-colors duration-[120ms] hover:bg-surface hover:text-on-surface">{L.present}</button>
+              <button type="button" onClick={() => checkIn('present_voting')} className="border border-border-strong px-2.5 py-2 text-on-surface transition-colors duration-[120ms] hover:border-on-surface">{L.voting}</button>
+            </>
+          )}
+        </span>
+      </div>
     </figure>
   );
 }

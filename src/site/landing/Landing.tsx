@@ -218,7 +218,8 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
 
           <Section id="screens" title={t('landing.screens.title')} intro={t('landing.screens.intro')}>
             <Scene>
-              <div className="mb-4 flex justify-end">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-xl text-sm font-semibold text-on-surface">{t('landing.screens.try')}</p>
                 <ScenePause pause={t('landing.screens.pause')} play={t('landing.screens.play')} />
               </div>
               {/* The console first: everything else follows it. */}

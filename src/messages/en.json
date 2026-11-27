@@ -2164,7 +2164,7 @@
   "landing.mock.console.label": "The chair’s console on a laptop",
   "landing.mock.console.title": "Security Council · Session 2",
   "landing.mock.console.mode": "Speakers list",
-  "landing.mock.console.present": "14 of 15 present · quorum met",
+  "landing.mock.console.present": "{n} of 15 present · quorum met",
   "landing.mock.console.yield": "Yield to chair",
   "landing.mock.console.next": "Next speaker",
   "landing.mock.console.pause": "Pause timer",
@@ -3269,5 +3269,9 @@
   "landing.opening.status.crisis": "Crisis update",
   "landing.screens.console": "The chair’s console: the speakers list, the timer, motions and votes in one place. It keeps working if the Wi-Fi drops.",
   "landing.screens.dashboard": "The Secretariat sees every committee at once: who is speaking, what is being voted, which room is on a break.",
-  "landing.screens.checkin": "At the door, a chair scans the code on a delegation’s placard with a phone and marks it present."
+  "landing.screens.checkin": "At the door, a chair scans the code on a delegation’s placard with a phone and marks it present.",
+  "landing.mock.console.resume": "Resume timer",
+  "landing.mock.checkin.done": "{delegation} is marked {state}.",
+  "landing.mock.checkin.undo": "Undo",
+  "landing.screens.try": "Try it: the console’s buttons work, and so does checking Switzerland in at the door. Every other screen follows."
 }

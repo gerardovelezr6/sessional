@@ -80,7 +80,7 @@ function Badge({ group }: { group: GroupView | undefined }) {
   if (!group) return null;
   return (
     <span className="inline-flex items-center gap-1 rounded-control border border-border px-2 text-xs font-semibold text-on-surface">
-      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: group.color }} aria-hidden="true" />
+      <span className="inline-block h-2 w-2 rounded-control" style={{ backgroundColor: group.color }} aria-hidden="true" />
       {group.short || group.name}
     </span>
   );

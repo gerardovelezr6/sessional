@@ -23,7 +23,7 @@ to a 13-year-old.
 
 The wordmark is lowercase **sessional** in Satoshi Light (Fontshare), tracked −0.03em, outlined
 into vector shapes. The dot of the i is a magenta square (0.15em), sitting 0.14em below the line's
-top. The icon is a magenta tile with a lowercase s and the white square.
+top and centered exactly on the stem. The icon is a magenta tile with a lowercase s and the white square.
 
 | File | Use |
 |---|---|
@@ -134,7 +134,9 @@ Steps that aren't playing use graphite, not transparency, so they keep that cont
 
 ## Shape and space
 
-- Frames: 1px strong rule, 4px radius (`.landing-frame`). Pills are fully rounded.
+- Square corners everywhere, like the logo's square: frames (`.landing-frame`, 1px strong rule),
+  buttons, fields, badges, chips and dots. The `sessional` theme's radius is `none`; schools that
+  pick rounded corners in Settings still get them.
 - Sections are separated by a full-width strong rule (`.landing-rule`) and generous space
   (`pt-12`, `pb-16`). The page width is `max-w-6xl`; inner pages are `max-w-3xl`.
 - No shadows on the website.

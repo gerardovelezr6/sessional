@@ -39,7 +39,7 @@ export const PRESETS: Record<PresetKey, Preset> = {
   // The product's own identity (Session tiles, docs/DESIGN.md): magenta tiles on white, near-black
   // type, cobalt for focus and links. Also the theme a new school starts from.
   sessional: {
-    brand: '#C8175D', accent: '#2147D6', background: '#FFFFFF', font: 'montserrat', radius: 'medium', density: 'comfortable',
+    brand: '#C8175D', accent: '#2147D6', background: '#FFFFFF', font: 'montserrat', radius: 'none', density: 'comfortable',
     uppercaseLabels: true, shadows: false, contrast: 'standard',
     headerStyle: 'light', pageTitle: 'bar', tabStyle: 'underline',
     pinned: { '--s-color-on-surface': '#111111', '--s-color-on-surface-muted': '#4B5058', '--s-color-border': '#E3E5E8', '--s-color-border-strong': '#4B5058' },

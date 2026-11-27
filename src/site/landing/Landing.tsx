@@ -346,7 +346,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
           </Section>
 
           {/* The page's one bright moment: writing to us. */}
-          <section id="contact" aria-labelledby="contact-title" className="my-12 grid grid-cols-1 gap-8 rounded-sm bg-accent px-6 py-10 text-on-accent sm:px-8 lg:grid-cols-[1fr_1.6fr]">
+          <section id="contact" aria-labelledby="contact-title" className="my-12 grid grid-cols-1 gap-8 bg-accent px-6 py-10 text-on-accent sm:px-8 lg:grid-cols-[1fr_1.6fr]">
             <div className="flex flex-col gap-3">
               <h2 id="contact-title" className="site-display text-balance text-3xl">{t('landing.contact.title')}</h2>
               <p>{t('landing.contact.body')}</p>

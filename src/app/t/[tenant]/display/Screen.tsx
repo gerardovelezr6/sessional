@@ -300,7 +300,7 @@ export function Screen({ initial, stateUrl, schoolName, logoUrl, L, Lpaired }: {
             <span>{fmt(T.present, paired.locale, { present: paired.projection.present, members: paired.projection.members })}</span>
           </div>
         ) : null}
-        <span role="status" className={`ms-[2vh] rounded-full px-[1.5vh] py-[0.5vh] text-[1.6vh] font-semibold ${stale ? 'screen-alert' : 'screen-chip'}`}>
+        <span role="status" className={`ms-[2vh] rounded-control px-[1.5vh] py-[0.5vh] text-[1.6vh] font-semibold ${stale ? 'screen-alert' : 'screen-chip'}`}>
           {status}
         </span>
       </header>
@@ -309,7 +309,7 @@ export function Screen({ initial, stateUrl, schoolName, logoUrl, L, Lpaired }: {
         <>
           <Projection v={paired} now={clockState.now} sound={audio} L={T} />
           {paired.projection.lastVote && !paired.projection.vote ? (
-            <p className="screen-chip self-center rounded-full px-[3vh] py-[1vh] text-[2.6vh] font-semibold">
+            <p className="screen-chip self-center rounded-control px-[3vh] py-[1vh] text-[2.6vh] font-semibold">
               {fmt(paired.projection.lastVote.vetoed ? T.resultVetoed : paired.projection.lastVote.passed ? T.resultPassed : T.resultFailed, paired.locale, {
                 title: paired.projection.lastVote.title,
                 yes: paired.projection.lastVote.tally.yes,

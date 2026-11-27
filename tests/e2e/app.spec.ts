@@ -52,5 +52,5 @@ test('the wordmark on the account sign-in page leads to the main website', async
   await page.goto(app('/login'));
   await page.getByRole('banner').getByRole('link', { name: 'Sessional, home' }).click();
   await expect(page).toHaveURL(`http://localhost:${PORT}/`);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Run every committee of your Model UN from the chair’s laptop.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Model UN, without the spreadsheets.');
 });

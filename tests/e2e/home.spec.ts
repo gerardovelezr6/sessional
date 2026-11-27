@@ -42,7 +42,7 @@ test('the favicons, home-screen icons and link preview are the Sessional ones', 
 
 test('the landing page lists what Sessional does, in English and Spanish, with no “coming next” list', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText("Run every committee of your Model UN from the chair’s laptop.");
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText("Model UN, without the spreadsheets.");
   for (const name of ['How a session runs', 'Every screen, from the chair’s console', 'For the people organizing it', 'Your conference, your words', 'Pricing', 'Questions']) {
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }
@@ -56,7 +56,7 @@ test('the landing page lists what Sessional does, in English and Spanish, with n
 
   await page.getByRole('link', { name: 'Español' }).click();
   await expect(page).toHaveURL(/lang=es/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dirige cada comité de tu Modelo de la ONU desde la laptop de la mesa.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Modelo de la ONU, sin hojas de cálculo.');
   await expect(page.getByRole('link', { name: 'English' })).toBeVisible();
 });
 

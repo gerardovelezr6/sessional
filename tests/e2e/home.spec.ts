@@ -60,7 +60,7 @@ test('the landing page lists what Sessional does, in English and Spanish, with n
   await expect(page.getByRole('link', { name: 'English' })).toBeVisible();
 });
 
-test('the website has its own type (Zodiak, Switzer, IBM Plex Mono), served from this site; a school keeps its font', async ({ page }) => {
+test('the website has its own type (Zodiak, Switzer, Satoshi), served from this site; a school keeps its font', async ({ page }) => {
   const external: string[] = [];
   page.on('request', (r) => {
     if (/fonts\.(googleapis|gstatic)\.com|use\.typekit|fonts\.bunny/.test(r.url())) external.push(r.url());
@@ -69,7 +69,7 @@ test('the website has its own type (Zodiak, Switzer, IBM Plex Mono), served from
   const family = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).fontFamily);
   expect(await family('h1')).toContain('Zodiak');
   expect(await family('main p')).toContain('Switzer');
-  expect(await family('.landing-page .font-mono')).toContain('IBM Plex Mono');
+  expect(await family('.landing-page .font-mono')).toContain('Satoshi');
   await page.evaluate(() => document.fonts.ready);
   const loaded = await page.evaluate(() => [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family).join(' '));
   expect(loaded).toContain('Zodiak');

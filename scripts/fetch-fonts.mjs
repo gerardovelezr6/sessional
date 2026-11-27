@@ -23,8 +23,8 @@ const API = process.env.FONTSHARE_API_URL || 'https://api.fontshare.com/v2/css';
 const FONTS = [
   { slug: 'zodiak', family: 'Zodiak', want: ['400', '700'] },
   { slug: 'switzer', family: 'Switzer', want: ['400', '500', '600', '700', '400i'] },
-  // The wordmark's typeface, for the site's short spec lines.
-  { slug: 'satoshi', family: 'Satoshi', want: ['500'] },
+  // The wordmark's typeface: figures (clocks, tallies, codes) and short spec lines.
+  { slug: 'satoshi', family: 'Satoshi', want: ['500', '700'] },
 ];
 
 const isWoff2 = (buf) => buf.length > 1000 && buf.subarray(0, 4).toString('latin1') === 'wOF2';

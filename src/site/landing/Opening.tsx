@@ -9,7 +9,8 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 // is magenta ("One conference."), the words fade in and out, and the magenta fades away to six
 // committee tiles. From there the scroll moves it on: the tiles cut to their own colours (what the
 // Secretariat sees), then the three screens of a committee room count down on one clock. Back at
-// the top, the logo's part plays backwards by itself (quicker, without the words) to the wordmark. Without JavaScript, on short screens, and before it loads, the
+// the top, the logo's part plays backwards by itself (in half the time, without the words) to the
+// wordmark. Forwards it is tweened sine in-out, backwards sine out-in. Without JavaScript, on short screens, and before it loads, the
 // opening is just the wordmark and the headline. For people who ask for less motion nothing plays
 // by itself and the square doesn't grow: scrolling moves all of it, and the screen cuts straight
 // to magenta.
@@ -72,8 +73,16 @@ const secondsAt = (p: number) => {
   return TIMELINE[TIMELINE.length - 1]![0];
 };
 const LENGTH = TIMELINE[TIMELINE.length - 1]![0];
-// Going back up, it plays backwards this much faster, without the words.
-const REVERSE_SPEED = 1.6;
+// The logo's part is tweened as a whole: sine in-out playing forwards; backwards (going up) it takes
+// half the time, sine out-in, without the words.
+const REVERSE = LENGTH / 2;
+const inOutSine = (x: number) => -(Math.cos(Math.PI * x) - 1) / 2;
+const outInSine = (x: number) => (x < 0.5 ? Math.sin(Math.PI * x) / 2 : 1 - Math.cos(Math.PI * (x - 0.5)) / 2);
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+// Seconds since it started → seconds along the timeline, and back.
+const forwardAt = (elapsed: number) => LENGTH * inOutSine(clamp01(elapsed / LENGTH));
+const forwardStart = (at: number) => (LENGTH * Math.acos(1 - (2 * clamp01(at / LENGTH)))) / Math.PI;
+const backwardAt = (elapsed: number) => LENGTH * (1 - outInSine(clamp01(elapsed / REVERSE)));
 // Holding the page still while the logo's part plays: wheel, touch and keys do nothing, and any
 // scroll already under way (a flick's momentum) is put back.
 const KEYS = new Set([' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End']);
@@ -188,7 +197,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
         } else played = AT.split;
       }
       if (since >= 0) {
-        played = Math.min(AT.split, progressAt((now - since) / 1000));
+        played = Math.min(AT.split, progressAt(forwardAt((now - since) / 1000)));
         if (played >= AT.split) {
           since = -1;
           release?.();
@@ -198,10 +207,10 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
         if (scrolled >= START_AT) {
           // Heading down again mid-way: play forwards from here.
           back = -1;
-          since = now - secondsAt(played) * 1000;
+          since = now - forwardStart(secondsAt(played)) * 1000;
           release = holdScroll();
         } else {
-          played = Math.max(0, progressAt(LENGTH - ((now - back) / 1000) * REVERSE_SPEED));
+          played = Math.max(0, progressAt(backwardAt((now - back) / 1000)));
           if (played <= AT.grow + 0.001) {
             played = 0;
             back = -1;

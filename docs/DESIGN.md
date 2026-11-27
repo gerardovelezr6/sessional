@@ -46,15 +46,14 @@ The logo's letters were outlined from Satoshi, which the ITF Free Font License a
 
 ## Type
 
-Four families, each with one job. The site serves all three itself, so a visitor's browser never
+Three families, each with one job. The site serves all three itself, so a visitor's browser never
 asks a font service for anything.
 
 | Role | Family | Used for | Weights |
 |---|---|---|---|
 | Display | **Zodiak** (Fontshare) | Page titles, section titles, plan names, the story's step numbers | 400 (700 available) |
 | Text | **Switzer** (Fontshare) | Reading text, the interface, subheadings inside articles, labels, buttons | 400, 500, 600, 700; 400 italic |
-| Figures | **IBM Plex Mono** (npm, `@fontsource`) | Clocks, timers, tallies, counts, codes, "Step 2 of 6" | 500 |
-| Spec lines | **Satoshi** (Fontshare), the wordmark's typeface | Short lines of facts under a card ("Excel · CSV · Google Sheets"): `.site-tag`, 11px tracked capitals | 500 |
+| Figures and spec lines | **Satoshi** (Fontshare), the wordmark's typeface | Clocks, timers, tallies, counts, codes, "Step 2 of 6" (`.font-mono`, tabular figures); short lines of facts under a card ("Excel · CSV · Google Sheets": `.site-tag`, 11px tracked capitals) | 500, 700 |
 
 Why these:
 
@@ -62,7 +61,8 @@ Why these:
   official document, which suits a product built around resolutions and committees.
 - **Switzer** is a neutral sans in the Swiss tradition: plain, very legible, with full Latin
   coverage for Spanish. It stays out of the way so the content and examples lead.
-- **IBM Plex Mono** has steady, tabular figures for things that tick (a 1:30 speech, a 31–12–7
+- **Satoshi** is the typeface the wordmark is drawn from; its tabular figures keep things that tick
+  steady (a 1:30 speech, a 31–12–7
   vote). It is distinct from the text face, so numbers read as live data.
 
 ### Licensing of Zodiak, Switzer and Satoshi
@@ -109,7 +109,7 @@ own website, unmodified. It does not allow:
   root of `Landing`, `SitePage` and `LegalPage`.
 - `.site-display` is the display face. Use it on titles; don't add `font-semibold` (its own
   weight is 400).
-- IBM Plex Mono is imported in `src/app/layout.tsx`; Zodiak and Switzer are declared with
+- Zodiak, Switzer and Satoshi are declared with
   `@font-face` in `src/app/globals.css`.
 
 ## Colour
@@ -151,12 +151,12 @@ whole magenta screen fade away.
 
 - **The opening** (`src/site/landing/Opening.tsx`) is the page's one authored moment. It starts on
   the wordmark at poster size with the headline. Once the visitor scrolls a little way in (3% of
-  its scroll), the logo's part plays by itself, about four seconds, with scrolling held so it
+  its scroll), the logo's part plays by itself, 3.8 seconds tweened sine in-out (backwards: half the time, sine out-in), with scrolling held so it
   isn't skipped: the logo's own square hides and a square takes its place, growing in sixteen
   steps (each eased over 150 ms) until the screen is magenta; "One conference." fades in and out,
   then the whole magenta screen fades away (eased) to six committee tiles. The rest follows the
   scroll: the tiles cut to their own colours one by one, then the three screens of a room count
-  down on one clock. Back at the top, the logo's part plays backwards by itself (1.6× as fast, without the words)
+  down on one clock. Back at the top, the logo's part plays backwards by itself (in half the time, without the words)
   to the wordmark. Arriving further down the page
   (a reload, a link to a section) counts it as played. It is pinned only on screens at least
   560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.

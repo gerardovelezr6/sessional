@@ -325,7 +325,8 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
    carry .site-type; a school's site keeps the font its owner chose. Colours are the theme's.
    Display: Zodiak, a sharp, high-contrast serif, for headings and large numerals.
    Text: Switzer, a neutral sans, for reading and interface.
-   Figures: IBM Plex Mono, for clocks, timers, tallies and codes.
+   Figures and spec lines: Satoshi, the wordmark's typeface, with tabular figures for clocks,
+   timers, tallies and codes.
    Zodiak and Switzer are Fontshare fonts (ITF Free Font License): self-hosted for this website
    only, never offered to schools as a font choice. scripts/fetch-fonts.mjs fetches them at build. */
 @font-face { font-family: "Zodiak"; src: url("/fonts/fontshare/zodiak-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
@@ -336,10 +337,11 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 @font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 @font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "Satoshi"; src: url("/fonts/fontshare/satoshi-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/fontshare/satoshi-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 .site-type {
   --site-display: "Zodiak", ui-serif, Georgia, serif;
   --site-text: "Switzer", ui-sans-serif, system-ui, sans-serif;
-  --site-figures: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --site-figures: "Satoshi", var(--site-text);
   --site-tag: "Satoshi", var(--site-text);
   --s-font-sans: var(--site-text);
   --font-sans: var(--site-text);
@@ -358,7 +360,8 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 /* The display face: headings and the story's step numbers. Regular weight (Zodiak's 400), slightly
    tight. */
 .site-display { font-family: var(--site-display); font-weight: 400; letter-spacing: -0.012em; line-height: 1.12; }
-.site-type .font-mono { font-family: var(--site-figures); font-weight: 500; letter-spacing: 0; }
+.site-type .font-mono { font-family: var(--site-figures); font-weight: 500; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.site-type .font-mono.font-bold { font-weight: 700; }
 /* Short spec lines ("Excel · CSV · Google Sheets"): Satoshi, the logo's typeface, in tracked capitals. */
 .site-type .site-tag { font-family: var(--site-tag); font-weight: 500; font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.5; }
 

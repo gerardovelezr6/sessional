@@ -13,3 +13,6 @@ playwright-report
 # Fontshare fonts: fetched at build time (scripts/fetch-fonts.mjs); their license does not allow
 # sharing the files through a public repository.
 /public/fonts/fontshare/
+
+# Per-machine Claude Code settings (e.g. Impeccable's design-check hook); not shared.
+/.claude/settings.local.json

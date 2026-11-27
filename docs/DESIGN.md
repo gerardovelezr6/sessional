@@ -46,7 +46,7 @@ The logo's letters were outlined from Satoshi, which the ITF Free Font License a
 
 ## Type
 
-Three families, each with one job. The site serves all three itself, so a visitor's browser never
+Four families, each with one job. The site serves all three itself, so a visitor's browser never
 asks a font service for anything.
 
 | Role | Family | Used for | Weights |
@@ -54,6 +54,7 @@ asks a font service for anything.
 | Display | **Zodiak** (Fontshare) | Page titles, section titles, plan names, the story's step numbers | 400 (700 available) |
 | Text | **Switzer** (Fontshare) | Reading text, the interface, subheadings inside articles, labels, buttons | 400, 500, 600, 700; 400 italic |
 | Figures | **IBM Plex Mono** (npm, `@fontsource`) | Clocks, timers, tallies, counts, codes, "Step 2 of 6" | 500 |
+| Spec lines | **Satoshi** (Fontshare), the wordmark's typeface | Short lines of facts under a card ("Excel · CSV · Google Sheets"): `.site-tag`, 11px tracked capitals | 500 |
 
 Why these:
 
@@ -64,7 +65,7 @@ Why these:
 - **IBM Plex Mono** has steady, tabular figures for things that tick (a 1:30 speech, a 31–12–7
   vote). It is distinct from the text face, so numbers read as live data.
 
-### Licensing of Zodiak and Switzer
+### Licensing of Zodiak, Switzer and Satoshi
 
 They are under the ITF Free Font License (fontshare.com). It allows self-hosting them for our
 own website, unmodified. It does not allow:
@@ -155,7 +156,8 @@ whole magenta screen fade away.
   steps (each eased over 150 ms) until the screen is magenta; "One conference." fades in and out,
   then the whole magenta screen fades away (eased) to six committee tiles. The rest follows the
   scroll: the tiles cut to their own colours one by one, then the three screens of a room count
-  down on one clock. Scrolling back to the top puts it at rest. Arriving further down the page
+  down on one clock. Back at the top, the logo's part plays backwards by itself (1.6× as fast, without the words)
+  to the wordmark. Arriving further down the page
   (a reload, a link to a section) counts it as played. It is pinned only on screens at least
   560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.
   With less motion nothing plays by itself and the square doesn't grow: scrolling moves all of

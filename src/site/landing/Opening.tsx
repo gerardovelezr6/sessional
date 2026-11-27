@@ -8,8 +8,8 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 // page held still so it isn't skipped: the logo's square grows, a step at a time, until the screen
 // is magenta ("One conference."), the words fade in and out, and the magenta fades away to six
 // committee tiles. From there the scroll moves it on: the tiles cut to their own colours (what the
-// Secretariat sees), then the three screens of a committee room count down on one clock. Scrolling
-// back to the top puts it at rest. Without JavaScript, on short screens, and before it loads, the
+// Secretariat sees), then the three screens of a committee room count down on one clock. Back at
+// the top, the logo's part plays backwards by itself (quicker, without the words) to the wordmark. Without JavaScript, on short screens, and before it loads, the
 // opening is just the wordmark and the headline. For people who ask for less motion nothing plays
 // by itself and the square doesn't grow: scrolling moves all of it, and the screen cuts straight
 // to magenta.
@@ -63,6 +63,17 @@ const progressAt = (sec: number) => {
   }
   return AT.split;
 };
+const secondsAt = (p: number) => {
+  for (let i = 1; i < TIMELINE.length; i++) {
+    const [s1, p1] = TIMELINE[i]!;
+    const [s0, p0] = TIMELINE[i - 1]!;
+    if (p <= p1) return s0 + ((Math.max(p, p0) - p0) / (p1 - p0)) * (s1 - s0);
+  }
+  return TIMELINE[TIMELINE.length - 1]![0];
+};
+const LENGTH = TIMELINE[TIMELINE.length - 1]![0];
+// Going back up, it plays backwards this much faster, without the words.
+const REVERSE_SPEED = 1.6;
 // Holding the page still while the logo's part plays: wheel, touch and keys do nothing, and any
 // scroll already under way (a flick's momentum) is put back.
 const KEYS = new Set([' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End']);
@@ -94,7 +105,7 @@ type Frame =
   | { kind: 'committees'; coloured: number }
   | { kind: 'room'; left: number };
 
-function frameAt(p: number, reduce: boolean): Frame {
+function frameAt(p: number, reduce: boolean, quiet = false): Frame {
   if (p < AT.grow) return { kind: 'rest' };
   if (p < AT.field) return reduce ? { kind: 'rest' } : { kind: 'grow', step: Math.min(GROW_STEPS - 1, Math.floor(((p - AT.grow) / (AT.field - AT.grow)) * GROW_STEPS)) };
   if (p < AT.split) {
@@ -105,7 +116,7 @@ function frameAt(p: number, reduce: boolean): Frame {
       const c = Math.max(0, Math.min(1, x));
       return Math.round(c * c * (3 - 2 * c) * 100) / 100;
     };
-    return { kind: 'field', shown: soft(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: soft((1 - u) / 0.4) };
+    return { kind: 'field', shown: quiet ? 0 : soft(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: soft((1 - u) / 0.4) };
   }
   if (p < AT.room) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
   return { kind: 'room', left: CLOCK_FROM - Math.min(CLOCK_STEPS - 1, Math.floor(((p - AT.room) / (1 - AT.room)) * CLOCK_STEPS)) };
@@ -135,6 +146,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     let scrolled = 0; // how far the visitor has scrolled through the opening, 0 to 1
     let played = 0; // how far the logo's part has played by itself (up to AT.split)
     let since = -1; // when it started playing (ms, on the page's clock), or -1
+    let back = -1; // when it started playing backwards (ms), or -1
     let release: (() => void) | null = null;
     // The header's height, for the pages' layout; it only changes on resize.
     const header = () => {
@@ -142,11 +154,11 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       const value = `${h?.offsetHeight ?? 64}px`;
       if (document.documentElement.style.getPropertyValue('--landing-header') !== value) document.documentElement.style.setProperty('--landing-header', value);
     };
-    const show = (at: number) => {
+    const show = (at: number, quiet = false) => {
       const st = stage.current;
       const sq = square.current;
       if (!st || !sq) return;
-      const next = frameAt(at, motion.matches);
+      const next = frameAt(at, motion.matches, quiet);
       setFrame((f) => (same(f, next) ? f : next));
       if (next.kind === 'rest' || next.kind === 'grow') {
         const sr = st.getBoundingClientRect();
@@ -167,7 +179,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
         show(scrolled);
         return;
       }
-      if (since < 0 && played === 0 && scrolled >= START_AT) {
+      if (since < 0 && back < 0 && played === 0 && scrolled >= START_AT) {
         // Only while it's the thing on screen: arriving further down (a reload, a link to a
         // section) counts it as played.
         if (scrolled < 0.25) {
@@ -182,14 +194,27 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
           release?.();
           release = null;
         }
-      } else if (played >= AT.split && scrolled < START_AT / 2) {
-        // Back at the top: at rest again, ready to play next time.
-        played = 0;
+      } else if (back >= 0) {
+        if (scrolled >= START_AT) {
+          // Heading down again mid-way: play forwards from here.
+          back = -1;
+          since = now - secondsAt(played) * 1000;
+          release = holdScroll();
+        } else {
+          played = Math.max(0, progressAt(LENGTH - ((now - back) / 1000) * REVERSE_SPEED));
+          if (played <= AT.grow + 0.001) {
+            played = 0;
+            back = -1;
+          }
+        }
+      } else if (played >= AT.split && scrolled < START_AT) {
+        // Back up at the top: it plays backwards to the wordmark, without the words.
+        back = now;
       }
       // After the logo's part, the rest of the scroll walks through the committees and the room.
       const manual = AT.split + (Math.max(0, scrolled - START_AT) / (1 - START_AT)) * (1 - AT.split);
-      show(played === 0 ? 0 : played < AT.split ? played : manual);
-      if (since >= 0) raf = window.requestAnimationFrame(frameLoop);
+      show(played === 0 ? 0 : played < AT.split ? played : manual, back >= 0);
+      if (since >= 0 || back >= 0) raf = window.requestAnimationFrame(frameLoop);
     };
     const onScroll = () => {
       if (!raf) raf = window.requestAnimationFrame(frameLoop);

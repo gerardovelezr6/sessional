@@ -335,10 +335,12 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 @font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
 @font-face { font-family: "Switzer"; src: url("/fonts/fontshare/switzer-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/fontshare/satoshi-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
 .site-type {
   --site-display: "Zodiak", ui-serif, Georgia, serif;
   --site-text: "Switzer", ui-sans-serif, system-ui, sans-serif;
   --site-figures: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --site-tag: "Satoshi", var(--site-text);
   --s-font-sans: var(--site-text);
   --font-sans: var(--site-text);
   --font-mono: var(--site-figures);
@@ -357,6 +359,8 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
    tight. */
 .site-display { font-family: var(--site-display); font-weight: 400; letter-spacing: -0.012em; line-height: 1.12; }
 .site-type .font-mono { font-family: var(--site-figures); font-weight: 500; letter-spacing: 0; }
+/* Short spec lines ("Excel · CSV · Google Sheets"): Satoshi, the logo's typeface, in tracked capitals. */
+.site-type .site-tag { font-family: var(--site-tag); font-weight: 500; font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.5; }
 
 /* The marketing page: Session tiles. Square frames, no shadows, no gradients. */
 .landing-frame { border: 1px solid var(--s-color-border-strong); }

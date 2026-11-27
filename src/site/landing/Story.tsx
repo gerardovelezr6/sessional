@@ -255,18 +255,21 @@ function Speakers({ p, S, names, pack }: Part) {
   const [now, ...next] = moved ? queue.slice(1) : queue;
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.2fr_1fr]">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5 sm:gap-3">
         <span className="text-xs">{S.speaking}</span>
-        <span className="flex items-center gap-3">
-          <Flag choice={{ kind: 'country', code: now! }} className="h-6! w-9! bg-cover!" />
-          <span className="text-2xl font-bold text-on-surface">{names[now!]}</span>
+        {/* Phones: the name and the clock on one line. */}
+        <span className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-3">
+          <span className="flex min-w-0 items-center gap-3">
+            <Flag choice={{ kind: 'country', code: now! }} className="h-6! w-9! bg-cover!" />
+            <span className="truncate text-xl font-bold text-on-surface sm:text-2xl">{names[now!]}</span>
+          </span>
+          <span className="ms-auto flex items-baseline gap-2 sm:ms-0">
+            <span className="font-mono text-3xl font-bold text-on-surface sm:text-4xl">{clock(moved ? total : left)}</span>
+            <span className="text-xs sm:text-sm">{fill(S.of!, { total: clock(total) })}</span>
+          </span>
         </span>
-        <span className="flex items-baseline gap-2">
-          <span className="font-mono text-3xl font-bold text-on-surface sm:text-4xl">{clock(moved ? total : left)}</span>
-          <span className="text-sm">{fill(S.of!, { total: clock(total) })}</span>
-        </span>
-        <span className="block h-2 w-full bg-surface">
-          <span className="block h-2 bg-accent" style={{ width: `${moved ? 0 : ((total - left) / total) * 100}%` }} />
+        <span className="block h-1.5 w-full bg-border sm:h-2">
+          <span className="block h-full bg-accent" style={{ width: `${moved ? 0 : ((total - left) / total) * 100}%` }} />
         </span>
         <span className="flex flex-wrap gap-2 text-xs">
           <span className="landing-key">{S.yieldChair}</span>
@@ -276,7 +279,7 @@ function Speakers({ p, S, names, pack }: Part) {
       <ol className="flex flex-col text-sm">
         <li className="pb-1 text-xs">{S.list}</li>
         {next.slice(0, 4).map((c, i) => (
-          <li key={c} className={`flex items-center gap-2 border-b border-border py-1 ${i >= 2 ? 'max-sm:hidden' : ''}`}>
+          <li key={c} className={`flex items-center gap-2 border-t border-border py-1.5 ${i >= 1 ? 'max-sm:hidden' : ''}`}>
             <span className="w-4 font-mono text-xs">{i + 1}</span>
             <Flag choice={{ kind: 'country', code: c }} />
             {names[c]}
@@ -408,24 +411,23 @@ function Voting({ p, S, names, pack, locale }: Part) {
 
 function Grades({ p, S, names }: Part) {
   const awards = p >= 0.7;
+  const grown = Math.min(1, p * 1.4);
+  // One line per delegation (flag, name, its award as a magenta tag, points), a thin bar under it.
   return (
     <div className="flex flex-col gap-3">
       <span className="text-sm font-semibold text-on-surface">{awards ? S.awardsTitle : S.gradesTitle}</span>
-      <ul className="flex flex-col gap-2 text-sm">
-        {/* Each row keeps a line for its award, so nothing moves when the awards appear. */}
+      <ul className="flex flex-col gap-3 text-sm">
         {GRADES.map((g) => (
-          <li key={g.code} className="grid grid-cols-[minmax(0,7.5rem)_1fr_2.5rem] items-center gap-x-3 sm:grid-cols-[11rem_1fr_2.5rem]">
-            <span className="flex min-w-0 flex-col gap-1">
-              <span className="flex min-w-0 items-center gap-2">
-                <Flag choice={{ kind: 'country', code: g.code }} />
-                <span className="truncate">{names[g.code]}</span>
-              </span>
-              <span className={`self-start truncate bg-primary px-1.5 text-xs font-semibold text-on-primary ${awards && g.award ? '' : 'invisible'}`}>{g.award ? S[`award_${g.award}`] : '\u00a0'}</span>
+          <li key={g.code} className="flex flex-col gap-1.5">
+            <span className="flex min-w-0 items-center gap-2">
+              <Flag choice={{ kind: 'country', code: g.code }} />
+              <span className="shrink-0 text-on-surface">{names[g.code]}</span>
+              {awards && g.award ? <span className="truncate bg-primary px-1.5 py-px text-[11px] font-semibold text-on-primary">{S[`award_${g.award}`]}</span> : null}
+              <span className="ms-auto font-mono text-on-surface">{Math.round(grown * g.points)}</span>
             </span>
-            <span className="block h-2 bg-surface">
-              <span className="block h-2 bg-on-surface" style={{ width: `${Math.min(1, p * 1.4) * g.points}%` }} />
+            <span className="block h-1.5 bg-border">
+              <span className="block h-full bg-on-surface" style={{ width: `${grown * g.points}%` }} />
             </span>
-            <span className="text-end font-mono">{Math.round(Math.min(1, p * 1.4) * g.points)}</span>
           </li>
         ))}
       </ul>

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Downloads the Sessional website's Fontshare fonts (Zodiak, Switzer) into public/fonts/fontshare,
+// Downloads the Sessional website's Fontshare fonts (Zodiak, Switzer, Satoshi) into public/fonts/fontshare,
 // where the site serves them from its own domain. Runs before every build and dev server.
 //
 // Why they are not in the repository: they are licensed under the ITF Free Font License
@@ -23,6 +23,8 @@ const API = process.env.FONTSHARE_API_URL || 'https://api.fontshare.com/v2/css';
 const FONTS = [
   { slug: 'zodiak', family: 'Zodiak', want: ['400', '700'] },
   { slug: 'switzer', family: 'Switzer', want: ['400', '500', '600', '700', '400i'] },
+  // The wordmark's typeface, for the site's short spec lines.
+  { slug: 'satoshi', family: 'Satoshi', want: ['500'] },
 ];
 
 const isWoff2 = (buf) => buf.length > 1000 && buf.subarray(0, 4).toString('latin1') === 'wOF2';

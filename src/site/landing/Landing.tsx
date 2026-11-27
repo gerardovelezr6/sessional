@@ -259,7 +259,7 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
                     <div key={o} className="landing-frame flex flex-col gap-2 bg-surface-raised p-4">
                       <dt className="font-semibold text-on-surface">{t(`landing.org.${o}.title` as MessageKey)}</dt>
                       <dd className="text-sm">{t(`landing.org.${o}.body` as MessageKey)}</dd>
-                      <dd className="mt-auto border-t border-border pt-2 font-mono text-xs text-on-surface">{t(`landing.org.${o}.detail` as MessageKey)}</dd>
+                      <dd className="site-tag mt-auto border-t border-border pt-2 text-on-surface">{t(`landing.org.${o}.detail` as MessageKey)}</dd>
                     </div>
                   ))}
                 </dl>

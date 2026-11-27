@@ -275,9 +275,11 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   await expect(room).toContainText('Every committee, at once.');
   await scrollOpening(page, 0.95);
   await expect(room).toContainText('Every screen in the room, on one clock.');
-  // Back at the top, it is at rest again.
+  // Back at the top, it plays backwards to the wordmark, without the words.
   await scrollOpening(page, 0);
-  await expect(room).toHaveCount(0);
+  await expect(room.getByText('One conference.')).toHaveCount(1, { timeout: 3000 });
+  expect(await room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(0);
+  await expect(room).toHaveCount(0, { timeout: 6000 });
   await expect(opening.getByRole('heading', { level: 1 })).toBeVisible();
 
   // On a phone it fits the width, and the headline is on the first screen.

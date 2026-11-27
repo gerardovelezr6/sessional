@@ -48,7 +48,7 @@ function Submit({ L }: { L: ContactLabels }) {
   );
 }
 
-const ORDER = ['name', 'email', 'role', 'organization', 'country', 'conference', 'month', 'committees', 'delegates', 'language', 'message'] as const;
+const ORDER = ['name', 'email', 'role', 'organization', 'country', 'month', 'conference', 'committees', 'delegates', 'language', 'message'] as const;
 
 export function ContactForm({ L, locale, countries, captcha }: { L: ContactLabels; locale: 'en' | 'es'; countries: [string, string][]; captcha: { siteKey: string; script: string } | null }) {
   const [state, action] = useActionState<ContactState, FormData>(contactAction, { status: 'idle' });
@@ -124,6 +124,7 @@ export function ContactForm({ L, locale, countries, captcha }: { L: ContactLabel
         <input className="input" {...field('organization')} autoComplete="organization" required maxLength={160} />
         {err('organization')}
       </div>
+      {/* Optional details, laid out so every label fits on one line and the boxes line up. */}
       <div className="flex flex-col gap-1">
         {label('country', L.country, true)}
         <select className="input" {...field('country')} autoComplete="country" defaultValue={v.country ?? ''}>
@@ -137,26 +138,24 @@ export function ContactForm({ L, locale, countries, captcha }: { L: ContactLabel
         {err('country')}
       </div>
       <div className="flex flex-col gap-1">
+        {label('month', L.month, true)}
+        <input className="input" {...field('month')} type="month" autoComplete="off" />
+        {err('month')}
+      </div>
+      <div className="flex flex-col gap-1 sm:col-span-2">
         {label('conference', L.conference, true)}
         <input className="input" {...field('conference')} autoComplete="off" maxLength={160} />
         {err('conference')}
       </div>
       <div className="flex flex-col gap-1">
-        {label('month', L.month, true)}
-        <input className="input" {...field('month')} type="month" autoComplete="off" />
-        {err('month')}
+        {label('committees', L.committees, true)}
+        <input className="input" {...field('committees')} type="number" inputMode="numeric" min={1} max={500} autoComplete="off" />
+        {err('committees')}
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          {label('committees', L.committees, true)}
-          <input className="input" {...field('committees')} type="number" inputMode="numeric" min={1} max={500} autoComplete="off" />
-          {err('committees')}
-        </div>
-        <div className="flex flex-col gap-1">
-          {label('delegates', L.delegates, true)}
-          <input className="input" {...field('delegates')} type="number" inputMode="numeric" min={1} max={20000} autoComplete="off" />
-          {err('delegates')}
-        </div>
+      <div className="flex flex-col gap-1">
+        {label('delegates', L.delegates, true)}
+        <input className="input" {...field('delegates')} type="number" inputMode="numeric" min={1} max={20000} autoComplete="off" />
+        {err('delegates')}
       </div>
       <fieldset className="flex flex-col gap-1 sm:col-span-2">
         <legend className="text-sm font-semibold text-on-surface">{L.language}</legend>

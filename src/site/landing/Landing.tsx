@@ -95,7 +95,7 @@ function contactLabels(t: Translate): ContactLabels {
 
 const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
-const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
+const STAGE = ['rules', 'rule.un_style', 'rule.harvard_style', 'rule.thimun_style', 'rule.reglamento_es', 'quorumNeeds', 'docNeeds', 'methods', 'method.placard', 'method.roll_call', 'method.secret', 'majority', 'committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
 // The opening's words.
 const OPENING_KEYS = ['label', 'example', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
 const OPENING_STATUS = ['speech', 'roll', 'vote', 'unmoderated', 'moderated', 'crisis'] as const;
@@ -203,6 +203,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
           {/* How a session runs: the stage plays each step beside its text as you scroll. */}
           <section className="landing-rule pb-4 pt-12" aria-labelledby="session-title">
             <Story
+              locale={locale}
               names={storyNames(locale)}
               L={storyLabels(t, locale)}
               heading={

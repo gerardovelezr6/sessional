@@ -7,8 +7,8 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 // on, the square over the i grows, a step at a time, until the screen is magenta: one conference.
 // It splits into six committee tiles, each cutting to its own colour (what the Secretariat sees),
 // then into the three screens in a committee room, whose shared clock runs as you scroll. Nothing
-// moves by itself and nothing eases: every change is a cut, like a timer or a tally changing, and
-// scrolling back plays it backwards. Without JavaScript, on short screens, and before it loads, the
+// moves by itself: the square's steps ease over 150 ms and "One conference." fades in briefly;
+// everything after is a cut, like a timer or a tally changing. Scrolling back plays it backwards. Without JavaScript, on short screens, and before it loads, the
 // opening is just the wordmark and the headline. With less motion the square does not grow; the
 // screen cuts straight to magenta.
 
@@ -41,7 +41,7 @@ const COMMITTEES = [
   { key: 'crisis', abbr: 'JCC', status: 'crisis', tile: 'bg-on-surface-muted text-surface' },
 ] as const;
 
-const GROW_STEPS = 10;
+const GROW_STEPS = 16;
 // Where each part starts, as a share of the opening's scroll.
 const AT = { grow: 0.05, field: 0.34, split: 0.46, colours: 0.6, room: 0.7 } as const;
 const CLOCK_FROM = 45;
@@ -128,7 +128,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
   // growing by the same factor at each step, its place moving in equal steps.
   let grow: React.CSSProperties | null = null;
   if (frame.kind === 'grow' && box) {
-    const t = (frame.step + 1) / GROW_STEPS;
+    const t = frame.step / (GROW_STEPS - 1);
     const end = Math.hypot(box.w, box.h);
     const side = box.s * Math.pow(end / box.s, t);
     const cx = box.x + box.s / 2 + (box.w / 2 - (box.x + box.s / 2)) * t;
@@ -148,18 +148,20 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
                 <path key={i} d={d} />
               ))}
             </g>
-            <rect ref={square} x={WORDMARK_SQUARE.x} y={WORDMARK_SQUARE.y} width={WORDMARK_SQUARE.size} height={WORDMARK_SQUARE.size} className="fill-primary" />
+            <rect ref={square} x={WORDMARK_SQUARE.x} y={WORDMARK_SQUARE.y} width={WORDMARK_SQUARE.size} height={WORDMARK_SQUARE.size} className="fill-primary" visibility={frame.kind === 'rest' ? 'visible' : 'hidden'} />
           </svg>
           {children}
         </div>
 
-        {grow ? <div aria-hidden="true" className="absolute bg-primary" style={grow} /> : null}
+        {/* It takes the place of the logo's own square (hidden meanwhile), and each step eases in over
+            150 ms so the growth reads as one movement. */}
+        {grow ? <div aria-hidden="true" className="absolute bg-primary transition-[left,top,width,height] duration-150 ease-out motion-reduce:transition-none" style={grow} /> : null}
 
         {covered ? (
           <figure aria-label={L.label} className={`absolute inset-0 ${frame.kind === 'field' ? 'bg-primary text-on-primary' : 'bg-surface text-on-surface'}`}>
             <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
               {frame.kind === 'field' ? (
-                <p className="site-display mt-auto mb-auto text-5xl sm:text-7xl">{L.one}</p>
+                <p className="opening-fade site-display mt-auto mb-auto text-5xl sm:text-7xl">{L.one}</p>
               ) : null}
 
               {frame.kind === 'committees' ? (

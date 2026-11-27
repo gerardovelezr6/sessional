@@ -130,9 +130,12 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
   // Scrolling back plays it backwards.
   await scrollThrough(steps.nth(1), 0.05);
   await expect(stage).toContainText('Speaking now');
-  // The stage stays pinned while the steps scroll past.
-  const top = await page.locator('.story-stage').locator('xpath=ancestor::div[contains(@class,"sticky")][1]').evaluate((el) => el.getBoundingClientRect().top);
-  expect(top).toBeLessThan(200);
+  // The stage stays pinned, in the upper middle of the screen, while the steps scroll past.
+  const frame = page.locator('.story-stage').locator('xpath=ancestor::div[contains(@class,"landing-frame")][1]');
+  const top = await frame.evaluate((el) => el.getBoundingClientRect().top);
+  expect(top).toBeLessThan(400);
+  await scrollThrough(steps.nth(3), 0.5);
+  expect(Math.abs((await frame.evaluate((el) => el.getBoundingClientRect().top)) - top)).toBeLessThan(2);
 });
 
 test('the steps and the stage move as one: the stage is level with the list, one step open at a time, no room left over', async ({ page }) => {
@@ -275,4 +278,32 @@ test('each step of the story jumps straight to it', async ({ page }) => {
   await steps.nth(1).getByRole('button').click();
   await expect(steps.nth(1)).toHaveAttribute('aria-current', 'step');
   await expect(page.locator('.story-stage')).toContainText('Speaking now');
+});
+
+test('the story follows the rules you pick: the product’s own four presets', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const rules = page.getByRole('group', { name: 'Rules' });
+  await expect(rules.getByRole('radio', { name: 'UN-style' })).toBeChecked();
+  const steps = page.locator('ol.story-steps > li');
+  const stage = page.locator('.story-stage');
+  // Roll call: Harvard-style needs a quarter of the room for debate, the others a third.
+  await steps.nth(0).getByRole('button').click();
+  await expect(stage).toContainText('5 needed');
+  await rules.getByText('Harvard').click();
+  await expect(stage).toContainText('4 needed');
+  // Motions: THIMUN-style has lobbying time and moving to the previous question, not caucuses.
+  await rules.getByText('THIMUN').click();
+  await scrollThrough(steps.nth(2), 0.95);
+  await expect(stage).toContainText('Lobbying time');
+  await expect(stage).toContainText('Move to the previous question');
+  await expect(stage).toContainText('Needs: Two-thirds majority');
+  await rules.getByText('Spanish-language').click();
+  await expect(stage).toContainText('Unmoderated caucus · 5 min');
+  await expect(stage).toContainText('Needs: Simple majority');
+});
+
+test('in Spanish, the story starts on the Spanish-language rules', async ({ page }) => {
+  await page.goto('/?lang=es');
+  await expect(page.getByRole('group', { name: 'Reglamento' }).getByRole('radio', { name: 'En español' })).toBeChecked();
 });

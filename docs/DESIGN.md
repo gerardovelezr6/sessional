@@ -144,17 +144,22 @@ Steps that aren't playing use graphite, not transparency, so they keep that cont
 ## Motion
 
 **Cuts, not curves.** Things change the way a timer or a tally changes: at once. A tile fills, a
-number turns over, a panel swaps. Nothing floats in, slides, bounces, fades between states or
-eases.
+number turns over, a panel swaps. Nothing floats in, slides or bounces. The one softening is in the
+opening, below: the square's growth eases each step over 150 ms, and "One conference." fades in.
 
 - **The opening** (`src/site/landing/Opening.tsx`) is the page's one authored moment. It starts on
-  the wordmark at poster size with the headline. Scrolling on, the logo's square grows in ten
-  steps until the screen is magenta ("One conference."), splits into six committee tiles that cut
+  the wordmark at poster size with the headline. Scrolling on, the logo's own square hides and a
+  square takes its place, growing in sixteen steps (each eased over 150 ms) until the screen is
+  magenta; "One conference." fades in over 420 ms. It then splits into six committee tiles that cut
   to their own colours one by one, then into the three screens in a room, whose shared clock runs
   as you scroll. Scrolling back plays it backwards. It is pinned only on screens at least 560px
   tall; without JavaScript, and on short screens, it is just the wordmark and headline. With less
   motion the square doesn't grow: the screen cuts straight to magenta.
-- **The story** plays its stage as you scroll, in cuts: squares fill for roll call, placard tiles
+- **The story** follows a set of rules the viewer picks (UN-style, Harvard, THIMUN, Spanish-language:
+  the product's own presets in `src/protocol/presets.ts`; Spanish pages start on Spanish-language).
+  The roll-call answers, quorum, speaking time, motions with the majority each needs, sponsors and
+  signatories, and ways to vote all come from the chosen preset. It plays its stage as you scroll,
+  in cuts: squares fill for roll call, placard tiles
   fill for the vote (ink yes, graphite no, outlined abstaining), awards appear as magenta tiles.
   The stage is one fixed size, so nothing around it moves between steps. Each step's number jumps
   straight to it; the current number is a cobalt tile.

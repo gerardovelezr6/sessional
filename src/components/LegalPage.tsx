@@ -5,7 +5,7 @@ import { LEGAL_UPDATED, legalDetails } from '@/platform/legal';
 import { catalogs, translator, type MessageKey } from '@/messages';
 
 // The privacy policy and the terms: numbered sections from the message catalogue, in English or
-// Spanish (?lang=es). Lines starting with "• " are list items.
+// Spanish (?lang=es). Lines starting with "• " become a real list (consecutive ones, one list).
 export function LegalPage({ kind, lang }: { kind: 'privacy' | 'terms'; lang: string }) {
   const locale = lang === 'es' ? 'es' : 'en';
   const t = translator(locale);
@@ -35,16 +35,13 @@ export function LegalPage({ kind, lang }: { kind: 'privacy' | 'terms'; lang: str
           {t('legal.incomplete')}
         </p>
       ) : null}
-      <p>{t(`legal.${kind}.intro` as MessageKey, vars)}</p>
+      <p className="max-w-[60ch]">{t(`legal.${kind}.intro` as MessageKey, vars)}</p>
       {sections.map((s, i) => (
         <section key={s} className="flex flex-col gap-2" aria-labelledby={`s${i}`}>
           <h2 id={`s${i}`} className="text-lg font-bold text-on-surface">
             {`${i + 1}. ${t(`${s}.title` as MessageKey)}`}
           </h2>
-          {t(`${s}.body` as MessageKey, vars)
-            .split('\n')
-            .filter(Boolean)
-            .map((line, j) => (line.startsWith('• ') ? <p key={j} className="ps-4 -indent-3">{line}</p> : <p key={j}>{line}</p>))}
+          <LegalBody text={t(`${s}.body` as MessageKey, vars)} />
         </section>
       ))}
       <p className="border-t border-border pt-4 text-sm">
@@ -53,5 +50,34 @@ export function LegalPage({ kind, lang }: { kind: 'privacy' | 'terms'; lang: str
         </Link>
       </p>
     </main>
+  );
+}
+
+// A section's text: paragraphs, and runs of "• " lines as one bulleted list.
+function LegalBody({ text }: { text: string }) {
+  const blocks: ({ kind: 'p'; text: string } | { kind: 'ul'; items: string[] })[] = [];
+  for (const line of text.split('\n').filter(Boolean)) {
+    const last = blocks.at(-1);
+    if (line.startsWith('• ')) {
+      if (last?.kind === 'ul') last.items.push(line.slice(2));
+      else blocks.push({ kind: 'ul', items: [line.slice(2)] });
+    } else blocks.push({ kind: 'p', text: line });
+  }
+  return (
+    <>
+      {blocks.map((b, i) =>
+        b.kind === 'ul' ? (
+          <ul key={i} className="flex max-w-[60ch] list-disc flex-col gap-1.5 ps-5 marker:text-on-surface-muted">
+            {b.items.map((item, j) => (
+              <li key={j}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p key={i} className="max-w-[60ch]">
+            {b.text}
+          </p>
+        ),
+      )}
+    </>
   );
 }

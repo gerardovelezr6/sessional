@@ -168,7 +168,6 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
           <section className="grid grid-cols-1 items-center gap-10 pb-14 pt-12 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="hero-title">
             <div className="max-w-3xl">
             <div className="flex flex-col gap-5">
-              <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
               <h1 id="hero-title" className="site-display text-balance text-4xl leading-tight text-on-surface sm:text-5xl">
                 {t('landing.hero.title')}
               </h1>

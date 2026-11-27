@@ -47,7 +47,7 @@ export default async function StatusPage({ searchParams }: { searchParams: Promi
         ))}
       </ul>
       <p className="mt-4 text-xs">{t('status.checkedAt', { when: when.format(new Date(s.checkedAt)) })}</p>
-      <p className="mt-2 text-sm">{t('status.help')}</p>
+      <p className="mt-2 max-w-[68ch] text-sm">{t('status.help')}</p>
     </SitePage>
   );
 }

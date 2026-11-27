@@ -346,6 +346,13 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
   font-kerning: normal;
 }
 .site-type .label-text { letter-spacing: 0.09em; }
+/* The parts the browser draws, in the site's colours: selected text, the caret, checkboxes and
+   radios, and placeholders dark enough to read (4.5:1 on white). */
+.site-type ::selection { background: var(--s-color-on-surface); color: var(--s-color-surface); }
+.site-type { caret-color: var(--s-color-on-surface); accent-color: var(--s-color-on-surface); }
+.site-type ::placeholder { color: var(--s-color-on-surface-muted); opacity: 1; }
+/* Status labels on the website are read, not glanced at: no smaller than 12px. */
+.site-type .badge { font-size: 0.75rem; }
 /* The display face: headings and the story's step numbers. Regular weight (Zodiak's 400), slightly
    tight. */
 .site-display { font-family: var(--site-display); font-weight: 400; letter-spacing: -0.012em; line-height: 1.12; }

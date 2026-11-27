@@ -22,7 +22,7 @@ export function SitePage({ t, locale, title, intro, path, children }: { t: Trans
       <main id="main" className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10">
         <div className="flex flex-col gap-3">
           <h1 className="site-display text-balance text-4xl text-on-surface">{title}</h1>
-          {intro ? <p className="text-lg">{intro}</p> : null}
+          {intro ? <p className="max-w-[68ch] text-lg">{intro}</p> : null}
         </div>
         {children}
       </main>

@@ -124,7 +124,7 @@ export function SecretariatBoard({ L, countries, locale }: { L: BoardLabels; cou
     <figure ref={box} className="landing-frame w-full bg-surface-raised" aria-label={L.label}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border px-4 py-3">
         <span className="flex items-center gap-2 text-sm font-semibold text-on-surface">
-          <span className={`inline-block h-2 w-2 rounded-full bg-success ${paused ? '' : 'motion-safe:animate-pulse'}`} aria-hidden="true" />
+          <span className={`inline-block h-2 w-2 rounded-full ${paused ? 'bg-border-strong' : 'bg-success'}`} aria-hidden="true" />
           {L.title}
         </span>
         <span className="flex items-center gap-3 text-xs">

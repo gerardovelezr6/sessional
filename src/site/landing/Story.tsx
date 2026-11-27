@@ -133,7 +133,7 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
                   {open && started ? <span aria-hidden="true" className="story-line absolute start-0 top-0 w-1 bg-accent" style={{ height: `${Math.max(4, p * 100)}%` }} /> : null}
                   {/* The steps not playing are quieter (muted, still readable). */}
                   <span className={`flex items-baseline gap-3 text-on-surface transition-colors duration-300 motion-reduce:transition-none ${open ? '' : 'lg:text-on-surface-muted'}`}>
-                    <span className="landing-serif text-3xl lg:text-2xl">{i + 1}</span>
+                    <span className="site-display text-3xl lg:text-2xl">{i + 1}</span>
                     <span className={`text-xl lg:text-lg ${open ? 'font-semibold' : 'font-semibold lg:font-medium'}`}>{L.steps[s].title}</span>
                   </span>
                   {/* Wide screens: only the current step's text is open; the others fold away. */}

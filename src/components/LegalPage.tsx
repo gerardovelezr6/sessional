@@ -17,12 +17,12 @@ export function LegalPage({ kind, lang }: { kind: 'privacy' | 'terms'; lang: str
     .map((k) => k.slice(0, -'.title'.length));
   const other = kind === 'privacy' ? 'terms' : 'privacy';
   return (
-    <main id="main" lang={locale} className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
+    <main id="main" lang={locale} className="site-type mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
       <Link href="/" className="self-start">
         <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-8 w-auto" />
       </Link>
       <div>
-        <h1 className="page-title text-3xl">{t(`legal.${kind}.title` as MessageKey)}</h1>
+        <h1 className="site-display text-4xl text-on-surface">{t(`legal.${kind}.title` as MessageKey)}</h1>
         <p className="mt-3 text-sm">{t('legal.updated', vars)}</p>
         <p className="mt-1 text-sm">
           <a className="underline" href={`?lang=${locale === 'en' ? 'es' : 'en'}`}>

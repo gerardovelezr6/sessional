@@ -50,7 +50,7 @@ function Section({ id, title, intro, children, reveal = true }: { id: string; ti
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="landing-rule flex flex-col gap-6 py-12">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[18rem_1fr]">
-        <h2 id={`${id}-title`} className="landing-serif text-balance text-3xl font-semibold text-on-surface">
+        <h2 id={`${id}-title`} className="site-display text-balance text-3xl text-on-surface">
           {title}
         </h2>
         {intro ? <p className="max-w-2xl text-base">{intro}</p> : null}
@@ -139,7 +139,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
     { id: 'contact', text: t('landing.nav.contact') },
   ];
   return (
-    <div className="landing-page flex flex-1 flex-col bg-surface text-on-surface-muted">
+    <div className="landing-page site-type flex flex-1 flex-col bg-surface text-on-surface-muted">
       <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:start-4 focus-visible:top-4 focus-visible:z-30 focus-visible:bg-surface-raised focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-on-surface">
         {t('landing.skip')}
       </a>
@@ -169,7 +169,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
             <div className="max-w-3xl">
             <div className="flex flex-col gap-5">
               <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
-              <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
+              <h1 id="hero-title" className="site-display text-balance text-4xl leading-tight text-on-surface sm:text-5xl">
                 {t('landing.hero.title')}
               </h1>
               <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
@@ -208,7 +208,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               L={storyLabels(t, locale)}
               heading={
                 <div id="session" className="flex scroll-mt-24 flex-col gap-3">
-                  <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
+                  <h2 id="session-title" className="site-display text-balance text-3xl text-on-surface">
                     {t('landing.session.title')}
                   </h2>
                   <p className="max-w-xl text-base">{t('landing.session.intro')}</p>
@@ -307,7 +307,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
                     <tr className="border-b border-border-strong">
                       <td className="py-3" />
                       {plans.map((p) => (
-                        <th key={p.key} scope="col" className="landing-serif py-3 text-start text-xl font-semibold text-on-surface">
+                        <th key={p.key} scope="col" className="site-display py-3 text-start text-xl text-on-surface">
                           {nameOf(p)}
                         </th>
                       ))}
@@ -349,7 +349,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
           {/* The page's one bright moment: writing to us. */}
           <section id="contact" aria-labelledby="contact-title" className="my-12 grid grid-cols-1 gap-8 rounded-sm bg-accent px-6 py-10 text-on-accent sm:px-8 lg:grid-cols-[1fr_1.6fr]">
             <div className="flex flex-col gap-3">
-              <h2 id="contact-title" className="landing-serif text-balance text-3xl font-semibold">{t('landing.contact.title')}</h2>
+              <h2 id="contact-title" className="site-display text-balance text-3xl">{t('landing.contact.title')}</h2>
               <p>{t('landing.contact.body')}</p>
               <p className="text-sm">
                 <a className="font-semibold underline underline-offset-4 hover:decoration-2" href={appUrl}>

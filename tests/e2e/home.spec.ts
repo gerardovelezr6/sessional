@@ -52,3 +52,24 @@ test('the landing page lists what Sessional does, in English and Spanish, with n
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Dirige cada comité de tu Modelo de la ONU desde la laptop de la mesa.');
   await expect(page.getByRole('link', { name: 'English' })).toBeVisible();
 });
+
+test('the website has its own type (Newsreader, Public Sans, IBM Plex Mono), served from this site; a school keeps its font', async ({ page }) => {
+  const external: string[] = [];
+  page.on('request', (r) => {
+    if (/fonts\.(googleapis|gstatic)\.com|use\.typekit|fonts\.bunny/.test(r.url())) external.push(r.url());
+  });
+  await page.goto('/');
+  const family = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(await family('h1')).toContain('Newsreader');
+  expect(await family('main p')).toContain('Public Sans');
+  expect(await family('.landing-page .font-mono')).toContain('IBM Plex Mono');
+  await page.evaluate(() => document.fonts.ready);
+  const loaded = await page.evaluate(() => [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family).join(' '));
+  expect(loaded).toContain('Newsreader');
+  expect(loaded).toContain('Public Sans');
+  expect(external).toEqual([]);
+
+  // A school's page uses the font from its own theme, not the website's.
+  await page.goto('http://alpha.localhost:3100/login');
+  expect(await page.locator('body').evaluate((el) => getComputedStyle(el).fontFamily)).not.toContain('Public Sans');
+});

@@ -360,6 +360,9 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 
 /* The marketing page: Session tiles. Square frames, no shadows, no gradients. */
 .landing-frame { border: 1px solid var(--s-color-border-strong); }
+/* Date and month boxes: Safari on phones gives them their own width and look; keep them as wide as
+   the other boxes. */
+.input[type='month'], .input[type='date'] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; min-height: 2.5rem; }
 /* The palette's two reserved committee colours, for the website's committee tiles only. */
 .site-type { --site-teal: #00797D; --site-lime: #8DB600; }
 .landing-key { border: 1px solid var(--s-color-border-strong); padding: 0.25rem 0.5rem; }

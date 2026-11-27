@@ -3,15 +3,16 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Flag } from '@/components/Flag';
 import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 
-// The opening. The page starts on the wordmark at poster size with the headline under it. Scrolling
-// on, the square over the i grows, a step at a time, until the screen is magenta: one conference.
-// It splits into six committee tiles, each cutting to its own colour (what the Secretariat sees),
-// then into the three screens in a committee room, whose shared clock runs as you scroll. Nothing
-// moves by itself: the square's steps ease over 150 ms, "One conference." fades in and out, and the
-// whole magenta screen then fades away to the committee tiles, all as you scroll;
-// everything after is a cut, like a timer or a tally changing. Scrolling back plays it backwards. Without JavaScript, on short screens, and before it loads, the
-// opening is just the wordmark and the headline. With less motion the square does not grow; the
-// screen cuts straight to magenta.
+// The opening. The page starts on the wordmark at poster size with the headline under it. Once the
+// visitor scrolls a little way in, it plays by itself (about nine seconds) while it stays pinned:
+// the logo's square grows, a step at a time, until the screen is magenta ("One conference."), the
+// words fade in and out, the magenta fades away to six committee tiles that cut to their own
+// colours (what the Secretariat sees), then the three screens of a committee room count down on one
+// clock. Scrolling on can only move it ahead; scrolling back to the top puts it back at rest. The
+// committee and room parts change in cuts, like a timer or a tally. Without JavaScript, on short
+// screens, and before it loads, the opening is just the wordmark and the headline. For people who
+// ask for less motion it doesn't play by itself and the square doesn't grow: scrolling moves it
+// on, and the screen cuts straight to magenta.
 
 export interface OpeningLabels {
   label: string;
@@ -46,7 +47,28 @@ const GROW_STEPS = 16;
 // Where each part starts, as a share of the opening's scroll.
 const AT = { grow: 0.05, field: 0.34, split: 0.46, colours: 0.6, room: 0.7 } as const;
 const CLOCK_FROM = 45;
-const CLOCK_STEPS = 9;
+const CLOCK_STEPS = 5;
+// Once the visitor has scrolled this far in, the sequence plays by itself along this timeline
+// (seconds → share of the opening), unless they ask for less motion. Scrolling further can only
+// move it on; scrolling back to the top puts it back at rest.
+const START_AT = 0.03;
+const TIMELINE: [number, number][] = [[0, AT.grow], [1.1, AT.field], [3.8, AT.split], [5.4, AT.room], [9.4, 1]];
+const progressAt = (sec: number) => {
+  for (let i = 1; i < TIMELINE.length; i++) {
+    const [s1, p1] = TIMELINE[i]!;
+    const [s0, p0] = TIMELINE[i - 1]!;
+    if (sec <= s1) return p0 + ((sec - s0) / (s1 - s0)) * (p1 - p0);
+  }
+  return 1;
+};
+const secondsAt = (p: number) => {
+  for (let i = 1; i < TIMELINE.length; i++) {
+    const [s1, p1] = TIMELINE[i]!;
+    const [s0, p0] = TIMELINE[i - 1]!;
+    if (p <= p1) return s0 + ((Math.max(p, p0) - p0) / (p1 - p0)) * (s1 - s0);
+  }
+  return TIMELINE[TIMELINE.length - 1]![0];
+};
 
 type Frame =
   | { kind: 'rest' }
@@ -60,10 +82,13 @@ function frameAt(p: number, reduce: boolean): Frame {
   if (p < AT.field) return reduce ? { kind: 'rest' } : { kind: 'grow', step: Math.min(GROW_STEPS - 1, Math.floor(((p - AT.grow) / (AT.field - AT.grow)) * GROW_STEPS)) };
   if (p < AT.split) {
     // "One conference." fades in, holds, and fades out; then the whole magenta screen fades away
-    // to the committee tiles underneath. In tenths, so scrolling either way plays it.
+    // to the committee tiles underneath. Eased, so the fades start and end softly.
     const u = (p - AT.field) / (AT.split - AT.field);
-    const tenth = (x: number) => Math.round(Math.max(0, Math.min(1, x)) * 10) / 10;
-    return { kind: 'field', shown: tenth(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: tenth((1 - u) / 0.4) };
+    const soft = (x: number) => {
+      const c = Math.max(0, Math.min(1, x));
+      return Math.round(c * c * (3 - 2 * c) * 100) / 100;
+    };
+    return { kind: 'field', shown: soft(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: soft((1 - u) / 0.4) };
   }
   if (p < AT.room) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
   return { kind: 'room', left: CLOCK_FROM - Math.min(CLOCK_STEPS - 1, Math.floor(((p - AT.room) / (1 - AT.room)) * CLOCK_STEPS)) };
@@ -90,41 +115,67 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     const fits = window.matchMedia(FITS);
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let raf = 0;
-    const measure = () => {
-      raf = 0;
-      const t = track.current;
+    let scrolled = 0; // how far the visitor has scrolled through the opening, 0 to 1
+    let played = 0; // how far the sequence has played by itself, 0 to 1
+    let since = -1; // when it started playing (ms, on the page's clock), or -1
+    // The header's height, for the pages' layout; it only changes on resize.
+    const header = () => {
+      const h = document.querySelector('.landing-page > header') as HTMLElement | null;
+      const value = `${h?.offsetHeight ?? 64}px`;
+      if (document.documentElement.style.getPropertyValue('--landing-header') !== value) document.documentElement.style.setProperty('--landing-header', value);
+    };
+    const show = () => {
       const st = stage.current;
       const sq = square.current;
-      if (!t || !st || !sq) return;
-      const header = document.querySelector('.landing-page > header') as HTMLElement | null;
-      document.documentElement.style.setProperty('--landing-header', `${header?.offsetHeight ?? 64}px`);
-      const tr = t.getBoundingClientRect();
-      const sr = st.getBoundingClientRect();
-      const distance = Math.max(1, t.offsetHeight - st.offsetHeight);
-      const p = fits.matches ? Math.min(1, Math.max(0, -tr.top / distance)) : 0;
-      const next = frameAt(p, motion.matches);
+      if (!st || !sq) return;
+      const next = frameAt(Math.max(scrolled, played), motion.matches);
       setFrame((f) => (same(f, next) ? f : next));
       if (next.kind === 'rest' || next.kind === 'grow') {
+        const sr = st.getBoundingClientRect();
         const q = sq.getBoundingClientRect();
         const b = { x: q.left - sr.left, y: q.top - sr.top, s: q.width, w: sr.width, h: sr.height };
         setBox((o) => (o && Math.abs(o.x - b.x) < 0.5 && Math.abs(o.y - b.y) < 0.5 && Math.abs(o.s - b.s) < 0.5 && o.w === b.w && o.h === b.h ? o : b));
       }
     };
+    const frameLoop = (now: number) => {
+      raf = 0;
+      const t = track.current;
+      const st = stage.current;
+      if (!t || !st) return;
+      const distance = Math.max(1, t.offsetHeight - st.offsetHeight);
+      scrolled = fits.matches ? Math.min(1, Math.max(0, -t.getBoundingClientRect().top / distance)) : 0;
+      if (scrolled < START_AT / 2 || motion.matches || !fits.matches) {
+        played = 0;
+        since = -1;
+      } else if (since < 0 && played === 0 && scrolled >= START_AT) {
+        since = now - secondsAt(Math.max(AT.grow, scrolled)) * 1000;
+      }
+      if (since >= 0) {
+        played = Math.min(1, progressAt((now - since) / 1000));
+        if (played >= 1) since = -1;
+      }
+      show();
+      if (since >= 0) raf = window.requestAnimationFrame(frameLoop);
+    };
     const onScroll = () => {
-      if (!raf) raf = window.requestAnimationFrame(measure);
+      if (!raf) raf = window.requestAnimationFrame(frameLoop);
+    };
+    const onResize = () => {
+      header();
+      onScroll();
     };
     const onFits = () => {
       setPinned(fits.matches);
-      onScroll();
+      onResize();
     };
     onFits();
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', onResize);
     fits.addEventListener('change', onFits);
     motion.addEventListener('change', onScroll);
     return () => {
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('resize', onResize);
       fits.removeEventListener('change', onFits);
       motion.removeEventListener('change', onScroll);
       if (raf) window.cancelAnimationFrame(raf);
@@ -145,7 +196,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
   const covered = frame.kind !== 'rest' && frame.kind !== 'grow';
 
   return (
-    <section ref={track} aria-labelledby="hero-title" className={`opening ${pinned ? '-mt-(--landing-header) h-[260svh]' : ''}`}>
+    <section ref={track} aria-labelledby="hero-title" className={`opening ${pinned ? '-mt-(--landing-header) h-[200svh]' : ''}`}>
       <div ref={stage} className={`opening-stage relative overflow-hidden ${pinned ? 'sticky top-0 h-svh' : ''}`}>
         {/* At rest: the wordmark at poster size, and the headline. */}
         <div className={`mx-auto flex w-full max-w-6xl flex-col justify-center gap-8 px-5 pb-10 ${pinned ? 'h-full pt-[calc(var(--landing-header,4rem)+1.5rem)]' : 'pt-10 sm:pt-14'}`}>
@@ -173,9 +224,9 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
             </div>
             {/* The magenta screen sits over the committees and fades away to show them. */}
             {frame.kind === 'field' ? (
-              <div className="absolute inset-0 bg-primary text-on-primary transition-opacity duration-150 motion-reduce:transition-none" style={{ opacity: frame.cover }}>
+              <div className="absolute inset-0 bg-primary text-on-primary" style={{ opacity: frame.cover }}>
                 <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
-                  <p className="site-display my-auto text-5xl transition-opacity duration-150 motion-reduce:transition-none sm:text-7xl" style={{ opacity: frame.shown }}>{L.one}</p>
+                  <p className="site-display my-auto text-5xl sm:text-7xl" style={{ opacity: frame.shown }}>{L.one}</p>
                   <span className="text-xs" aria-hidden="true">{L.example}</span>
                 </div>
               </div>
@@ -219,39 +270,40 @@ const QUEUE = ['fr', 'br', 'ke'];
 function Room({ L, left }: { L: OpeningLabels; left: number }) {
   const [now, next] = QUEUE;
   const time = clock(left);
+  // Phones: the projector across the top, the laptop and a phone side by side under it.
   return (
     <>
       <div className="flex flex-col gap-1">
-        <p className="site-display text-3xl sm:text-5xl">{L.three}</p>
-        <p className="text-base text-on-surface-muted">{L.threeNote}</p>
+        <p className="site-display text-2xl sm:text-5xl">{L.three}</p>
+        <p className="text-sm text-on-surface-muted sm:text-base">{L.threeNote}</p>
       </div>
-      <ul className="grid min-h-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[1fr_1.4fr_0.8fr]">
-        <li className="flex min-h-0 flex-col gap-3 bg-on-surface p-4 text-surface sm:p-5">
-          <span className="text-xs font-semibold uppercase tracking-[0.09em]">{L.laptop}</span>
-          <span className="text-sm">{L.committee}</span>
+      <ul className="grid min-h-0 flex-1 grid-cols-2 grid-rows-[1.3fr_1fr] gap-2 sm:grid-cols-[1fr_1.4fr_0.8fr] sm:grid-rows-1">
+        <li className="order-2 flex min-h-0 flex-col gap-2 overflow-hidden bg-on-surface p-3 text-surface sm:order-none sm:gap-3 sm:p-5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.laptop}</span>
+          <span className="text-xs sm:text-sm">{L.committee}</span>
           <span className="flex items-center gap-2 text-sm">
             <Flag choice={{ kind: 'country', code: now! }} />
-            <span className="font-semibold">{L.names[now!]}</span>
+            <span className="truncate font-semibold">{L.names[now!]}</span>
             <span className="ms-auto font-mono">{time}</span>
           </span>
-          <span className="text-sm">{fill(L.next, { name: L.names[next!]! })}</span>
+          <span className="text-xs sm:text-sm">{fill(L.next, { name: L.names[next!]! })}</span>
         </li>
-        <li className="flex min-h-0 flex-col gap-2 bg-primary p-4 text-on-primary sm:p-5">
-          <span className="text-xs font-semibold uppercase tracking-[0.09em]">{L.projector}</span>
+        <li className="order-1 col-span-2 flex min-h-0 flex-col gap-1 overflow-hidden bg-primary p-3 text-on-primary sm:order-none sm:col-span-1 sm:gap-2 sm:p-5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.projector}</span>
           <span className="mt-auto flex items-center gap-3">
-            <Flag choice={{ kind: 'country', code: now! }} className="h-7! w-10! bg-cover!" />
-            <span className="text-2xl font-bold sm:text-3xl">{L.names[now!]}</span>
+            <Flag choice={{ kind: 'country', code: now! }} className="h-6! w-9! bg-cover! sm:h-7! sm:w-10!" />
+            <span className="text-xl font-bold sm:text-3xl">{L.names[now!]}</span>
           </span>
-          <span className="font-mono text-5xl font-bold sm:text-7xl">{time}</span>
+          <span className="font-mono text-4xl font-bold sm:text-7xl">{time}</span>
         </li>
-        <li className="flex min-h-0 flex-col gap-2 bg-accent p-4 text-on-accent sm:p-5">
-          <span className="text-xs font-semibold uppercase tracking-[0.09em]">{L.phone}</span>
+        <li className="order-3 flex min-h-0 flex-col gap-1 overflow-hidden bg-accent p-3 text-on-accent sm:order-none sm:gap-2 sm:p-5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.phone}</span>
           <span className="mt-auto text-xs">{L.speaking}</span>
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 text-sm">
             <Flag choice={{ kind: 'country', code: now! }} />
-            <span className="font-semibold">{L.names[now!]}</span>
+            <span className="truncate font-semibold">{L.names[now!]}</span>
           </span>
-          <span className="font-mono text-2xl">{time}</span>
+          <span className="font-mono text-xl sm:text-2xl">{time}</span>
         </li>
       </ul>
     </>

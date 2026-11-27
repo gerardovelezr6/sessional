@@ -247,7 +247,7 @@ const scrollOpening = (page: import('@playwright/test').Page, f: number) =>
     window.scrollTo(0, Math.round((track.offsetHeight - stage.offsetHeight) * f));
   }, f);
 
-test('the opening: the wordmark and headline, then the square becomes the room as you scroll, in cuts', async ({ page, browser }) => {
+test('the opening plays by itself once you scroll in, and goes back to rest at the top', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
   const opening = page.locator('section[aria-labelledby="hero-title"]');
@@ -256,30 +256,15 @@ test('the opening: the wordmark and headline, then the square becomes the room a
   // It stays put while pinned: the wordmark doesn't slide when scrolling starts.
   const at = () => opening.locator('svg').first().evaluate((el) => Math.round(el.getBoundingClientRect().top));
   const rest = await at();
-  await scrollOpening(page, 0.03);
+  await scrollOpening(page, 0.02);
   expect(await at()).toBe(rest);
-  // The square grows over the page, then the screen is one magenta tile.
-  await scrollOpening(page, 0.37);
+  // A little further in, it plays on its own to the room, with no more scrolling.
+  await scrollOpening(page, 0.05);
   const room = page.getByRole('figure', { name: /^Example: one conference/ });
-  await expect(room).toContainText('One conference.');
-  // The words fade out, then the whole magenta screen fades away to the committees under it.
-  const shown = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el).opacity));
-  const cover = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el.parentElement!.parentElement!).opacity));
-  await expect.poll(shown).toBe(1);
-  await expect.poll(cover).toBe(1);
-  await scrollOpening(page, 0.455);
-  await expect.poll(shown).toBe(0);
-  await expect.poll(cover).toBeLessThan(0.5);
-  // Then six committee tiles, then the three screens on one clock that runs as you scroll.
-  await scrollOpening(page, 0.55);
-  await expect(room).toContainText('Every committee, at once.');
-  await expect(room.getByRole('listitem')).toHaveCount(6);
-  await scrollOpening(page, 0.75);
-  await expect(room).toContainText('Every screen in the room, on one clock.');
-  const first = await room.locator('.font-mono').last().textContent();
-  await scrollOpening(page, 0.99);
-  await expect(room.locator('.font-mono').last()).not.toHaveText(first!);
-  // Scrolling back plays it backwards, to the headline.
+  await expect(room).toContainText('One conference.', { timeout: 4000 });
+  await expect(room).toContainText('Every committee, at once.', { timeout: 6000 });
+  await expect(room).toContainText('Every screen in the room, on one clock.', { timeout: 6000 });
+  // Back at the top, it is at rest again.
   await scrollOpening(page, 0);
   await expect(room).toHaveCount(0);
   await expect(opening.getByRole('heading', { level: 1 })).toBeVisible();
@@ -291,15 +276,52 @@ test('the opening: the wordmark and headline, then the square becomes the room a
   const h1 = await phone.getByRole('heading', { level: 1 }).evaluate((el) => el.getBoundingClientRect().bottom);
   expect(h1).toBeLessThan(844);
   await phone.context().close();
+});
 
-  // With less motion the square doesn't grow: the screen cuts straight to magenta.
+test('with less motion the opening doesn’t play by itself: scrolling moves it, and the magenta fades away', async ({ browser }) => {
   const calm = await (await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } })).newPage();
   await calm.goto('/');
+  // No growing square: the screen cuts straight to magenta.
   await scrollOpening(calm, 0.2);
   await expect(calm.locator('.opening-stage > div.absolute.bg-primary')).toHaveCount(0);
-  await scrollOpening(calm, 0.4);
-  await expect(calm.getByRole('figure', { name: /^Example: one conference/ })).toContainText('One conference.');
+  await calm.waitForTimeout(1500);
+  await expect(calm.getByRole('figure', { name: /^Example: one conference/ })).toHaveCount(0);
+  await scrollOpening(calm, 0.37);
+  const room = calm.getByRole('figure', { name: /^Example: one conference/ });
+  await expect(room).toContainText('One conference.');
+  // The words fade out, then the whole magenta screen fades away to the committees under it.
+  const shown = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el).opacity));
+  const cover = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el.parentElement!.parentElement!).opacity));
+  await expect.poll(shown).toBe(1);
+  await expect.poll(cover).toBe(1);
+  await scrollOpening(calm, 0.455);
+  await expect.poll(shown).toBe(0);
+  await expect.poll(cover).toBeLessThan(0.5);
+  await scrollOpening(calm, 0.55);
+  await expect(room).toContainText('Every committee, at once.');
+  await expect(room.getByRole('listitem')).toHaveCount(6);
+  await scrollOpening(calm, 0.75);
+  await expect(room).toContainText('Every screen in the room, on one clock.');
+  const first = await room.locator('.font-mono').last().textContent();
+  await scrollOpening(calm, 0.99);
+  await expect(room.locator('.font-mono').last()).not.toHaveText(first!);
   await calm.context().close();
+});
+
+test('on a phone the header fits one line and the story’s block fits the screen', async ({ browser }) => {
+  const phone = await (await browser.newContext({ viewport: { width: 375, height: 664 }, isMobile: true, hasTouch: true })).newPage();
+  await phone.goto('/');
+  const nav = phone.getByRole('navigation', { name: 'On this page' });
+  expect(await nav.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  const links = await nav.getByRole('link').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
+  expect(links).toBe(1);
+  const steps = phone.locator('ol.story-steps > li');
+  for (const i of [1, 2, 4, 5]) {
+    await scrollThrough(steps.nth(i), 0.9);
+    const bottom = await phone.locator('.story-pinned').evaluate((el) => el.getBoundingClientRect().bottom);
+    expect(bottom, `step ${i + 1} fits`).toBeLessThanOrEqual(664);
+  }
+  await phone.context().close();
 });
 
 test('each step of the story jumps straight to it', async ({ page }) => {

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Flag } from '@/components/Flag';
 import { PROTOCOL_PRESETS } from '@/protocol/presets';
 import type { Pack } from '@/protocol/schema';
@@ -60,8 +60,26 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
   const track = useRef<HTMLDivElement>(null);
   const pinned = useRef<HTMLDivElement>(null);
 
+  // Where the block pins, worked out on resize and when the open step changes (never on every scroll
+  // frame, which made phones stutter): in the middle of what the header leaves of the screen,
+  // centred on the stage (one fixed size), never so low that the open step runs off the bottom.
+  const geo = useRef({ top: 0, height: 1 });
+  const place = useCallback(() => {
+    const pin = pinned.current;
+    if (!pin) return;
+    const header = document.querySelector('.landing-page > header') as HTMLElement | null;
+    const h = header?.offsetHeight ?? 64;
+    const box = stage.current?.offsetHeight ?? pin.offsetHeight;
+    const centre = Math.min(h + (window.innerHeight - h - box) / 2, window.innerHeight - pin.offsetHeight - 12);
+    const top = Math.round(Math.max(h + 12, centre));
+    if (pin.style.top !== `${top}px`) pin.style.top = `${top}px`;
+    geo.current = { top, height: pin.offsetHeight };
+  }, []);
+  useEffect(() => place(), [step, place]);
+
   useEffect(() => {
-    // Measured live on every scroll frame, so it is right whatever loaded above it.
+    // One read per scroll frame: where the track is. How far the pinned block has travelled
+    // through it, from 0 to 1, split into steps.
     let frame = 0;
     const measure = () => {
       frame = 0;
@@ -69,22 +87,10 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
       let current = 0;
       let progress = 0;
       let any = false;
-      if (track.current && pinned.current) {
-        // The block pins in the middle of what the header leaves of the screen (or just under the
-        // header when it is taller than that), so there is no gap above it before it pins.
-        const header = document.querySelector('.landing-page > header') as HTMLElement | null;
-        const h = header?.offsetHeight ?? 64;
-        // Centred on the stage, which is one fixed size, so the place doesn't shift between steps.
-        const box = stage.current?.offsetHeight ?? pinned.current.offsetHeight;
-        // Never so low that the open step runs off the bottom of a short screen.
-        const centre = Math.min(h + (window.innerHeight - h - box) / 2, window.innerHeight - pinned.current.offsetHeight - 12);
-        const at = `${Math.round(Math.max(h + 12, centre))}px`;
-        if (pinned.current.style.top !== at) pinned.current.style.top = at;
-        // How far the pinned block has travelled through its track, from 0 to 1, split into steps.
+      if (track.current) {
         const t = track.current.getBoundingClientRect();
-        const top = parseFloat(getComputedStyle(pinned.current).top) || 0;
-        const distance = Math.max(1, t.height - pinned.current.offsetHeight);
-        const done = (top - t.top) / distance;
+        const distance = Math.max(1, t.height - geo.current.height);
+        const done = (geo.current.top - t.top) / distance;
         if (done >= 0) {
           any = true;
           const f = Math.min(1, done) * n;
@@ -94,20 +100,24 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
       }
       setStarted(any);
       setStep(current);
-      setP(Math.round(progress * 50) / 50);
+      setP(Math.round(progress * 25) / 25);
     };
     const onScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(measure);
     };
-    measure();
+    const onResize = () => {
+      place();
+      onScroll();
+    };
+    onResize();
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('resize', onResize);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [place]);
 
   // Jump straight to a step (a cut, like everything else here).
   const go = (i: number) => {
@@ -135,17 +145,17 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
                 <span className="font-mono">{started ? fill(L.progress, { n: step + 1, total: STORY_STEPS.length }) : S.scrollHint}</span>
               </div>
               {/* Which rules the stage follows. */}
-              <fieldset className="flex flex-wrap items-center gap-1.5 border-b border-border px-4 py-2 text-xs">
-                <legend className="float-start me-1 font-semibold text-on-surface">{S.rules}</legend>
+              <fieldset className="flex items-center gap-1 border-b border-border px-3 py-2 text-[11px] sm:flex-wrap sm:gap-1.5 sm:px-4 sm:text-xs">
+                <legend className="float-start me-1 font-semibold text-on-surface max-sm:sr-only">{S.rules}</legend>
                 {RULES.map((r) => (
-                  <label key={r} className="cursor-pointer border border-border-strong px-2 py-1 font-semibold transition-colors duration-[120ms] hover:border-on-surface has-checked:border-on-surface has-checked:bg-on-surface has-checked:text-surface has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent">
+                  <label key={r} className="cursor-pointer whitespace-nowrap border border-border-strong px-1.5 py-1 font-semibold sm:px-2 transition-colors duration-[120ms] hover:border-on-surface has-checked:border-on-surface has-checked:bg-on-surface has-checked:text-surface has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent">
                     <input type="radio" name="story-rules" value={r} checked={rules === r} onChange={() => setRules(r)} className="sr-only" />
                     {S[`rule.${r}`]}
                   </label>
                 ))}
               </fieldset>
               {/* One fixed size for every step, so nothing around it moves. */}
-              <div key={key} className="story-stage h-[21rem] overflow-hidden p-3 sm:h-[19rem] sm:p-4" aria-hidden="true">
+              <div key={key} className="story-stage h-[15.5rem] overflow-hidden p-3 sm:h-[19rem] sm:p-4" aria-hidden="true">
                 {key === 'rollcall' ? <RollCall p={p} S={S} names={names} pack={pack} locale={locale} /> : null}
                 {key === 'speakers' ? <Speakers p={p} S={S} names={names} pack={pack} locale={locale} /> : null}
                 {key === 'motions' ? <Motions p={p} S={S} names={names} pack={pack} locale={locale} /> : null}
@@ -179,7 +189,7 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
                       the steps not playing are quieter (muted, still readable). */}
                   <button type="button" onClick={() => go(i)} className={`group flex w-full items-center gap-3 text-start ${open ? 'text-on-surface' : 'text-on-surface lg:text-on-surface-muted'}`}>
                     <span className={`flex h-9 w-9 shrink-0 items-center justify-center border font-mono text-base font-semibold transition-colors duration-[120ms] ${open && started ? 'border-accent bg-accent text-on-accent' : 'border-border-strong group-hover:border-on-surface'}`}>{i + 1}</span>
-                    <span className={`text-xl group-hover:underline group-hover:underline-offset-4 lg:text-lg ${open ? 'font-semibold' : 'font-semibold lg:font-medium'}`}>{L.steps[s].title}</span>
+                    <span className={`text-lg group-hover:underline group-hover:underline-offset-4 ${open ? 'font-semibold' : 'font-semibold lg:font-medium'}`}>{L.steps[s].title}</span>
                   </button>
                   {/* Wide screens: only the current step's text is open; the others fold away. */}
                   <div className={`grid ${open ? 'grid-rows-[1fr]' : 'grid-rows-[1fr] lg:grid-rows-[0fr]'}`}>
@@ -223,7 +233,7 @@ function RollCall({ p, S, names, pack, locale }: Part) {
           const given = i < answered ? ANSWER[i]! : null;
           const a = given === 'v' && !voting ? 'p' : given;
           return (
-            <li key={c} className={`flex items-center gap-2 border-b border-border py-1 ${i >= 7 ? 'max-sm:hidden' : ''}`}>
+            <li key={c} className={`flex items-center gap-2 border-b border-border py-1 ${i >= 5 ? 'max-sm:hidden' : ''}`}>
               <span className={`h-3 w-3 shrink-0 border ${a === 'v' ? 'border-primary bg-primary' : a === 'p' ? 'border-on-surface bg-on-surface' : 'border-border-strong'}`} />
               <Flag choice={{ kind: 'country', code: c }} />
               <span className="min-w-0 flex-1 truncate">{names[c]}</span>
@@ -251,7 +261,7 @@ function Speakers({ p, S, names, pack }: Part) {
           <span className="text-2xl font-bold text-on-surface">{names[now!]}</span>
         </span>
         <span className="flex items-baseline gap-2">
-          <span className="font-mono text-4xl font-bold text-on-surface">{clock(moved ? total : left)}</span>
+          <span className="font-mono text-3xl font-bold text-on-surface sm:text-4xl">{clock(moved ? total : left)}</span>
           <span className="text-sm">{fill(S.of!, { total: clock(total) })}</span>
         </span>
         <span className="block h-2 w-full bg-surface">
@@ -265,7 +275,7 @@ function Speakers({ p, S, names, pack }: Part) {
       <ol className="flex flex-col text-sm">
         <li className="pb-1 text-xs">{S.list}</li>
         {next.slice(0, 4).map((c, i) => (
-          <li key={c} className="flex items-center gap-2 border-b border-border py-1">
+          <li key={c} className={`flex items-center gap-2 border-b border-border py-1 ${i >= 2 ? 'max-sm:hidden' : ''}`}>
             <span className="w-4 font-mono text-xs">{i + 1}</span>
             <Flag choice={{ kind: 'country', code: c }} />
             {names[c]}
@@ -296,13 +306,13 @@ function Motions({ p, S, names, pack, locale }: Part) {
       <span className="text-sm font-semibold text-on-surface">{ordered ? S.ordered : S.floorOpen}</span>
       <ol className="flex flex-col gap-2">
         {list.map((m, i) => (
-          <li key={m.key} className={`flex flex-col gap-1 border p-2.5 text-sm ${ordered && i === 0 ? 'border-accent' : 'border-border'}`}>
+          <li key={m.key} className={`flex flex-col gap-1 border p-2 text-sm sm:p-2.5 ${ordered && i === 0 ? 'border-accent' : 'border-border'}`}>
             <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="flex items-center gap-2">
                 {ordered ? <span className="font-mono text-xs">{i + 1}.</span> : null}
                 <span className="font-semibold text-on-surface">{m.name}</span>
               </span>
-              <span className="flex items-center gap-2 text-xs">
+              <span className="flex items-center gap-2 text-xs max-sm:hidden">
                 <Flag choice={{ kind: 'country', code: m.by }} />
                 {fill(S.movedBy!, { by: names[m.by]! })}
               </span>
@@ -311,7 +321,7 @@ function Motions({ p, S, names, pack, locale }: Part) {
           </li>
         ))}
       </ol>
-      {ordered ? <span className="text-xs">{S.orderWhy}</span> : null}
+      {ordered ? <span className="text-xs max-sm:hidden">{S.orderWhy}</span> : null}
     </div>
   );
 }
@@ -370,11 +380,11 @@ function Voting({ p, S, names, pack, locale }: Part) {
         <span>{fill(S.needed!, { n: needed })}</span>
       </div>
       <span className="text-xs">{fill(S.methods!, { methods })}</span>
-      <ul className="flex flex-wrap gap-1.5">
+      <ul className="flex flex-wrap gap-1 sm:gap-1.5">
         {ROOM.map((c, i) => (
           // A placard tile fills when its delegation votes: ink for yes, graphite for no, an
           // outline for abstaining.
-          <li key={c} title={names[c]} className={`flex h-8 w-11 items-center justify-center border-2 ${i >= voted ? 'border-border' : VOTE[i] === 'y' ? 'border-on-surface bg-on-surface' : VOTE[i] === 'n' ? 'border-on-surface-muted bg-on-surface-muted' : 'border-on-surface-muted'}`}>
+          <li key={c} title={names[c]} className={`flex h-6 w-8 items-center justify-center border-2 sm:h-8 sm:w-11 ${i >= voted ? 'border-border' : VOTE[i] === 'y' ? 'border-on-surface bg-on-surface' : VOTE[i] === 'n' ? 'border-on-surface-muted bg-on-surface-muted' : 'border-on-surface-muted'}`}>
             <Flag choice={{ kind: 'country', code: c }} />
           </li>
         ))}

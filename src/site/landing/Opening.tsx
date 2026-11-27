@@ -147,6 +147,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
   const track = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const square = useRef<SVGRectElement>(null);
+  const content = useRef<HTMLDivElement>(null);
 
   useIsoLayoutEffect(() => {
     const fits = window.matchMedia(FITS);
@@ -182,8 +183,8 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       const st = stage.current;
       if (!t || !st) return;
       const distance = Math.max(1, t.offsetHeight - st.offsetHeight);
-      scrolled = fits.matches ? Math.min(1, Math.max(0, -t.getBoundingClientRect().top / distance)) : 0;
-      const auto = fits.matches && !motion.matches;
+      scrolled = canPin ? Math.min(1, Math.max(0, -t.getBoundingClientRect().top / distance)) : 0;
+      const auto = canPin && !motion.matches;
       if (!auto) {
         show(scrolled);
         return;
@@ -230,10 +231,23 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     };
     const onResize = () => {
       header();
+      const now = fits.matches && roomy();
+      if (now !== canPin) {
+        canPin = now;
+        setPinned(now);
+      }
       onScroll();
     };
+    // Pinned only where the whole resting opening (wordmark, headline, actions) fits under the
+    // header; otherwise (a short phone, a long translation) it is a plain opening.
+    let canPin = false;
+    const roomy = () => {
+      const h = document.querySelector('.landing-page > header') as HTMLElement | null;
+      return (h?.offsetHeight ?? 64) + 16 + (content.current?.offsetHeight ?? 0) + 24 <= window.innerHeight;
+    };
     const onFits = () => {
-      setPinned(fits.matches);
+      canPin = fits.matches && roomy();
+      setPinned(canPin);
       onResize();
     };
     onFits();
@@ -268,8 +282,10 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     <section ref={track} aria-labelledby="hero-title" className={`opening ${pinned ? '-mt-(--landing-header) h-[220svh]' : ''}`}>
       <div ref={stage} className={`opening-stage relative overflow-hidden ${pinned ? 'sticky top-0 h-svh' : ''}`}>
         {/* At rest: the wordmark at poster size, and the headline. */}
-        <div className={`mx-auto flex w-full max-w-6xl flex-col justify-center gap-8 px-5 pb-10 ${pinned ? 'h-full pt-[calc(var(--landing-header,4rem)+1.5rem)]' : 'pt-10 sm:pt-14'}`}>
-          <svg viewBox={WORDMARK_VIEWBOX} className="block h-auto w-full text-on-surface" aria-hidden="true" focusable="false">
+        <div className={`mx-auto flex w-full max-w-6xl flex-col justify-center px-5 pb-6 sm:pb-10 ${pinned ? 'h-full pt-[calc(var(--landing-header,4rem)+1rem)] sm:pt-[calc(var(--landing-header,4rem)+1.5rem)]' : 'pt-8 sm:pt-14'}`}>
+          <div ref={content} className="flex shrink-0 flex-col gap-6 sm:gap-8">
+          {/* Never squeezed: the wordmark keeps its proportions at any width. */}
+          <svg viewBox={WORDMARK_VIEWBOX} className="block aspect-[3498/805] h-auto w-full shrink-0 text-on-surface" aria-hidden="true" focusable="false">
             <g fill="currentColor">
               {WORDMARK_PATHS.map((d, i) => (
                 <path key={i} d={d} />
@@ -278,6 +294,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
             <rect ref={square} x={WORDMARK_SQUARE.x} y={WORDMARK_SQUARE.y} width={WORDMARK_SQUARE.size} height={WORDMARK_SQUARE.size} className="fill-primary" visibility={frame.kind === 'rest' ? 'visible' : 'hidden'} />
           </svg>
           {children}
+          </div>
         </div>
 
         {/* It takes the place of the logo's own square (hidden meanwhile), and each step eases in over

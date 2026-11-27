@@ -391,3 +391,18 @@ test('in Spanish, the story starts on the Spanish-language rules', async ({ page
   await page.goto('/?lang=es');
   await expect(page.getByRole('group', { name: 'Reglamento' }).getByRole('radio', { name: 'En español' })).toBeChecked();
 });
+
+test('in Spanish on a phone the wordmark keeps its size and the section links fit', async ({ browser }) => {
+  for (const height of [600, 664, 844]) {
+    const phone = await (await browser.newContext({ viewport: { width: 375, height }, isMobile: true })).newPage();
+    await phone.goto('/?lang=es');
+    const nav = phone.getByRole('navigation', { name: 'En esta página' });
+    expect(await nav.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), `links fit at ${height}`).toBe(true);
+    const mark = await phone.locator('.opening-stage svg').first().evaluate((el) => el.getBoundingClientRect());
+    expect(mark.width, `wordmark full width at ${height}`).toBeGreaterThan(300);
+    expect(Math.abs(mark.height - (mark.width * 805) / 3498), `wordmark not squeezed at ${height}`).toBeLessThan(2);
+    // The opening fits, so it pins and plays.
+    expect(await phone.locator('.opening-stage').evaluate((el) => el.classList.contains('sticky'))).toBe(true);
+    await phone.context().close();
+  }
+});

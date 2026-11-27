@@ -166,11 +166,11 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
               plays the logo's square out into a conference (see Opening). */}
           <Opening L={openingLabels(locale)}>
             <div className="grid grid-cols-1 gap-x-12 gap-y-5 lg:grid-cols-[1.15fr_1fr] lg:items-end">
-              <h1 id="hero-title" className="site-display text-balance text-4xl leading-tight text-on-surface sm:text-5xl">
+              <h1 id="hero-title" className="site-display text-balance text-[2rem] leading-tight text-on-surface sm:text-5xl">
                 {t('landing.hero.title')}
               </h1>
               <div className="flex flex-col gap-5">
-                <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
+                <p className="max-w-xl text-base sm:text-lg">{t('landing.hero.body')}</p>
                 {/* One main action. */}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                   {signup ? (
@@ -193,7 +193,8 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
                     </>
                   )}
                 </div>
-                <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
+                {/* Said again in "Your conference, your words"; left out on phones so the opening fits. */}
+                <p className="max-w-xl text-sm max-sm:hidden">{t('landing.hero.note')}</p>
               </div>
             </div>
           </Opening>

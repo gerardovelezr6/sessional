@@ -298,10 +298,16 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
           </Section>
 
           <Section id="students" title={t('landing.students.title')} intro={t('landing.students.intro')}>
-            <ul className="grid grid-cols-1 gap-x-10 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
-              {(['accounts', 'names', 'staff', 'log', 'least', 'export'] as const).map((s) => (
-                <li key={s} className="border-t border-border pt-3 text-sm">
-                  {t(`landing.students.${s}` as MessageKey)}
+            {/* Six promises, each led by its point in a few words and marked with the logo's square, in
+                the committee colours. */}
+            <ul className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
+              {(['accounts', 'names', 'staff', 'log', 'least', 'export'] as const).map((s, i) => (
+                <li key={s} className="flex gap-3 border-t border-border pt-4 text-sm">
+                  <span aria-hidden="true" className={`mt-1.5 h-2.5 w-2.5 shrink-0 ${['bg-primary', 'bg-accent', 'bg-(--site-teal)', 'bg-on-surface'][i % 4]}`} />
+                  <span>
+                    <span className="block text-base font-semibold text-on-surface">{t(`landing.students.${s}.lead` as MessageKey)}</span>
+                    <span className="mt-1 block">{t(`landing.students.${s}` as MessageKey)}</span>
+                  </span>
                 </li>
               ))}
             </ul>

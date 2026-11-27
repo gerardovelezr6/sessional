@@ -239,6 +239,9 @@ test('organizer features are grouped in tabs that work from the keyboard, and th
   expect(top).toBeGreaterThanOrEqual(header);
 });
 
+// How visible one of the opening's headings is (both are always there, one faded out).
+const headingShown = (room: import('@playwright/test').Locator, text: string) => room.getByText(text).evaluate((el) => Number(getComputedStyle(el.parentElement!).opacity));
+
 // Scrolls so that the opening is this far through its scroll (0 to 1).
 const scrollOpening = (page: import('@playwright/test').Page, f: number) =>
   page.evaluate((f) => {
@@ -269,12 +272,23 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   expect(Math.abs((await page.evaluate(() => window.scrollY)) - y)).toBeLessThan(2);
   // It ends on the committee tiles, the magenta gone.
   await expect(room.getByText('One conference.')).toHaveCount(0, { timeout: 6000 });
-  await expect(room).toContainText('Every committee, at once.');
+  await expect.poll(() => headingShown(room, 'Every committee, at once.')).toBe(1);
   // The committees and the room follow the scroll, not the clock.
   await page.waitForTimeout(1500);
-  await expect(room).toContainText('Every committee, at once.');
+  expect(await headingShown(room, 'Every committee, at once.')).toBe(1);
+  expect(await headingShown(room, 'Every screen in the room, on one clock.')).toBe(0);
+  // Between them, the Security Council's tile moves into the projector's place.
+  // (after the logo's part, the rest of the scroll walks the committees and the room: this is
+  // halfway through the move)
+  await scrollOpening(page, 0.46);
+  await expect(room.locator('div.absolute.bg-primary')).toHaveCount(1);
   await scrollOpening(page, 0.95);
-  await expect(room).toContainText('Every screen in the room, on one clock.');
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.')).toBe(1);
+  expect(await headingShown(room, 'Every committee, at once.')).toBe(0);
+  // In the room the clock runs by itself, with no scrolling.
+  const projector = room.getByRole('listitem').filter({ hasText: 'Projector' }).locator('.font-mono');
+  const before = await projector.textContent();
+  await expect(projector).not.toHaveText(before!, { timeout: 3000 });
   // Back at the top, it plays backwards to the wordmark, without the words.
   await scrollOpening(page, 0);
   await expect(room.getByText('One conference.')).toHaveCount(1, { timeout: 3000 });
@@ -311,13 +325,14 @@ test('with less motion the opening doesn’t play by itself: scrolling moves it,
   await expect.poll(shown).toBe(0);
   await expect.poll(cover).toBeLessThan(0.5);
   await scrollOpening(calm, 0.55);
-  await expect(room).toContainText('Every committee, at once.');
-  await expect(room.getByRole('listitem')).toHaveCount(6);
-  await scrollOpening(calm, 0.75);
-  await expect(room).toContainText('Every screen in the room, on one clock.');
-  const first = await room.locator('.font-mono').last().textContent();
+  await expect.poll(() => headingShown(room, 'Every committee, at once.')).toBe(1);
   await scrollOpening(calm, 0.99);
-  await expect(room.locator('.font-mono').last()).not.toHaveText(first!);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.')).toBe(1);
+  // With less motion the room's clock stays still.
+  const clock = room.getByRole('listitem').filter({ hasText: 'Projector' }).locator('.font-mono');
+  const still = await clock.textContent();
+  await calm.waitForTimeout(1500);
+  await expect(clock).toHaveText(still!);
   await calm.context().close();
 });
 

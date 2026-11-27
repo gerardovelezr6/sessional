@@ -46,9 +46,8 @@ const COMMITTEES = [
 
 const GROW_STEPS = 16;
 // Where each part starts, as a share of the opening's scroll.
-const AT = { grow: 0.05, field: 0.34, split: 0.46, colours: 0.6, room: 0.7 } as const;
+const AT = { grow: 0.05, field: 0.34, split: 0.46, colours: 0.58, morph: 0.64, room: 0.76 } as const;
 const CLOCK_FROM = 45;
-const CLOCK_STEPS = 9;
 // Once the visitor has scrolled this far in, the logo's part plays by itself along this timeline
 // (seconds → share of the opening): the square grows, "One conference.", the magenta fades away to
 // the committee tiles. It is short, and scrolling is held while it plays so it isn't skipped. The
@@ -112,7 +111,8 @@ type Frame =
   | { kind: 'grow'; step: number }
   | { kind: 'field'; shown: number; cover: number }
   | { kind: 'committees'; coloured: number }
-  | { kind: 'room'; left: number };
+  | { kind: 'morph'; t: number }
+  | { kind: 'room' };
 
 function frameAt(p: number, reduce: boolean, quiet = false): Frame {
   if (p < AT.grow) return { kind: 'rest' };
@@ -127,8 +127,10 @@ function frameAt(p: number, reduce: boolean, quiet = false): Frame {
     };
     return { kind: 'field', shown: quiet ? 0 : soft(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: soft((1 - u) / 0.4) };
   }
-  if (p < AT.room) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
-  return { kind: 'room', left: CLOCK_FROM - Math.min(CLOCK_STEPS - 1, Math.floor(((p - AT.room) / (1 - AT.room)) * CLOCK_STEPS)) };
+  if (p < AT.morph) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
+  // From the committees to the room: the Security Council's tile becomes the room's projector.
+  if (p < AT.room) return { kind: 'morph', t: Math.round((-(Math.cos(Math.PI * ((p - AT.morph) / (AT.room - AT.morph))) - 1) / 2) * 100) / 100 };
+  return { kind: 'room' };
 }
 
 const same = (a: Frame, b: Frame) => JSON.stringify(a) === JSON.stringify(b);
@@ -304,8 +306,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
         {covered ? (
           <figure aria-label={L.label} className="absolute inset-0 bg-surface text-on-surface">
             <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
-              {frame.kind === 'field' || frame.kind === 'committees' ? <Committees L={L} coloured={frame.kind === 'committees' ? frame.coloured : 0} /> : null}
-              {frame.kind === 'room' ? <Room L={L} left={frame.left} /> : null}
+              <Conference L={L} frame={frame} />
               <figcaption className="text-xs text-on-surface-muted">{L.example}</figcaption>
             </div>
             {/* The magenta screen sits over the committees and fades away to show them. */}
@@ -324,74 +325,133 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
   );
 }
 
-// Six committee tiles; the first `coloured` have cut to their own colour, the rest are still magenta.
-function Committees({ L, coloured }: { L: OpeningLabels; coloured: number }) {
+// The committees, then the room. Both headings share one place (so nothing below them moves when
+// one gives way to the other) and both sets of tiles are laid out in the same box. Between them,
+// the Security Council's magenta tile moves and resizes into the room's projector while the other
+// committees fade out and the laptop and phones fade in (scroll-driven, eased sine in-out).
+function Conference({ L, frame }: { L: OpeningLabels; frame: Frame }) {
+  const room = frame.kind === 'room';
+  const t = frame.kind === 'morph' ? frame.t : room ? 1 : 0;
+  const box = useRef<HTMLDivElement>(null);
+  const from = useRef<HTMLLIElement>(null);
+  const to = useRef<HTMLLIElement>(null);
+  const [rects, setRects] = useState<{ a: DOMRect; b: DOMRect } | null>(null);
+  useIsoLayoutEffect(() => {
+    const measure = () => {
+      const o = box.current?.getBoundingClientRect();
+      const a = from.current?.getBoundingClientRect();
+      const b = to.current?.getBoundingClientRect();
+      if (!o || !a || !b) return;
+      setRects({ a: new DOMRect(a.x - o.x, a.y - o.y, a.width, a.height), b: new DOMRect(b.x - o.x, b.y - o.y, b.width, b.height) });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  const left = useClock(room);
+  const mix = (x: number, y: number) => x + (y - x) * t;
+  const moving = frame.kind === 'morph' && frame.t > 0 && rects;
+  const coloured = frame.kind === 'committees' ? frame.coloured : frame.kind === 'field' ? 0 : COMMITTEES.length;
+  const out = Math.max(0, 1 - t * 2); // committees fade over the first half
+  const inn = Math.max(0, t * 2 - 1); // the room fades in over the second half
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <p className="site-display text-3xl sm:text-5xl">{L.two}</p>
-        <p className="text-base text-on-surface-muted">{L.twoNote}</p>
+      <div className="grid">
+        <div className="col-start-1 row-start-1 flex flex-col gap-1" style={{ opacity: out }} aria-hidden={room}>
+          <p className="site-display text-3xl sm:text-5xl">{L.two}</p>
+          <p className="text-base text-on-surface-muted">{L.twoNote}</p>
+        </div>
+        <div className="col-start-1 row-start-1 flex flex-col gap-1" style={{ opacity: inn }} aria-hidden={!room}>
+          <p className="site-display text-3xl sm:text-5xl">{L.three}</p>
+          <p className="text-sm text-on-surface-muted sm:text-base">{L.threeNote}</p>
+        </div>
       </div>
-      <ul className="grid min-h-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
-        {COMMITTEES.map((c, i) => (
-          <li key={c.key} className={`flex min-h-0 flex-col justify-between gap-2 p-3 sm:p-5 ${i < coloured ? c.tile : 'bg-primary text-on-primary'}`}>
-            <span className="font-mono text-sm font-semibold sm:text-base">{c.abbr}</span>
-            <span className="flex flex-col gap-1">
-              <span className="text-sm font-semibold leading-snug sm:text-lg">{L.names[c.key]}</span>
-              <span className="flex items-center gap-2 text-xs sm:text-sm">
-                <span aria-hidden="true" className="inline-block h-2 w-2 bg-current" />
-                {L.status[c.status]}
+      <div ref={box} className="relative min-h-0 flex-1">
+        <ul className="absolute inset-0 grid grid-cols-2 gap-2 sm:grid-cols-3" style={{ visibility: room ? 'hidden' : 'visible' }}>
+          {COMMITTEES.map((c, i) => (
+            <li
+              key={c.key}
+              ref={i === 0 ? from : undefined}
+              className={`flex min-h-0 flex-col justify-between gap-2 overflow-hidden p-3 sm:p-5 ${i < coloured ? c.tile : 'bg-primary text-on-primary'}`}
+              style={{ opacity: i === 0 && moving ? 0 : out }}
+            >
+              <span className="font-mono text-sm font-semibold sm:text-base">{c.abbr}</span>
+              <span className="flex flex-col gap-1">
+                <span className="text-sm font-semibold leading-snug sm:text-lg">{L.names[c.key]}</span>
+                <span className="flex items-center gap-2 text-xs sm:text-sm">
+                  <span aria-hidden="true" className="inline-block h-2 w-2 bg-current" />
+                  {L.status[c.status]}
+                </span>
               </span>
-            </span>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+        <RoomTiles L={L} left={left} projector={to} shown={inn} projectorShown={room} hidden={frame.kind !== 'morph' && !room} />
+        {moving ? (
+          <div
+            aria-hidden="true"
+            className="absolute flex flex-col justify-between gap-2 overflow-hidden bg-primary p-3 text-on-primary sm:p-5"
+            style={{ left: mix(rects.a.x, rects.b.x), top: mix(rects.a.y, rects.b.y), width: mix(rects.a.width, rects.b.width), height: mix(rects.a.height, rects.b.height) }}
+          >
+            {/* The Security Council's words go with it, fading like the other committees. */}
+            <span className="font-mono text-sm font-semibold sm:text-base" style={{ opacity: out }}>{COMMITTEES[0].abbr}</span>
+            <span className="text-sm font-semibold leading-snug sm:text-lg" style={{ opacity: out }}>{L.names[COMMITTEES[0].key]}</span>
+          </div>
+        ) : null}
+      </div>
     </>
   );
+}
+
+// The room's clock runs by itself, a second at a time, once the room is on screen (not for people
+// who ask for less motion); at zero the next delegation takes the floor.
+function useClock(running: boolean) {
+  const [state, setState] = useState({ left: CLOCK_FROM, speaker: 0 });
+  useEffect(() => {
+    if (!running || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const id = window.setInterval(() => setState((s) => (s.left > 1 ? { ...s, left: s.left - 1 } : { left: CLOCK_FROM, speaker: (s.speaker + 1) % QUEUE.length })), 1000);
+    return () => window.clearInterval(id);
+  }, [running]);
+  return state;
 }
 
 const QUEUE = ['fr', 'br', 'ke'];
 
 // The three screens in a committee room, each a tile, all on the same clock.
-function Room({ L, left }: { L: OpeningLabels; left: number }) {
-  const [now, next] = QUEUE;
-  const time = clock(left);
+function RoomTiles({ L, left, projector, shown, projectorShown, hidden }: { L: OpeningLabels; left: { left: number; speaker: number }; projector: React.Ref<HTMLLIElement>; shown: number; projectorShown: boolean; hidden: boolean }) {
+  const now = QUEUE[left.speaker]!;
+  const next = QUEUE[(left.speaker + 1) % QUEUE.length]!;
+  const time = clock(left.left);
   // Phones: the projector across the top, the laptop and a phone side by side under it.
   return (
-    <>
-      <div className="flex flex-col gap-1">
-        <p className="site-display text-2xl sm:text-5xl">{L.three}</p>
-        <p className="text-sm text-on-surface-muted sm:text-base">{L.threeNote}</p>
-      </div>
-      <ul className="grid min-h-0 flex-1 grid-cols-2 grid-rows-[1.3fr_1fr] gap-2 sm:grid-cols-[1fr_1.4fr_0.8fr] sm:grid-rows-1">
-        <li className="order-2 flex min-h-0 flex-col gap-2 overflow-hidden bg-on-surface p-3 text-surface sm:order-none sm:gap-3 sm:p-5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.laptop}</span>
-          <span className="text-xs sm:text-sm">{L.committee}</span>
-          <span className="flex items-center gap-2 text-sm">
-            <Flag choice={{ kind: 'country', code: now! }} />
-            <span className="truncate font-semibold">{L.names[now!]}</span>
-            <span className="ms-auto font-mono">{time}</span>
-          </span>
-          <span className="text-xs sm:text-sm">{fill(L.next, { name: L.names[next!]! })}</span>
-        </li>
-        <li className="order-1 col-span-2 flex min-h-0 flex-col gap-1 overflow-hidden bg-primary p-3 text-on-primary sm:order-none sm:col-span-1 sm:gap-2 sm:p-5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.projector}</span>
-          <span className="mt-auto flex items-center gap-3">
-            <Flag choice={{ kind: 'country', code: now! }} className="h-6! w-9! bg-cover! sm:h-7! sm:w-10!" />
-            <span className="text-xl font-bold sm:text-3xl">{L.names[now!]}</span>
-          </span>
-          <span className="font-mono text-4xl font-bold sm:text-7xl">{time}</span>
-        </li>
-        <li className="order-3 flex min-h-0 flex-col gap-1 overflow-hidden bg-accent p-3 text-on-accent sm:order-none sm:gap-2 sm:p-5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.phone}</span>
-          <span className="mt-auto text-xs">{L.speaking}</span>
-          <span className="flex items-center gap-2 text-sm">
-            <Flag choice={{ kind: 'country', code: now! }} />
-            <span className="truncate font-semibold">{L.names[now!]}</span>
-          </span>
-          <span className="font-mono text-xl sm:text-2xl">{time}</span>
-        </li>
-      </ul>
-    </>
+    <ul className="absolute inset-0 grid grid-cols-2 grid-rows-[1.3fr_1fr] gap-2 sm:grid-cols-[1fr_1.4fr_0.8fr] sm:grid-rows-1" style={{ visibility: hidden ? 'hidden' : 'visible' }} aria-hidden={hidden}>
+      <li className="order-2 flex min-h-0 flex-col gap-2 overflow-hidden bg-on-surface p-3 text-surface sm:order-none sm:gap-3 sm:p-5" style={{ opacity: shown }}>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.laptop}</span>
+        <span className="text-xs sm:text-sm">{L.committee}</span>
+        <span className="flex items-center gap-2 text-sm">
+          <Flag choice={{ kind: 'country', code: now }} />
+          <span className="truncate font-semibold">{L.names[now]}</span>
+          <span className="ms-auto font-mono">{time}</span>
+        </span>
+        <span className="text-xs sm:text-sm">{fill(L.next, { name: L.names[next]! })}</span>
+      </li>
+      <li ref={projector} className="order-1 col-span-2 flex min-h-0 flex-col gap-1 overflow-hidden bg-primary p-3 text-on-primary sm:order-none sm:col-span-1 sm:gap-2 sm:p-5" style={{ opacity: projectorShown ? 1 : 0 }}>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.projector}</span>
+        <span className="mt-auto flex items-center gap-3">
+          <Flag choice={{ kind: 'country', code: now }} className="h-6! w-9! sm:h-7! sm:w-10!" />
+          <span className="text-xl font-bold sm:text-3xl">{L.names[now]}</span>
+        </span>
+        <span className="font-mono text-4xl font-bold sm:text-7xl">{time}</span>
+      </li>
+      <li className="order-3 flex min-h-0 flex-col gap-1 overflow-hidden bg-accent p-3 text-on-accent sm:order-none sm:gap-2 sm:p-5" style={{ opacity: shown }}>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.phone}</span>
+        <span className="mt-auto text-xs">{L.speaking}</span>
+        <span className="flex items-center gap-2 text-sm">
+          <Flag choice={{ kind: 'country', code: now }} />
+          <span className="truncate font-semibold">{L.names[now]}</span>
+        </span>
+        <span className="font-mono text-xl sm:text-2xl">{time}</span>
+      </li>
+    </ul>
   );
 }

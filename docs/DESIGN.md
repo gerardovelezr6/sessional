@@ -96,6 +96,7 @@ own website, unmodified. It does not allow:
 
 - Display is for titles only. Never use it for body text, buttons or labels.
 - Use only one display title per section. Subheadings below it use the text face, semibold.
+- Country flags fill their frame (`src/components/Flag.tsx`), whatever the flag's own shape.
 - Display is set at weight 400, tracked −0.012em, line height 1.12.
 - Anything that counts or ticks uses `.font-mono`, so its digits line up (tabular figures are on
   for tables, `time` and `.font-mono`).
@@ -155,8 +156,10 @@ whole magenta screen fade away.
   isn't skipped: the logo's own square hides and a square takes its place, growing in sixteen
   steps (each eased over 150 ms) until the screen is magenta; "One conference." fades in and out,
   then the whole magenta screen fades away (eased) to six committee tiles. The rest follows the
-  scroll: the tiles cut to their own colours one by one, then the three screens of a room count
-  down on one clock. Back at the top, the logo's part plays backwards by itself (in half the time, without the words)
+  scroll: the tiles cut to their own colours one by one; then the Security Council's magenta tile
+  moves and resizes into the room's projector while the other committees fade out and the laptop
+  and phones fade in (eased sine in-out), and the three screens of a room count down on one clock,
+  a real second at a time, with no scrolling (still, for less motion). Back at the top, the logo's part plays backwards by itself (in half the time, without the words)
   to the wordmark. Arriving further down the page
   (a reload, a link to a section) counts it as played. It is pinned only on screens at least
   560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.

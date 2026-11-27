@@ -6,10 +6,9 @@ import { regional } from '@/i18n/regional';
 import { messageFor, type MessageKey, type Translate } from '@/messages';
 import { ContactForm, type ContactLabels } from './ContactForm';
 import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
-import { Reveal } from './Reveal';
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
-import { SecretariatBoard, type BoardLabels } from './Secretariat';
+import { Opening, type OpeningLabels } from './Opening';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
 import { Tabs } from './Tabs';
@@ -46,7 +45,7 @@ const FAQ = ['accounts', 'wifi', 'rules', 'spanish', 'data', 'cost'] as const;
 const LIMITS = ['committees', 'delegates', 'staff', 'active_conferences'] as const;
 const NOT_COUNTRIES = new Set(['EU', 'UN']);
 
-function Section({ id, title, intro, children, reveal = true }: { id: string; title: string; intro?: string; children: React.ReactNode; reveal?: boolean }) {
+function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: React.ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="landing-rule flex flex-col gap-6 py-12">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[18rem_1fr]">
@@ -55,7 +54,7 @@ function Section({ id, title, intro, children, reveal = true }: { id: string; ti
         </h2>
         {intro ? <p className="max-w-2xl text-base">{intro}</p> : null}
       </div>
-      {reveal ? <Reveal>{children}</Reveal> : children}
+      {children}
     </section>
   );
 }
@@ -97,20 +96,21 @@ function contactLabels(t: Translate): ContactLabels {
 const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
-// The Secretariat board's words, placeholders left for the client to fill.
-const BOARD_KINDS = ['speech', 'moderated', 'unmoderated', 'vote', 'roll', 'recess', 'crisis'] as const;
-const BOARD_CODES = ['fr', 'cn', 'gb', 'br', 'ke', 'mx', 'jp', 'ch', 'gh', 'al', 'ec', 'us', 'ru'];
-function boardLabels(locale: string): BoardLabels {
+// The opening's words.
+const OPENING_KEYS = ['label', 'example', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
+const OPENING_STATUS = ['speech', 'roll', 'vote', 'unmoderated', 'moderated', 'crisis'] as const;
+function openingLabels(locale: string): OpeningLabels {
   const raw = (k: string) => messageFor(k, locale).text;
+  const words = Object.fromEntries(OPENING_KEYS.map((k) => [k, raw(`landing.opening.${k}`)])) as Record<(typeof OPENING_KEYS)[number], string>;
   return {
-    label: raw('landing.board.label'), title: raw('landing.board.title'), live: raw('landing.board.live'), example: raw('landing.board.example'),
-    pause: raw('landing.board.pause'), play: raw('landing.board.play'), summary: raw('landing.board.summary'), present: raw('landing.board.present'),
-    names: Object.fromEntries(['sc', 'disec', 'hrc', 'who', 'ecosoc', 'crisis'].map((k) => [k, raw(`landing.board.name.${k}`)])),
-    status: Object.fromEntries([...BOARD_KINDS, 'passed'].map((k) => [k, raw(`landing.board.status.${k}`)])) as BoardLabels['status'],
-    detail: Object.fromEntries(BOARD_KINDS.map((k) => [k, raw(`landing.board.detail.${k}`)])) as BoardLabels['detail'],
+    ...words,
+    names: {
+      ...Object.fromEntries(['sc', 'disec', 'hrc', 'who', 'ecosoc', 'crisis'].map((k) => [k, raw(`landing.opening.name.${k}`)])),
+      ...Object.fromEntries(['fr', 'br', 'ke'].map((c) => [c, countryName(c.toUpperCase(), locale)])),
+    },
+    status: Object.fromEntries(OPENING_STATUS.map((k) => [k, raw(`landing.opening.status.${k}`)])),
   };
 }
-const boardCountries = (locale: string) => Object.fromEntries(BOARD_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 // The story's words, with ICU placeholders left for the client to fill.
 function storyLabels(t: Translate, locale: string): StoryLabels {
   const raw = (k: string) => messageFor(k, locale).text;
@@ -139,7 +139,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
     { id: 'contact', text: t('landing.nav.contact') },
   ];
   return (
-    <div className="landing-page site-type flex flex-1 flex-col bg-surface text-on-surface-muted">
+    <div className="landing-page site-type flex flex-1 flex-col overflow-x-clip bg-surface text-on-surface-muted">
       <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:start-4 focus-visible:top-4 focus-visible:z-30 focus-visible:bg-surface-raised focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-on-surface">
         {t('landing.skip')}
       </a>
@@ -162,46 +162,46 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
         </div>
       </header>
 
-        <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          {/* The opening: what Sessional does, and one main action. */}
-          {/* Beside it on wide screens (below it on narrow ones): the Secretariat's live view. */}
-          <section className="grid grid-cols-1 items-center gap-10 pb-14 pt-12 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="hero-title">
-            <div className="max-w-3xl">
-            <div className="flex flex-col gap-5">
+        <main id="main">
+          {/* The opening: the wordmark and what Sessional does, with one main action. Scrolling on
+              plays the logo's square out into a conference (see Opening). */}
+          <Opening L={openingLabels(locale)}>
+            <div className="grid grid-cols-1 gap-x-12 gap-y-5 lg:grid-cols-[1.15fr_1fr] lg:items-end">
               <h1 id="hero-title" className="site-display text-balance text-4xl leading-tight text-on-surface sm:text-5xl">
                 {t('landing.hero.title')}
               </h1>
-              <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
-              {/* One main action. */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                {signup ? (
-                  <>
-                    <a className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
-                      {t('landing.hero.trial')}
-                    </a>
-                    <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
-                      {t('landing.hero.write')}
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <a className="btn btn-primary normal-case tracking-normal" href="#contact">
-                      {t('landing.hero.write')}
-                    </a>
-                    <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
-                      {t('landing.hero.see')}
-                    </a>
-                  </>
-                )}
+              <div className="flex flex-col gap-5">
+                <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
+                {/* One main action. */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  {signup ? (
+                    <>
+                      <a className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
+                        {t('landing.hero.trial')}
+                      </a>
+                      <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
+                        {t('landing.hero.write')}
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <a className="btn btn-primary normal-case tracking-normal" href="#contact">
+                        {t('landing.hero.write')}
+                      </a>
+                      <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
+                        {t('landing.hero.see')}
+                      </a>
+                    </>
+                  )}
+                </div>
+                <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
               </div>
-              <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-            </div>
-            <SecretariatBoard L={boardLabels(locale)} countries={boardCountries(locale)} locale={locale} />
-          </section>
+          </Opening>
 
+          <div className="mx-auto w-full max-w-6xl px-5">
           {/* How a session runs: the stage plays each step beside its text as you scroll. */}
-          <section className="landing-rule pb-16 pt-12" aria-labelledby="session-title">
+          <section className="landing-rule pb-4 pt-12" aria-labelledby="session-title">
             <Story
               names={storyNames(locale)}
               L={storyLabels(t, locale)}
@@ -371,6 +371,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               ))}
             </div>
           </Section>
+          </div>
         </main>
 
       <footer className="border-t border-border">

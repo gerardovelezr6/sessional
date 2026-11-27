@@ -13,9 +13,9 @@ to a 13-year-old.
 
 - **Tiles, not chrome.** Flat color fields carry meaning (a committee, a state); no gradients, glows
   or drop shadows, and no decorative color.
-- **Real examples, not illustrations.** The page shows the product working (the Secretariat
-  board, the story's stage, the three screens) with made-up but believable data, marked as an
-  example.
+- **Real examples, not illustrations.** The page shows the product working (the opening's
+  committee tiles and room, the story's stage, the three screens) with made-up but believable
+  data, marked as an example.
 - **Magenta is the brand, cobalt is the pointer.** Magenta is the logo's tile and the primary
   action; cobalt marks "this one, now": focus, links, the current step.
 
@@ -119,14 +119,14 @@ new school starts from. It replaced navy, amber and cream on 2026-11-27.
 | Token | Value | Role |
 |---|---|---|
 | Magenta (brand, `--s-color-primary`) | `#C8175D` | The logo's tile and square, primary buttons, the title bar |
-| Cobalt (accent, `--s-color-accent`) | `#2147D6` | Focus rings, the current step's line, the contact band |
+| Cobalt (accent, `--s-color-accent`) | `#2147D6` | Focus rings, the current step's number, the speaker's time bar, the contact band |
 | White (background, `--s-color-surface`) | `#FFFFFF` | Page background |
 | Ink (`--s-color-on-surface`) | `#111111` | Titles and strong text |
 | Graphite (`--s-color-on-surface-muted`) | `#4B5058` | Body text, captions, steps not playing |
 | Rule (`--s-color-border`) | `#E3E5E8` | Hairlines between rows |
 | Rule, strong (`--s-color-border-strong`) | `#4B5058` | Frames and section rules |
-| Teal | `#00797D` | Reserved: a second committee tile |
-| Lime | `#8DB600` | Reserved: a fourth committee tile, dark text only |
+| Teal (`--site-teal`) | `#00797D` | Committee tiles only (the opening), white text |
+| Lime (`--site-lime`) | `#8DB600` | Committee tiles only (the opening), dark text only |
 
 Contrast: magenta on white 5.6:1, cobalt on white 7.2:1, graphite on white 8.2:1, white on magenta
 5.6:1. Text and backgrounds meet WCAG AA, which the accessibility audit checks on every page.
@@ -138,14 +138,30 @@ Steps that aren't playing use graphite, not transparency, so they keep that cont
   buttons, fields, badges, chips and dots. The `sessional` theme's radius is `none`; schools that
   pick rounded corners in Settings still get them.
 - Sections are separated by a full-width strong rule (`.landing-rule`) and generous space
-  (`pt-12`, `pb-16`). The page width is `max-w-6xl`; inner pages are `max-w-3xl`.
+  (`pt-12`, `pb-16`; the story ends with `pb-4`, since its pinned block is centred in the screen). The page width is `max-w-6xl`; inner pages are `max-w-3xl`.
 - No shadows on the website.
 
 ## Motion
 
-- Movement explains the product: the story's stage plays as you scroll, and the Secretariat board
-  and the three screens tick on one clock.
-- Anything that moves by itself runs only while it is on screen, has a pause button, and starts
-  paused for people who ask for less motion.
-- Transitions are short (120–300 ms) and simple: opacity, colour, height. There are no parallax
-  or entrance animations.
+**Cuts, not curves.** Things change the way a timer or a tally changes: at once. A tile fills, a
+number turns over, a panel swaps. Nothing floats in, slides, bounces, fades between states or
+eases.
+
+- **The opening** (`src/site/landing/Opening.tsx`) is the page's one authored moment. It starts on
+  the wordmark at poster size with the headline. Scrolling on, the logo's square grows in ten
+  steps until the screen is magenta ("One conference."), splits into six committee tiles that cut
+  to their own colours one by one, then into the three screens in a room, whose shared clock runs
+  as you scroll. Scrolling back plays it backwards. It is pinned only on screens at least 560px
+  tall; without JavaScript, and on short screens, it is just the wordmark and headline. With less
+  motion the square doesn't grow: the screen cuts straight to magenta.
+- **The story** plays its stage as you scroll, in cuts: squares fill for roll call, placard tiles
+  fill for the vote (ink yes, graphite no, outlined abstaining), awards appear as magenta tiles.
+  The stage is one fixed size, so nothing around it moves between steps. Each step's number jumps
+  straight to it; the current number is a cobalt tile.
+- **The three screens** tick on one clock, the only steady movement (the time bar runs at the
+  clock's pace and empties at once for the next speaker). The phone's square turns magenta for
+  the second the floor changes hands. It runs only while on screen, has a pause button, and
+  starts paused for people who ask for less motion.
+- **Tabs** are square tiles; the chosen one is filled and its panel swaps in at once.
+- The only transitions are colour changes on hover and selection, 120 ms. No entrance animations,
+  no parallax, no animation library.

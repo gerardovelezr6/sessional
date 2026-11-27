@@ -3,8 +3,8 @@ import { createContext, useContext, useEffect, useReducer, useRef, useState, use
 import { Flag } from '@/components/Flag';
 
 // "Three screens in the room": the projector and a delegate's phone run off one clock, so when a
-// speaker's time runs out both move on together. It runs only while on screen, can be paused, and
-// starts paused for people who ask for less motion.
+// speaker's time runs out both move on together, in one cut. It runs only while on screen, can be
+// paused, and starts paused for people who ask for less motion.
 
 const TOTAL = 45;
 const START = ['fr', 'br', 'ke', 'jp', 'mx', 'de', 'in', 'za'];
@@ -71,10 +71,12 @@ export function ScenePause({ pause, play }: { pause: string; play: string }) {
   );
 }
 
+// The bar runs with the clock, at its steady one-second pace; when the next speaker starts it
+// empties at once rather than running backwards.
 function Bar({ left, track, fill }: { left: number; track: string; fill: string }) {
   return (
     <span className={`block h-2 w-full ${track}`} aria-hidden="true">
-      <span className={`block h-2 transition-[width] duration-1000 ease-linear motion-reduce:transition-none ${fill}`} style={{ width: `${((TOTAL - left) / TOTAL) * 100}%` }} />
+      <span className={`block h-2 ${left === TOTAL ? '' : 'transition-[width] duration-1000 ease-linear motion-reduce:transition-none'} ${fill}`} style={{ width: `${((TOTAL - left) / TOTAL) * 100}%` }} />
     </span>
   );
 }
@@ -116,10 +118,15 @@ export function PhoneLive({ L, names }: { L: { label: string; school: string; co
   const now = order[0]!;
   return (
     <figure className="landing-frame mx-auto w-56 bg-surface-raised sm:mx-0" aria-label={L.label}>
-      <div className="border-b border-border px-3 py-2 text-xs">{L.school}</div>
+      <div className="bg-primary px-3 py-2 text-xs text-on-primary">{L.school}</div>
       <div className="flex flex-col gap-2 p-3 text-sm">
         <span className="font-semibold text-on-surface">{L.committee}</span>
-        <span className="text-xs">{L.now}</span>
+        {/* The cobalt square marks who has the floor; it turns magenta for the second the floor
+            changes hands, in step with the projector. */}
+        <span className="flex items-center gap-2 text-xs">
+          <span aria-hidden="true" className={`inline-block h-2 w-2 ${left === TOTAL ? 'bg-primary' : 'bg-accent'}`} />
+          {L.now}
+        </span>
         <span className="flex items-center gap-2">
           <Flag choice={{ kind: 'country', code: now }} />
           <span className="font-semibold text-on-surface">{names[now]}</span>

@@ -38,8 +38,9 @@ One product for the whole conference, from the chair's laptop to the Secretariat
 - Name: **Sessional**, written lowercase in the current wordmark.
 - **The identity is Session tiles** (approved 2026-11-27): lowercase "sessional" in Satoshi Light with a magenta square for the dot of the i; the icon is a magenta tile with a lowercase s and the square. Files in `brand/`, rules in `docs/DESIGN.md`.
 - **No flags or national color schemes** in the logo or brand colors, so no country feels favored (owner's decision).
-- Palette: magenta #C8175D, cobalt #2147D6, white, ink #111111, graphite #4B5058 (teal and lime reserved). It replaced navy, amber and cream everywhere, including the theme new schools start from; there is no "classic" option (owner's decision, 2026-11-27).
+- Palette: magenta #C8175D, cobalt #2147D6, white, ink #111111, graphite #4B5058 (teal and lime only for committee tiles). It replaced navy, amber and cream everywhere, including the theme new schools start from; there is no "classic" option (owner's decision, 2026-11-27).
 - Website type is Zodiak (display) and Switzer (text) from Fontshare, IBM Plex Mono for figures (owner's decision). Fontshare fonts may be self-hosted for Sessional's own website and assets only, never offered to schools as a font choice, never committed to this public repository.
+- Square corners everywhere, like the logo's square, and motion in cuts, not curves (owner's decisions, 2026-11-27).
 - Nothing is published until the owner approves a proposal.
 
 ## Evidence on Hand

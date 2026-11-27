@@ -360,6 +360,8 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 
 /* The marketing page: Session tiles. Square frames, no shadows, no gradients. */
 .landing-frame { border: 1px solid var(--s-color-border-strong); }
+/* The palette's two reserved committee colours, for the website's committee tiles only. */
+.site-type { --site-teal: #00797D; --site-lime: #8DB600; }
 .landing-key { border: 1px solid var(--s-color-border-strong); padding: 0.25rem 0.5rem; }
 .landing-rule { border-top: 1px solid var(--s-color-border-strong); }
 /* The landing page's header stays on screen; anchors and focus land below it. */
@@ -386,23 +388,12 @@ html:has(.app-header) { scroll-padding-top: 5rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
-/* Pages arrive with a short fade, for a calmer change between screens. */
+/* App pages arrive with a short fade, for a calmer change between screens. Sessional's own website
+   doesn't: its motion is cuts, like a timer or a tally changing (docs/DESIGN.md, Motion). */
 @media (prefers-reduced-motion: no-preference) {
   main { animation: page-in 180ms ease-out both; }
+  .site-type main { animation: none; }
   @keyframes page-in { from { opacity: 0.001; } to { opacity: 1; } }
-}
-/* The scroll story's stage: each step comes in with a short fade. */
-@media (prefers-reduced-motion: no-preference) {
-  .story-stage { animation: page-in 220ms ease-out both; }
-}
-/* Switching tabs: the new panel eases in, and its cards follow one after another. */
-@media (prefers-reduced-motion: no-preference) {
-  .tab-panel-in { animation: tab-in 260ms ease-out both; }
-  .tab-panel-in > * > * { animation: tab-in 320ms ease-out both; }
-  .tab-panel-in > * > :nth-child(2) { animation-delay: 40ms; }
-  .tab-panel-in > * > :nth-child(3) { animation-delay: 80ms; }
-  .tab-panel-in > * > :nth-child(4) { animation-delay: 120ms; }
-  @keyframes tab-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 }
 
 /* A person's own display needs (Account menu → Display), or the system asking for more contrast.

@@ -3,10 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Flag } from '@/components/Flag';
 import { STORY_STEPS, type StoryStep } from './story-steps';
 
-// "How a session runs", told by scrolling: the six steps scroll by on one side while a pinned stage
-// on the other plays each one as you move through it — the roll call fills in, the timer runs down,
-// motions line up, a resolution takes shape, placards vote, grades and awards appear. Nothing moves
-// on its own; scrolling back plays it backwards. The text says everything the stage shows.
+// "How a session runs", told by scrolling: the six steps sit on one side while a pinned stage on the
+// other plays each one as you move through it — the roll call fills in, the timer runs down, motions
+// line up, a resolution takes shape, placards vote, grades and awards appear. Nothing moves on its
+// own and nothing eases: tiles fill and text changes in cuts, and scrolling back plays it backwards.
+// Each step's number jumps straight to it. The text says everything the stage shows.
 
 type StepKey = StoryStep;
 
@@ -32,11 +33,12 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2,
 
 // `heading` is the section's title, above the story.
 //
-// The steps and the stage are pinned together while the section scrolls by, so they never drift
-// apart. Scrolling moves through the six steps; the current one opens to show its text and its
-// accent line grows down beside it as you go. Each step is only as tall as its text, and the
-// section ends exactly when the last step does. Wide screens list every step beside the stage;
-// phones show the stage with only the current step under it (the others stay for screen readers).
+// The steps and the stage are pinned together, in the middle of the screen, while the section
+// scrolls by, so they never drift apart. Scrolling moves through the six steps; the current one
+// opens to show its text and its number turns into a cobalt tile. The stage is one fixed size, so
+// nothing below it jumps between steps, and the section ends exactly when the last step does. Wide
+// screens list every step beside the stage; phones show the stage with only the current step under
+// it (the others stay for screen readers).
 export function Story({ L, names, heading }: { L: StoryLabels; names: Record<string, string>; heading: React.ReactNode }) {
   const [step, setStep] = useState(0);
   const [p, setP] = useState(0);
@@ -85,22 +87,33 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
     };
   }, []);
 
+  // Jump straight to a step (a cut, like everything else here).
+  const go = (i: number) => {
+    const t = track.current;
+    const pin = pinned.current;
+    if (!t || !pin) return;
+    const top = t.getBoundingClientRect().top + window.scrollY - (parseFloat(getComputedStyle(pin).top) || 0);
+    const distance = t.offsetHeight - pin.offsetHeight;
+    window.scrollTo({ top: Math.ceil(top + (distance * (i + 0.02)) / STORY_STEPS.length), behavior: 'instant' });
+  };
+
   const S = L.stage;
   const key = STORY_STEPS[step]!;
   return (
     <div className="flex flex-col gap-8">
       {heading}
-      {/* The track gives the pinned block its scroll length on wide screens: about two thirds of a
-          screen per step. */}
-      <div ref={track} className="story-track h-[420vh] lg:h-[440vh]">
-        <div ref={pinned} className="story-pinned sticky top-[6.5rem] grid grid-cols-1 gap-x-12 gap-y-4 md:top-20 lg:top-24 lg:grid-cols-[1fr_1.1fr] lg:items-start lg:gap-y-8">
+      {/* The track gives the pinned block its scroll length: about half a screen per step. The block
+          sits below the header, centred in what is left of the screen. */}
+      <div ref={track} className="story-track h-[300vh] lg:h-[320vh]">
+        <div ref={pinned} className="story-pinned sticky top-[var(--landing-header,4rem)] grid min-h-[calc(100svh-var(--landing-header,4rem))] grid-cols-1 content-center gap-x-12 gap-y-4 py-4 lg:grid-cols-[1fr_1.1fr] lg:items-start lg:gap-y-8">
           <div ref={stage} className="lg:col-start-2 lg:row-start-1">
             <div className="landing-frame bg-surface-raised" aria-hidden="true">
               <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 text-xs">
                 <span className="font-semibold text-on-surface">{S.committee}</span>
                 <span className="font-mono">{started ? fill(L.progress, { n: step + 1, total: STORY_STEPS.length }) : S.scrollHint}</span>
               </div>
-              <div key={key} className="story-stage min-h-[19rem] p-3 sm:p-4 lg:min-h-[18rem]">
+              {/* One fixed size for every step, so nothing around it moves. */}
+              <div key={key} className="story-stage h-[21rem] overflow-hidden p-3 sm:h-[19rem] sm:p-4">
                 {key === 'rollcall' ? <RollCall p={p} S={S} names={names} /> : null}
                 {key === 'speakers' ? <Speakers p={p} S={S} names={names} /> : null}
                 {key === 'motions' ? <Motions p={p} S={S} names={names} /> : null}
@@ -110,8 +123,8 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
               </div>
               <div className="flex gap-1 px-4 pb-3">
                 {STORY_STEPS.map((s, i) => (
-                  <span key={s} className={`h-1 flex-1 ${i < step ? 'bg-on-surface' : i === step ? 'bg-border-strong' : 'bg-border'}`}>
-                    {i === step ? <span className="block h-1 bg-on-surface transition-[width] duration-150 motion-reduce:transition-none" style={{ width: `${p * 100}%` }} /> : null}
+                  <span key={s} className={`h-1.5 flex-1 ${i < step ? 'bg-on-surface' : 'bg-border'}`}>
+                    {i === step ? <span className="block h-1.5 bg-accent" style={{ width: `${p * 100}%` }} /> : null}
                   </span>
                 ))}
               </div>
@@ -128,17 +141,17 @@ export function Story({ L, names, heading }: { L: StoryLabels; names: Record<str
                     steps.current[i] = el;
                   }}
                   aria-current={open ? 'step' : undefined}
-                  className={`relative border-t border-border py-3 ps-5 first:border-t-0 lg:first:pt-0 ${open ? 'max-lg:border-t-0 max-lg:py-0' : 'max-lg:sr-only'}`}
+                  className={`border-t border-border py-3 first:border-t-0 lg:first:pt-0 ${open ? 'max-lg:border-t-0 max-lg:py-0' : 'max-lg:sr-only'}`}
                 >
-                  {open && started ? <span aria-hidden="true" className="story-line absolute start-0 top-0 w-1 bg-accent" style={{ height: `${Math.max(4, p * 100)}%` }} /> : null}
-                  {/* The steps not playing are quieter (muted, still readable). */}
-                  <span className={`flex items-baseline gap-3 text-on-surface transition-colors duration-300 motion-reduce:transition-none ${open ? '' : 'lg:text-on-surface-muted'}`}>
-                    <span className="site-display text-3xl lg:text-2xl">{i + 1}</span>
-                    <span className={`text-xl lg:text-lg ${open ? 'font-semibold' : 'font-semibold lg:font-medium'}`}>{L.steps[s].title}</span>
-                  </span>
+                  {/* The step's number and title jump to it. The current number is a cobalt tile;
+                      the steps not playing are quieter (muted, still readable). */}
+                  <button type="button" onClick={() => go(i)} className={`group flex w-full items-center gap-3 text-start ${open ? 'text-on-surface' : 'text-on-surface lg:text-on-surface-muted'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center border font-mono text-base font-semibold transition-colors duration-[120ms] ${open && started ? 'border-accent bg-accent text-on-accent' : 'border-border-strong group-hover:border-on-surface'}`}>{i + 1}</span>
+                    <span className={`text-xl group-hover:underline group-hover:underline-offset-4 lg:text-lg ${open ? 'font-semibold' : 'font-semibold lg:font-medium'}`}>{L.steps[s].title}</span>
+                  </button>
                   {/* Wide screens: only the current step's text is open; the others fold away. */}
-                  <div className={`grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[1fr] lg:grid-rows-[0fr]'}`}>
-                    <p className="story-body min-h-0 max-w-md overflow-hidden pt-2 text-sm sm:text-base">{L.steps[s].body}</p>
+                  <div className={`grid ${open ? 'grid-rows-[1fr]' : 'grid-rows-[1fr] lg:grid-rows-[0fr]'}`}>
+                    <p className="story-body min-h-0 max-w-md overflow-hidden ps-12 pt-2 text-sm sm:text-base">{L.steps[s].body}</p>
                   </div>
                 </li>
               );
@@ -164,14 +177,20 @@ function RollCall({ p, S, names }: Part) {
           {S.quorum}: <span className={`font-semibold ${present >= 5 ? 'text-on-surface' : ''}`}>{present >= 5 ? S.met : S.notMet}</span>
         </span>
       </div>
+      {/* Each delegation's square fills as it answers: magenta for present and voting, ink for
+          present, an empty outline for absent. */}
       <ul className="grid grid-cols-1 gap-x-4 text-sm sm:grid-cols-2">
-        {ROOM.slice(0, 10).map((c, i) => (
-          <li key={c} className="flex items-center gap-2 border-b border-border py-1">
-            <Flag choice={{ kind: 'country', code: c }} />
-            <span className="min-w-0 flex-1 truncate">{names[c]}</span>
-            <span className={`text-xs transition-opacity duration-200 motion-reduce:transition-none ${i < answered ? 'opacity-100' : 'opacity-0'}`}>{word[ANSWER[i]!]}</span>
-          </li>
-        ))}
+        {ROOM.slice(0, 10).map((c, i) => {
+          const a = i < answered ? ANSWER[i]! : null;
+          return (
+            <li key={c} className={`flex items-center gap-2 border-b border-border py-1 ${i >= 7 ? 'max-sm:hidden' : ''}`}>
+              <span className={`h-3 w-3 shrink-0 border ${a === 'v' ? 'border-primary bg-primary' : a === 'p' ? 'border-on-surface bg-on-surface' : 'border-border-strong'}`} />
+              <Flag choice={{ kind: 'country', code: c }} />
+              <span className="min-w-0 flex-1 truncate">{names[c]}</span>
+              <span className={`text-xs ${a ? '' : 'invisible'}`}>{word[ANSWER[i]!]}</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -196,11 +215,11 @@ function Speakers({ p, S, names }: Part) {
           <span className="text-sm">{fill(S.of!, { total: clock(total) })}</span>
         </span>
         <span className="block h-2 w-full bg-surface">
-          <span className="block h-2 bg-on-surface" style={{ width: `${moved ? 0 : ((total - left) / total) * 100}%` }} />
+          <span className="block h-2 bg-accent" style={{ width: `${moved ? 0 : ((total - left) / total) * 100}%` }} />
         </span>
         <span className="flex flex-wrap gap-2 text-xs">
           <span className="landing-key">{S.yieldChair}</span>
-          <span className={`landing-key ${left <= 3 ? 'bg-on-surface text-surface' : ''}`}>{S.next}</span>
+          <span className={`landing-key ${left <= 3 ? 'border-accent bg-accent text-on-accent' : ''}`}>{S.next}</span>
         </span>
       </div>
       <ol className="flex flex-col text-sm">
@@ -232,7 +251,7 @@ function Motions({ p, S, names }: Part) {
       <span className="text-sm font-semibold text-on-surface">{ordered ? S.ordered : S.floorOpen}</span>
       <ol className="flex flex-col gap-2">
         {list.map((m, i) => (
-          <li key={m.key} className={`flex flex-wrap items-center justify-between gap-2 border p-3 text-sm ${ordered && i === 0 ? 'border-on-surface' : 'border-border'}`}>
+          <li key={m.key} className={`flex flex-wrap items-center justify-between gap-2 border p-3 text-sm ${ordered && i === 0 ? 'border-accent' : 'border-border'}`}>
             <span className="flex items-center gap-2">
               {ordered ? <span className="font-mono text-xs">{i + 1}.</span> : null}
               <span className="font-semibold text-on-surface">{S[`motion_${m.key}`]}</span>
@@ -267,7 +286,7 @@ function Documents({ p, S, names }: Part) {
           <span className="font-semibold text-on-surface">2.</span>{' '}
           {stage >= 2 ? (
             <>
-              <span className="line-through opacity-60">{S.docClause2Old}</span> <span className="font-semibold text-on-surface">{S.docClause2New}</span>
+              <span className="line-through">{S.docClause2Old}</span> <span className="font-semibold text-on-surface">{S.docClause2New}</span>
             </>
           ) : (
             S.docClause2Old
@@ -296,7 +315,9 @@ function Voting({ p, S, names }: Part) {
       </div>
       <ul className="flex flex-wrap gap-1.5">
         {ROOM.map((c, i) => (
-          <li key={c} title={names[c]} className={`flex h-8 w-11 items-center justify-center border transition-transform duration-200 motion-reduce:transition-none ${i < cast ? `-translate-y-1 ${VOTE[i] === 'y' ? 'border-on-surface' : 'border-border-strong opacity-70'}` : 'border-border opacity-40'}`}>
+          // A placard tile fills when its delegation votes: ink for yes, graphite for no, an
+          // outline for abstaining.
+          <li key={c} title={names[c]} className={`flex h-8 w-11 items-center justify-center border-2 ${i >= cast ? 'border-border' : VOTE[i] === 'y' ? 'border-on-surface bg-on-surface' : VOTE[i] === 'n' ? 'border-on-surface-muted bg-on-surface-muted' : 'border-on-surface-muted'}`}>
             <Flag choice={{ kind: 'country', code: c }} />
           </li>
         ))}
@@ -306,13 +327,13 @@ function Voting({ p, S, names }: Part) {
           <div key={b.v} className="grid grid-cols-[6rem_1fr_2rem] items-center gap-2">
             <span>{b.label}</span>
             <span className="block h-2 bg-surface">
-              <span className={`block h-2 transition-[width] duration-200 motion-reduce:transition-none ${b.v === 'y' ? 'bg-on-surface' : 'bg-border-strong'}`} style={{ width: `${(count(b.v) / ROOM.length) * 100}%` }} />
+              <span className={`block h-2 ${b.v === 'y' ? 'bg-on-surface' : b.v === 'n' ? 'bg-on-surface-muted' : 'border border-on-surface-muted'}`} style={{ width: `${(count(b.v) / ROOM.length) * 100}%` }} />
             </span>
             <span className="text-end font-mono">{count(b.v)}</span>
           </div>
         ))}
       </div>
-      <span className={`self-start text-sm font-bold transition-opacity duration-200 motion-reduce:transition-none ${done ? 'text-on-surface opacity-100' : 'opacity-0'}`}>{S.passed}</span>
+      <span className={`self-start bg-primary px-2 py-0.5 text-sm font-bold text-on-primary ${done ? '' : 'invisible'}`}>{S.passed}</span>
     </div>
   );
 }
@@ -323,17 +344,20 @@ function Grades({ p, S, names }: Part) {
     <div className="flex flex-col gap-3">
       <span className="text-sm font-semibold text-on-surface">{awards ? S.awardsTitle : S.gradesTitle}</span>
       <ul className="flex flex-col gap-2 text-sm">
+        {/* Each row keeps a line for its award, so nothing moves when the awards appear. */}
         {GRADES.map((g) => (
-          <li key={g.code} className="grid grid-cols-[1fr_6rem_2.5rem] items-center gap-3 sm:grid-cols-[10rem_1fr_2.5rem]">
-            <span className="flex min-w-0 items-center gap-2">
-              <Flag choice={{ kind: 'country', code: g.code }} />
-              <span className="truncate">{names[g.code]}</span>
+          <li key={g.code} className="grid grid-cols-[minmax(0,7.5rem)_1fr_2.5rem] items-center gap-x-3 sm:grid-cols-[11rem_1fr_2.5rem]">
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="flex min-w-0 items-center gap-2">
+                <Flag choice={{ kind: 'country', code: g.code }} />
+                <span className="truncate">{names[g.code]}</span>
+              </span>
+              <span className={`self-start truncate bg-primary px-1.5 text-xs font-semibold text-on-primary ${awards && g.award ? '' : 'invisible'}`}>{g.award ? S[`award_${g.award}`] : '\u00a0'}</span>
             </span>
             <span className="block h-2 bg-surface">
               <span className="block h-2 bg-on-surface" style={{ width: `${Math.min(1, p * 1.4) * g.points}%` }} />
             </span>
             <span className="text-end font-mono">{Math.round(Math.min(1, p * 1.4) * g.points)}</span>
-            {awards && g.award ? <span className="landing-key col-span-3 justify-self-start text-xs font-semibold text-on-surface">{S[`award_${g.award}`]}</span> : null}
           </li>
         ))}
       </ul>

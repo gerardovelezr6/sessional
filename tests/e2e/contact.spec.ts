@@ -138,7 +138,7 @@ test('“How a session runs” is told by scrolling: the pinned stage plays each
 test('the steps and the stage move as one: the stage is level with the list, one step open at a time, no room left over', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  // The opening has the Secretariat's view, not the story's stage.
+  // The opening is not the story's stage.
   await expect(page.locator('section[aria-labelledby="hero-title"] .story-stage')).toHaveCount(0);
   const track = await page.locator('.story-track').evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: el.getBoundingClientRect().height }));
   const pinnedHeight = await page.locator('.story-pinned').evaluate((el) => (el as HTMLElement).offsetHeight);
@@ -210,30 +210,69 @@ test('organizer features are grouped in tabs that work from the keyboard, and th
   expect(top).toBeGreaterThanOrEqual(header);
 });
 
-test('the opening shows the Secretariat’s view of every committee, live, with a pause, and still for less motion', async ({ page, browser }) => {
+// Scrolls so that the opening is this far through its scroll (0 to 1).
+const scrollOpening = (page: import('@playwright/test').Page, f: number) =>
+  page.evaluate((f) => {
+    const track = document.querySelector('.opening') as HTMLElement;
+    const stage = document.querySelector('.opening-stage') as HTMLElement;
+    window.scrollTo(0, Math.round((track.offsetHeight - stage.offsetHeight) * f));
+  }, f);
+
+test('the opening: the wordmark and headline, then the square becomes the room as you scroll, in cuts', async ({ page, browser }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/');
-  const board = page.getByRole('figure', { name: /^Example: the Secretariat’s view of every committee/ });
-  await expect(board).toBeVisible();
-  await expect(board).toContainText('Security Council');
-  await expect(board).toContainText('Example data');
-  const before = await board.locator('ul').textContent();
-  await expect(board.locator('ul')).not.toHaveText(before!, { timeout: 4000 });
-  await board.getByRole('button', { name: 'Pause' }).click();
-  const stopped = await board.locator('ul').textContent();
-  await page.waitForTimeout(1500);
-  await expect(board.locator('ul')).toHaveText(stopped!);
+  const opening = page.locator('section[aria-labelledby="hero-title"]');
+  await expect(opening.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(opening.getByRole('link', { name: 'Write to us' })).toBeVisible();
+  // It stays put while pinned: the wordmark doesn't slide when scrolling starts.
+  const at = () => opening.locator('svg').first().evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  const rest = await at();
+  await scrollOpening(page, 0.03);
+  expect(await at()).toBe(rest);
+  // The square grows over the page, then the screen is one magenta tile.
+  await scrollOpening(page, 0.4);
+  const room = page.getByRole('figure', { name: /^Example: one conference/ });
+  await expect(room).toContainText('One conference.');
+  // Then six committee tiles, then the three screens on one clock that runs as you scroll.
+  await scrollOpening(page, 0.55);
+  await expect(room).toContainText('Every committee, at once.');
+  await expect(room.getByRole('listitem')).toHaveCount(6);
+  await scrollOpening(page, 0.75);
+  await expect(room).toContainText('Every screen in the room, on one clock.');
+  const first = await room.locator('.font-mono').last().textContent();
+  await scrollOpening(page, 0.99);
+  await expect(room.locator('.font-mono').last()).not.toHaveText(first!);
+  // Scrolling back plays it backwards, to the headline.
+  await scrollOpening(page, 0);
+  await expect(room).toHaveCount(0);
+  await expect(opening.getByRole('heading', { level: 1 })).toBeVisible();
 
-  // On a phone it stacks below the opening and nothing is cut short.
+  // On a phone it fits the width, and the headline is on the first screen.
   const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
   await phone.goto('/');
-  const small = phone.getByRole('figure', { name: /^Example: the Secretariat’s view/ });
-  const wide = await small.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
-  expect(wide).toBe(true);
+  expect(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const h1 = await phone.getByRole('heading', { level: 1 }).evaluate((el) => el.getBoundingClientRect().bottom);
+  expect(h1).toBeLessThan(844);
   await phone.context().close();
 
-  const calm = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+  // With less motion the square doesn't grow: the screen cuts straight to magenta.
+  const calm = await (await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } })).newPage();
   await calm.goto('/');
-  await expect(calm.getByRole('figure', { name: /^Example: the Secretariat’s view/ }).getByRole('button', { name: 'Play' })).toHaveAttribute('aria-pressed', 'true');
+  await scrollOpening(calm, 0.2);
+  await expect(calm.locator('.opening-stage > div.absolute.bg-primary')).toHaveCount(0);
+  await scrollOpening(calm, 0.4);
+  await expect(calm.getByRole('figure', { name: /^Example: one conference/ })).toContainText('One conference.');
   await calm.context().close();
+});
+
+test('each step of the story jumps straight to it', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const steps = page.locator('ol.story-steps > li');
+  await steps.nth(4).getByRole('button').click();
+  await expect(steps.nth(4)).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('.story-stage')).toContainText('Vote on draft resolution 1.1');
+  await steps.nth(1).getByRole('button').click();
+  await expect(steps.nth(1)).toHaveAttribute('aria-current', 'step');
+  await expect(page.locator('.story-stage')).toContainText('Speaking now');
 });

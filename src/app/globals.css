@@ -393,9 +393,6 @@ html:has(.app-header) { scroll-padding-top: 5rem; }
 @media (prefers-reduced-motion: no-preference) {
   main { animation: page-in 180ms ease-out both; }
   .site-type main { animation: none; }
-  /* The opening's one soft moment: "One conference." comes up over the magenta. */
-  .opening-fade { animation: opening-fade 420ms ease-out both; }
-  @keyframes opening-fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes page-in { from { opacity: 0.001; } to { opacity: 1; } }
 }
 

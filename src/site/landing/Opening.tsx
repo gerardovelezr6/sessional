@@ -7,7 +7,8 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 // on, the square over the i grows, a step at a time, until the screen is magenta: one conference.
 // It splits into six committee tiles, each cutting to its own colour (what the Secretariat sees),
 // then into the three screens in a committee room, whose shared clock runs as you scroll. Nothing
-// moves by itself: the square's steps ease over 150 ms and "One conference." fades in briefly;
+// moves by itself: the square's steps ease over 150 ms and "One conference." fades in and out as
+// you scroll;
 // everything after is a cut, like a timer or a tally changing. Scrolling back plays it backwards. Without JavaScript, on short screens, and before it loads, the
 // opening is just the wordmark and the headline. With less motion the square does not grow; the
 // screen cuts straight to magenta.
@@ -50,14 +51,19 @@ const CLOCK_STEPS = 9;
 type Frame =
   | { kind: 'rest' }
   | { kind: 'grow'; step: number }
-  | { kind: 'field' }
+  | { kind: 'field'; shown: number }
   | { kind: 'committees'; coloured: number }
   | { kind: 'room'; left: number };
 
 function frameAt(p: number, reduce: boolean): Frame {
   if (p < AT.grow) return { kind: 'rest' };
   if (p < AT.field) return reduce ? { kind: 'rest' } : { kind: 'grow', step: Math.min(GROW_STEPS - 1, Math.floor(((p - AT.grow) / (AT.field - AT.grow)) * GROW_STEPS)) };
-  if (p < AT.split) return { kind: 'field' };
+  if (p < AT.split) {
+    // "One conference." fades in over the first third of its part and out over the last third,
+    // in tenths, so scrolling either way plays it.
+    const u = (p - AT.field) / (AT.split - AT.field);
+    return { kind: 'field', shown: Math.round(Math.min(1, u / 0.3, (1 - u) / 0.3) * 10) / 10 };
+  }
   if (p < AT.room) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
   return { kind: 'room', left: CLOCK_FROM - Math.min(CLOCK_STEPS - 1, Math.floor(((p - AT.room) / (1 - AT.room)) * CLOCK_STEPS)) };
 }
@@ -161,7 +167,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
           <figure aria-label={L.label} className={`absolute inset-0 ${frame.kind === 'field' ? 'bg-primary text-on-primary' : 'bg-surface text-on-surface'}`}>
             <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
               {frame.kind === 'field' ? (
-                <p className="opening-fade site-display mt-auto mb-auto text-5xl sm:text-7xl">{L.one}</p>
+                <p className="site-display mt-auto mb-auto text-5xl transition-opacity duration-150 motion-reduce:transition-none sm:text-7xl" style={{ opacity: frame.shown }}>{L.one}</p>
               ) : null}
 
               {frame.kind === 'committees' ? (

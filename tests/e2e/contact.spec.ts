@@ -172,9 +172,18 @@ test('the steps and the stage move as one: the stage is level with the list, one
   expect(gap).toBeLessThan(100);
 });
 
-test('the three screens run on one clock while on screen, can be paused, and start paused for less motion', async ({ page, browser }) => {
+test('every screen runs on one clock while on screen, can be paused, and starts paused for less motion', async ({ page, browser }) => {
   await page.goto('/');
   await page.locator('#screens').scrollIntoViewIfNeeded();
+  // The console, the Secretariat's view, the projector, a delegate's phone and the check-in page:
+  // real screens, no printed placard.
+  const screens = page.locator('#screens figure');
+  await expect(screens).toHaveCount(5);
+  await expect(page.getByRole('figure', { name: 'The chair’s console on a laptop' })).toContainText('Next speaker');
+  await expect(page.getByRole('figure', { name: 'The Secretariat’s view of every committee' })).toContainText('Security Council');
+  await expect(page.getByRole('figure', { name: 'A chair’s phone at the door' })).toContainText('Check in Switzerland');
+  // Nothing spills out of its column.
+  expect(await page.locator('#screens').evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   const projector = page.getByRole('figure', { name: 'The projector screen in the committee room' }).locator('.font-mono');
   const phone = page.getByRole('figure', { name: 'A delegate’s phone' }).locator('.font-mono');
   const first = await projector.textContent();
@@ -236,6 +245,11 @@ test('the opening: the wordmark and headline, then the square becomes the room a
   await scrollOpening(page, 0.4);
   const room = page.getByRole('figure', { name: /^Example: one conference/ });
   await expect(room).toContainText('One conference.');
+  // It fades out as you scroll on, before the committees.
+  const shown = () => room.getByText('One conference.').evaluate((el) => Number(getComputedStyle(el).opacity));
+  await expect.poll(shown).toBe(1);
+  await scrollOpening(page, 0.455);
+  await expect.poll(shown).toBeLessThan(0.5);
   // Then six committee tiles, then the three screens on one clock that runs as you scroll.
   await scrollOpening(page, 0.55);
   await expect(room).toContainText('Every committee, at once.');

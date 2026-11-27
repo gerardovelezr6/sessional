@@ -5,7 +5,7 @@ import { countryCodes, countryName } from '@/i18n/countries';
 import { regional } from '@/i18n/regional';
 import { messageFor, type MessageKey, type Translate } from '@/messages';
 import { ContactForm, type ContactLabels } from './ContactForm';
-import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
+import { CheckinMock, ConsoleMock, DashboardMock, PhoneMock, ProjectorMock } from './Mocks';
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
 import { Opening, type OpeningLabels } from './Opening';
@@ -29,7 +29,6 @@ interface Props {
   t: Translate;
   locale: 'en' | 'es';
   appUrl: string;
-  qr: string;
   plans: PlanRow[] | null;
   // Self-serve signup works only when email can be sent (to prove the address).
   signup: boolean;
@@ -121,7 +120,7 @@ function storyLabels(t: Translate, locale: string): StoryLabels {
   };
 }
 
-export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props) {
+export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
   const lang = locale === 'es' ? '?lang=es' : '';
   const nameOf = (p: PlanRow) => p.name[locale] ?? p.name.en ?? p.key;
   const money = (amount: number, currency: string) => `${new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
@@ -222,21 +221,30 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               <div className="mb-4 flex justify-end">
                 <ScenePause pause={t('landing.screens.pause')} play={t('landing.screens.play')} />
               </div>
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
-              <div className="flex flex-col gap-3">
-                <ProjectorMock t={t} locale={locale} />
-                <p className="max-w-xl text-sm">{t('landing.screens.projector')}</p>
-              </div>
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col gap-3">
-                  <PhoneMock t={t} locale={locale} />
-                  <p className="text-sm">{t('landing.screens.phone')}</p>
+              {/* The console first: everything else follows it. */}
+              <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-12">
+                <div className="flex flex-col gap-3 lg:col-span-7">
+                  <ConsoleMock t={t} locale={locale} />
+                  <p className="max-w-xl text-sm">{t('landing.screens.console')}</p>
                 </div>
-                <div className="flex flex-col gap-3">
-                  <PlacardMock t={t} locale={locale} qr={qr} />
-                  <p className="text-sm">{t('landing.screens.placard')}</p>
+                <div className="flex flex-col gap-3 lg:col-span-5">
+                  <DashboardMock t={t} locale={locale} />
+                  <p className="text-sm">{t('landing.screens.dashboard')}</p>
                 </div>
-              </div>
+                <div className="flex flex-col gap-3 lg:col-span-7">
+                  <ProjectorMock t={t} locale={locale} />
+                  <p className="max-w-xl text-sm">{t('landing.screens.projector')}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:col-span-5">
+                  <div className="flex flex-col gap-3">
+                    <PhoneMock t={t} locale={locale} />
+                    <p className="text-sm">{t('landing.screens.phone')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <CheckinMock t={t} locale={locale} />
+                    <p className="text-sm">{t('landing.screens.checkin')}</p>
+                  </div>
+                </div>
               </div>
             </Scene>
           </Section>

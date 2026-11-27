@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import QRCode from 'qrcode';
 import { RETURN_COOKIE } from '@/auth/oauth';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator } from '@/messages';
@@ -39,9 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // A sign-in that landed here without a school to hand it to: a link used twice (Back, Reload,
   // an old tab) or one started before this browser was seen. Say so instead of showing nothing.
   const unfinished = !!(q.code || q.error);
-  const origin = `${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}`;
   const appUrl = `${isSecureOrigin() ? 'https' : 'http'}://app.${rootDomain()}/login`;
-  const qr = await QRCode.toString(origin, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
   // Prices come from the plans table; until billing is set up the section says so instead.
   let plans: PlanRow[] | null = null;
   try {
@@ -57,7 +54,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <p className="mt-2 text-sm">{t('home.signInUnfinished.body', { domain: rootDomain() })}</p>
         </section>
       ) : null}
-      <Landing t={t} locale={locale} appUrl={appUrl} qr={qr} plans={plans} signup={mailConfigured()} captcha={captchaClient()} />
+      <Landing t={t} locale={locale} appUrl={appUrl} plans={plans} signup={mailConfigured()} captcha={captchaClient()} />
     </div>
   );
 }

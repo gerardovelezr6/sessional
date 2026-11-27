@@ -43,13 +43,13 @@ test('the favicons, home-screen icons and link preview are the Sessional ones', 
 test('the landing page lists what Sessional does, in English and Spanish, with no “coming next” list', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText("Run every committee of your Model UN from the chair’s laptop.");
-  for (const name of ['How a session runs', 'Three screens in the room', 'For the people organizing it', 'Your conference, your words', 'Pricing', 'Questions']) {
+  for (const name of ['How a session runs', 'Every screen, from the chair’s console', 'For the people organizing it', 'Your conference, your words', 'Pricing', 'Questions']) {
     await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
   }
   await expect(page.getByRole('heading', { level: 2, name: 'Coming next' })).toHaveCount(0);
   // No billing tables in this database: pricing says so rather than inventing numbers.
   await expect(page.locator('#pricing')).toContainText('Pricing is being finalized');
-  await expect(page.locator('#screens svg').first()).toBeVisible();
+  await expect(page.locator('#screens').getByRole('figure', { name: 'The chair’s console on a laptop' })).toBeVisible();
   // One main action in the hero; the one bright band near the end.
   await expect(page.locator('#hero-title').locator('..').locator('.btn')).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 2, name: 'Running a conference this school year?' })).toBeVisible();

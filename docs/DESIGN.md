@@ -14,7 +14,7 @@ to a 13-year-old.
 - **Tiles, not chrome.** Flat color fields carry meaning (a committee, a state); no gradients, glows
   or drop shadows, and no decorative color.
 - **Real examples, not illustrations.** The page shows the product working (the opening's
-  committee tiles and room, the story's stage, the three screens) with made-up but believable
+  committee tiles and room, the story's stage, every screen) with made-up but believable
   data, marked as an example.
 - **Magenta is the brand, cobalt is the pointer.** Magenta is the logo's tile and the primary
   action; cobalt marks "this one, now": focus, links, the current step.
@@ -145,12 +145,13 @@ Steps that aren't playing use graphite, not transparency, so they keep that cont
 
 **Cuts, not curves.** Things change the way a timer or a tally changes: at once. A tile fills, a
 number turns over, a panel swaps. Nothing floats in, slides or bounces. The one softening is in the
-opening, below: the square's growth eases each step over 150 ms, and "One conference." fades in.
+opening, below: the square's growth eases each step over 150 ms, and "One conference." fades in
+and out.
 
 - **The opening** (`src/site/landing/Opening.tsx`) is the page's one authored moment. It starts on
   the wordmark at poster size with the headline. Scrolling on, the logo's own square hides and a
   square takes its place, growing in sixteen steps (each eased over 150 ms) until the screen is
-  magenta; "One conference." fades in over 420 ms. It then splits into six committee tiles that cut
+  magenta; "One conference." fades in and back out as you scroll through its part. It then splits into six committee tiles that cut
   to their own colours one by one, then into the three screens in a room, whose shared clock runs
   as you scroll. Scrolling back plays it backwards. It is pinned only on screens at least 560px
   tall; without JavaScript, and on short screens, it is just the wordmark and headline. With less
@@ -163,8 +164,11 @@ opening, below: the square's growth eases each step over 150 ms, and "One confer
   fill for the vote (ink yes, graphite no, outlined abstaining), awards appear as magenta tiles.
   The stage is one fixed size, so nothing around it moves between steps. Each step's number jumps
   straight to it; the current number is a cobalt tile.
-- **The three screens** tick on one clock, the only steady movement (the time bar runs at the
-  clock's pace and empties at once for the next speaker). The phone's square turns magenta for
+- **Every screen** (`#screens`): the real screens of a conference, drawn with the product's own
+  pieces: the chair's console, the Secretariat's view of every committee, the projector, a
+  delegate's phone and the check-in page a chair sees after scanning a placard. All but check-in
+  tick on one clock, the only steady movement (the time bars run at the clock's pace and empty at
+  once for the next speaker). The phone's square turns magenta for
   the second the floor changes hands. It runs only while on screen, has a pause button, and
   starts paused for people who ask for less motion.
 - **Tabs** are square tiles; the chosen one is filled and its panel swaps in at once.

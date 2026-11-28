@@ -277,14 +277,21 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   await page.waitForTimeout(1500);
   expect(await headingShown(room, 'Every committee, at once.')).toBe(1);
   expect(await headingShown(room, 'Every screen in the room, on one clock.')).toBe(0);
-  // Between them, the Security Council's tile moves into the projector's place.
-  // (after the logo's part, the rest of the scroll walks the committees and the room: this is
-  // halfway through the move)
-  await scrollOpening(page, 0.46);
+  // Scrolled to the move between them, it plays by itself, the page held still: the Security
+  // Council's tile moves into the projector's place, and the room is there with no more scrolling.
+  await scrollOpening(page, 0.4);
   await expect(room.locator('div.absolute.bg-primary')).toHaveCount(1);
-  await scrollOpening(page, 0.95);
-  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.')).toBe(1);
+  const held = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 1200);
+  await page.waitForTimeout(150);
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - held)).toBeLessThan(2);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 4000 }).toBe(1);
   expect(await headingShown(room, 'Every committee, at once.')).toBe(0);
+  // Scrolling back above it plays it backwards, to the committees.
+  await scrollOpening(page, 0.3);
+  await expect.poll(() => headingShown(room, 'Every committee, at once.'), { timeout: 3000 }).toBe(1);
+  await scrollOpening(page, 0.95);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 4000 }).toBe(1);
   // In the room the clock runs by itself, with no scrolling.
   const projector = room.getByRole('listitem').filter({ hasText: 'Projector' }).locator('.font-mono');
   const before = await projector.textContent();

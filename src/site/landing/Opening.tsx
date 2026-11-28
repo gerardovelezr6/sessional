@@ -82,6 +82,10 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const forwardAt = (elapsed: number) => LENGTH * inOutSine(clamp01(elapsed / LENGTH));
 const forwardStart = (at: number) => (LENGTH * Math.acos(1 - (2 * clamp01(at / LENGTH)))) / Math.PI;
 const backwardAt = (elapsed: number) => LENGTH * (1 - outInSine(clamp01(elapsed / REVERSE)));
+// The move from the committees to the room plays by itself the same way, once scrolled to: sine
+// in-out forwards with scrolling held, backwards (scrolling back above it) in half the time, sine
+// out-in.
+const MORPH = 1.6;
 // Holding the page still while the logo's part plays: wheel, touch and keys do nothing, and any
 // scroll already under way (a flick's momentum) is put back.
 const KEYS = new Set([' ', 'PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End']);
@@ -166,11 +170,15 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       const value = `${h?.offsetHeight ?? 64}px`;
       if (document.documentElement.style.getPropertyValue('--landing-header') !== value) document.documentElement.style.setProperty('--landing-header', value);
     };
-    const show = (at: number, quiet = false) => {
+    let moved = 0; // how far the committees-to-room move has played, 0 to 1
+    let moveSince = -1;
+    let moveBack = -1;
+    let moveRelease: (() => void) | null = null;
+    const show = (at: number, quiet = false, move?: number) => {
       const st = stage.current;
       const sq = square.current;
       if (!st || !sq) return;
-      const next = frameAt(at, motion.matches, quiet);
+      const next: Frame = move !== undefined ? { kind: 'morph', t: Math.round(move * 100) / 100 } : frameAt(at, motion.matches, quiet);
       setFrame((f) => (same(f, next) ? f : next));
       if (next.kind === 'rest' || next.kind === 'grow') {
         const sr = st.getBoundingClientRect();
@@ -225,8 +233,49 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       }
       // After the logo's part, the rest of the scroll walks through the committees and the room.
       const manual = AT.split + (Math.max(0, scrolled - START_AT) / (1 - START_AT)) * (1 - AT.split);
-      show(played === 0 ? 0 : played < AT.split ? played : manual, back >= 0);
-      if (since >= 0 || back >= 0) raf = window.requestAnimationFrame(frameLoop);
+      let move: number | undefined;
+      let at = played === 0 ? 0 : played < AT.split ? played : manual;
+      if (played === 0) {
+        moved = 0;
+        moveSince = moveBack = -1;
+      } else if (played >= AT.split && since < 0 && back < 0) {
+        const past = manual >= AT.morph;
+        if (moveSince < 0 && moveBack < 0) {
+          if (past && moved === 0) {
+            // Played only while the opening is on screen; arriving at its end (a reload, a link
+            // further down) counts it as played.
+            if (scrolled < 0.98) {
+              moveSince = now;
+              moveRelease = holdScroll();
+            } else moved = 1;
+          } else if (!past && moved === 1) moveBack = now;
+        } else if (moveBack >= 0 && past) {
+          // Heading down again mid-way: forwards from here.
+          moveBack = -1;
+          moveSince = now - (Math.acos(1 - 2 * moved) / Math.PI) * MORPH * 1000;
+          moveRelease = holdScroll();
+        }
+        if (moveSince >= 0) {
+          moved = inOutSine(clamp01((now - moveSince) / 1000 / MORPH));
+          if (moved >= 1) {
+            moved = 1;
+            moveSince = -1;
+            moveRelease?.();
+            moveRelease = null;
+          }
+        } else if (moveBack >= 0) {
+          moved = 1 - outInSine(clamp01((now - moveBack) / 1000 / (MORPH / 2)));
+          if (moved <= 0) {
+            moved = 0;
+            moveBack = -1;
+          }
+        }
+        if (moveSince >= 0 || moveBack >= 0) move = moved;
+        else if (moved === 1 && past) at = Math.max(manual, AT.room);
+        else if (past) at = AT.morph - 0.001;
+      }
+      show(at, back >= 0, move);
+      if (since >= 0 || back >= 0 || moveSince >= 0 || moveBack >= 0) raf = window.requestAnimationFrame(frameLoop);
     };
     const onScroll = () => {
       if (!raf) raf = window.requestAnimationFrame(frameLoop);
@@ -264,6 +313,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
       motion.removeEventListener('change', onScroll);
       if (raf) window.cancelAnimationFrame(raf);
       release?.();
+      moveRelease?.();
     };
   }, []);
 

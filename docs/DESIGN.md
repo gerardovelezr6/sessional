@@ -152,16 +152,19 @@ whole magenta screen fade away.
 
 - **The opening** (`src/site/landing/Opening.tsx`) is the page's one authored moment. It starts on
   the wordmark at poster size with the headline. Once the visitor scrolls a little way in (3% of
-  its scroll), the logo's part plays by itself, 3.8 seconds tweened sine in-out (backwards: half the time, sine out-in), with scrolling held so it
+  its scroll), the logo's part plays by itself, 3.8 seconds tweened sine in-out (backwards: half the time, the same curve), with scrolling held so it
   isn't skipped: the logo's own square hides and a square takes its place, growing in sixteen
   steps (each eased over 150 ms) until the screen is magenta; "One conference." fades in and out,
-  then the whole magenta screen fades away (eased) to six committee tiles. The rest follows the
+  then the whole magenta screen fades away (eased) to six committee tiles, and their heading fades
+  in once they show (600 ms, sine in-out). The rest follows the
   scroll: the tiles cut to their own colours one by one. Scrolled on, the move to the room plays by
   itself like the logo's part (1.6 s, sine in-out, scrolling held; scrolling back above it plays it
-  backwards in half the time, sine out-in): the Security Council's magenta tile moves and resizes
+  backwards in half the time, the same curve): the Security Council's magenta tile moves and resizes
   into the room's projector while the other committees fade out and the laptop and phones fade in.
   Then the three screens of a room count down on one clock,
-  a real second at a time, with no scrolling (still, for less motion). Back at the top, the logo's part plays backwards by itself (in half the time, without the words)
+  a real second at a time, with no scrolling (still, for less motion). The room's words fade in once it is there (600 ms, sine in-out) and out as it goes. Back at
+  the top, the room goes back to the committees, then the logo's part plays backwards by itself
+  (in half the time, without the words); the header's logo does the same from anywhere on the page
   to the wordmark. Arriving further down the page
   (a reload, a link to a section) counts it as played. It is pinned only on screens at least
   560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.

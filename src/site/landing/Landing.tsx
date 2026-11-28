@@ -8,6 +8,7 @@ import { ContactForm, type ContactLabels } from './ContactForm';
 import { CheckinMock, ConsoleMock, DashboardMock, PhoneMock, ProjectorMock } from './Mocks';
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
+import { HomeLink } from './HomeLink';
 import { Opening, type OpeningLabels } from './Opening';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
@@ -144,9 +145,9 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
       </a>
       <header className="sticky top-0 z-20 border-b border-border bg-surface">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-5 py-3">
-          <Link href={locale === 'es' ? '/?lang=es' : '/'} aria-label={t('landing.home')}>
+          <HomeLink href={locale === 'es' ? '/?lang=es' : '/'} label={t('landing.home')}>
             <Image src={wordmark} alt={t('brand.wordmarkAlt')} priority className="h-7 w-auto" />
-          </Link>
+          </HomeLink>
           <div className="order-last w-full min-w-0 md:order-none md:w-auto md:flex-1">
             <SectionNav label={t('landing.nav.label')} links={sections} />
           </div>

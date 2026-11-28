@@ -10,7 +10,7 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 // committee tiles. From there the scroll moves it on: the tiles cut to their own colours (what the
 // Secretariat sees), then the three screens of a committee room count down on one clock. Back at
 // the top, the logo's part plays backwards by itself (in half the time, without the words) to the
-// wordmark. Forwards it is tweened sine in-out, backwards sine out-in. Without JavaScript, on short screens, and before it loads, the
+// wordmark. Both ways it is tweened sine in-out. Without JavaScript, on short screens, and before it loads, the
 // opening is just the wordmark and the headline. For people who ask for less motion nothing plays
 // by itself and the square doesn't grow: scrolling moves all of it, and the screen cuts straight
 // to magenta.
@@ -72,19 +72,17 @@ const secondsAt = (p: number) => {
   return TIMELINE[TIMELINE.length - 1]![0];
 };
 const LENGTH = TIMELINE[TIMELINE.length - 1]![0];
-// The logo's part is tweened as a whole: sine in-out playing forwards; backwards (going up) it takes
-// half the time, sine out-in, without the words.
+// The logo's part is tweened as a whole, sine in-out; backwards (going up) it takes half the time,
+// with the same curve, without the words.
 const REVERSE = LENGTH / 2;
 const inOutSine = (x: number) => -(Math.cos(Math.PI * x) - 1) / 2;
-const outInSine = (x: number) => (x < 0.5 ? Math.sin(Math.PI * x) / 2 : 1 - Math.cos(Math.PI * (x - 0.5)) / 2);
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 // Seconds since it started → seconds along the timeline, and back.
 const forwardAt = (elapsed: number) => LENGTH * inOutSine(clamp01(elapsed / LENGTH));
 const forwardStart = (at: number) => (LENGTH * Math.acos(1 - (2 * clamp01(at / LENGTH)))) / Math.PI;
-const backwardAt = (elapsed: number) => LENGTH * (1 - outInSine(clamp01(elapsed / REVERSE)));
+const backwardAt = (elapsed: number) => LENGTH * (1 - inOutSine(clamp01(elapsed / REVERSE)));
 // The move from the committees to the room plays by itself the same way, once scrolled to: sine
-// in-out forwards with scrolling held, backwards (scrolling back above it) in half the time, sine
-// out-in.
+// in-out with scrolling held; backwards (scrolling back above it) in half the time, same curve.
 const MORPH = 1.6;
 // Holding the page still while the logo's part plays: wheel, touch and keys do nothing, and any
 // scroll already under way (a flick's momentum) is put back.
@@ -227,8 +225,9 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
             back = -1;
           }
         }
-      } else if (played >= AT.split && scrolled < START_AT) {
-        // Back up at the top: it plays backwards to the wordmark, without the words.
+      } else if (played >= AT.split && scrolled < START_AT && moved === 0 && moveBack < 0 && moveSince < 0) {
+        // Back up at the top: it plays backwards to the wordmark, without the words (after the
+        // room has gone back to the committees, when it had got that far).
         back = now;
       }
       // After the logo's part, the rest of the scroll walks through the committees and the room.
@@ -264,7 +263,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
             moveRelease = null;
           }
         } else if (moveBack >= 0) {
-          moved = 1 - outInSine(clamp01((now - moveBack) / 1000 / (MORPH / 2)));
+          moved = 1 - inOutSine(clamp01((now - moveBack) / 1000 / (MORPH / 2)));
           if (moved <= 0) {
             moved = 0;
             moveBack = -1;
@@ -275,7 +274,9 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
         else if (past) at = AT.morph - 0.001;
       }
       show(at, back >= 0, move);
-      if (since >= 0 || back >= 0 || moveSince >= 0 || moveBack >= 0) raf = window.requestAnimationFrame(frameLoop);
+      // Keep going while something plays, or while a reverse to the wordmark is still due.
+      const due = played >= AT.split && scrolled < START_AT;
+      if (since >= 0 || back >= 0 || moveSince >= 0 || moveBack >= 0 || due) raf = window.requestAnimationFrame(frameLoop);
     };
     const onScroll = () => {
       if (!raf) raf = window.requestAnimationFrame(frameLoop);
@@ -306,11 +307,19 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     window.addEventListener('resize', onResize);
     fits.addEventListener('change', onFits);
     motion.addEventListener('change', onScroll);
+    // The header's logo, from anywhere on the page: back to the top, where the opening plays its
+    // reverses (the room to the committees, then the logo's part) back to the first screen.
+    const onHome = () => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      onScroll();
+    };
+    window.addEventListener('sessional:home', onHome);
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
       fits.removeEventListener('change', onFits);
       motion.removeEventListener('change', onScroll);
+      window.removeEventListener('sessional:home', onHome);
       if (raf) window.cancelAnimationFrame(raf);
       release?.();
       moveRelease?.();
@@ -407,7 +416,12 @@ function Conference({ L, frame }: { L: OpeningLabels; frame: Frame }) {
   return (
     <>
       <div className="grid">
-        <div className="col-start-1 row-start-1 flex flex-col gap-1" style={{ opacity: out }} aria-hidden={room}>
+        {/* Hidden under the magenta; once the tiles show, it fades in (600 ms, sine in-out). */}
+        <div
+          className={`col-start-1 row-start-1 flex flex-col gap-1 ${frame.kind === 'committees' || frame.kind === 'field' ? 'transition-opacity duration-[600ms] ease-[cubic-bezier(0.37,0,0.63,1)] motion-reduce:transition-none' : ''}`}
+          style={{ opacity: frame.kind === 'field' ? 0 : out }}
+          aria-hidden={room}
+        >
           <p className="site-display text-3xl sm:text-5xl">{L.two}</p>
           <p className="text-base text-on-surface-muted">{L.twoNote}</p>
         </div>
@@ -436,7 +450,7 @@ function Conference({ L, frame }: { L: OpeningLabels; frame: Frame }) {
             </li>
           ))}
         </ul>
-        <RoomTiles L={L} left={left} projector={to} shown={inn} projectorShown={room} hidden={frame.kind !== 'morph' && !room} />
+        <RoomTiles L={L} left={left} projector={to} shown={inn} projectorShown={room} textShown={room} hidden={frame.kind !== 'morph' && !room} />
         {moving ? (
           <div
             aria-hidden="true"
@@ -468,14 +482,16 @@ function useClock(running: boolean) {
 const QUEUE = ['fr', 'br', 'ke'];
 
 // The three screens in a committee room, each a tile, all on the same clock.
-function RoomTiles({ L, left, projector, shown, projectorShown, hidden }: { L: OpeningLabels; left: { left: number; speaker: number }; projector: React.Ref<HTMLLIElement>; shown: number; projectorShown: boolean; hidden: boolean }) {
+function RoomTiles({ L, left, projector, shown, projectorShown, textShown, hidden }: { L: OpeningLabels; left: { left: number; speaker: number }; projector: React.Ref<HTMLLIElement>; shown: number; projectorShown: boolean; textShown: boolean; hidden: boolean }) {
+  // The screens' words fade in once the room is there, and out as it goes (600 ms, sine in-out).
+  const words = `[&>*]:transition-opacity [&>*]:duration-[600ms] [&>*]:ease-[cubic-bezier(0.37,0,0.63,1)] motion-reduce:[&>*]:transition-none ${textShown ? '' : '[&>*]:opacity-0'}`;
   const now = QUEUE[left.speaker]!;
   const next = QUEUE[(left.speaker + 1) % QUEUE.length]!;
   const time = clock(left.left);
   // Phones: the projector across the top, the laptop and a phone side by side under it.
   return (
     <ul className="absolute inset-0 grid grid-cols-2 grid-rows-[1.3fr_1fr] gap-2 sm:grid-cols-[1fr_1.4fr_0.8fr] sm:grid-rows-1" style={{ visibility: hidden ? 'hidden' : 'visible' }} aria-hidden={hidden}>
-      <li className="order-2 flex min-h-0 flex-col gap-2 overflow-hidden bg-on-surface p-3 text-surface sm:order-none sm:gap-3 sm:p-5" style={{ opacity: shown }}>
+      <li className={`order-2 flex min-h-0 flex-col gap-2 overflow-hidden bg-on-surface p-3 text-surface sm:order-none sm:gap-3 sm:p-5 ${words}`} style={{ opacity: shown }}>
         <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.laptop}</span>
         <span className="text-xs sm:text-sm">{L.committee}</span>
         <span className="flex items-center gap-2 text-sm">
@@ -485,7 +501,7 @@ function RoomTiles({ L, left, projector, shown, projectorShown, hidden }: { L: O
         </span>
         <span className="text-xs sm:text-sm">{fill(L.next, { name: L.names[next]! })}</span>
       </li>
-      <li ref={projector} className="order-1 col-span-2 flex min-h-0 flex-col gap-1 overflow-hidden bg-primary p-3 text-on-primary sm:order-none sm:col-span-1 sm:gap-2 sm:p-5" style={{ opacity: projectorShown ? 1 : 0 }}>
+      <li ref={projector} className={`order-1 col-span-2 flex min-h-0 flex-col gap-1 overflow-hidden bg-primary p-3 text-on-primary sm:order-none sm:col-span-1 sm:gap-2 sm:p-5 ${words}`} style={{ opacity: projectorShown ? 1 : 0 }}>
         <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.projector}</span>
         <span className="mt-auto flex items-center gap-3">
           <Flag choice={{ kind: 'country', code: now }} className="h-6! w-9! sm:h-7! sm:w-10!" />
@@ -493,7 +509,7 @@ function RoomTiles({ L, left, projector, shown, projectorShown, hidden }: { L: O
         </span>
         <span className="font-mono text-4xl font-bold sm:text-7xl">{time}</span>
       </li>
-      <li className="order-3 flex min-h-0 flex-col gap-1 overflow-hidden bg-accent p-3 text-on-accent sm:order-none sm:gap-2 sm:p-5" style={{ opacity: shown }}>
+      <li className={`order-3 flex min-h-0 flex-col gap-1 overflow-hidden bg-accent p-3 text-on-accent sm:order-none sm:gap-2 sm:p-5 ${words}`} style={{ opacity: shown }}>
         <span className="text-[11px] font-semibold uppercase tracking-[0.09em] sm:text-xs">{L.phone}</span>
         <span className="mt-auto text-xs">{L.speaking}</span>
         <span className="flex items-center gap-2 text-sm">

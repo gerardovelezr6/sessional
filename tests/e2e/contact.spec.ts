@@ -428,3 +428,39 @@ test('in Spanish on a phone the wordmark keeps its size and the section links fi
     await phone.context().close();
   }
 });
+
+test('the logo, from anywhere on the page, plays the opening back to the first screen', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const room = page.getByRole('figure', { name: /^Example: one conference/ });
+  // Through the logo's part and the move to the room.
+  await scrollOpening(page, 0.05);
+  await expect(room.getByText('One conference.')).toHaveCount(0, { timeout: 6000 });
+  await scrollOpening(page, 0.9);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 4000 }).toBe(1);
+  // The room's words have faded in.
+  const words = room.getByRole('listitem').filter({ hasText: 'Projector' }).locator('.font-mono');
+  await expect.poll(() => words.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
+  // Far down the page, the logo brings it all back: the room to the committees, then the wordmark.
+  await page.locator('#contact').scrollIntoViewIfNeeded();
+  // Note, every frame, whether the moving tile (room → committees) and the magenta (logo's part)
+  // were seen on the way back.
+  await page.evaluate(() => {
+    const w = window as unknown as { seen: { tile: boolean; magenta: boolean } };
+    w.seen = { tile: false, magenta: false };
+    const look = () => {
+      const fig = document.querySelector('figure[aria-label^="Example: one conference"]');
+      if (fig?.querySelector('div.absolute.flex.bg-primary')) w.seen.tile = true;
+      if (fig?.querySelector(':scope > div.absolute.bg-primary')) w.seen.magenta = true;
+      requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  });
+  await page.getByRole('link', { name: 'Sessional, home' }).click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(room).toHaveCount(0, { timeout: 6000 });
+  const seen = await page.evaluate(() => (window as unknown as { seen: { tile: boolean; magenta: boolean } }).seen);
+  expect(seen).toEqual({ tile: true, magenta: true });
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  expect(page.url()).not.toContain('#');
+});

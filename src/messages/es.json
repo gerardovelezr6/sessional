@@ -3285,5 +3285,8 @@
   "support.mail.fromName": "Soporte de Sessional",
   "support.ack.subject": "Recibimos tu mensaje: {topic}",
   "support.ack.heading": "Gracias, {name}. Recibimos tu mensaje.",
-  "support.ack.body": "Nos escribiste sobre: {topic}.\n\nRespondemos en un máximo de dos días hábiles, desde {address}. Para agregar algo, responde a este correo.\n\nPor favor no envíes datos personales de estudiantes a menos que te los pidamos."
+  "support.ack.body": "Nos escribiste sobre: {topic}.\n\nRespondemos en un máximo de dos días hábiles, desde {address}. Para agregar algo, responde a este correo.\n\nPor favor no envíes datos personales de estudiantes a menos que te los pidamos.",
+  "signup.mail.greeting": "Hola, {name}:",
+  "signup.mail.lead": "Usa el botón de abajo para crear {school}. Su dirección será {address}.",
+  "signup.mail.once": "El enlace funciona una vez, durante 24 horas. Si no lo pediste, ignora este correo; no se crea nada."
 }

@@ -370,6 +370,26 @@ body:has(.kiosk) > header, body:has(.kiosk) .app-header { display: none; }
 /* Date and month boxes: Safari on phones gives them their own width and look; keep them as wide as
    the other boxes. */
 .input[type='month'], .input[type='date'] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; min-height: 2.5rem; }
+/* The admin console in the website's design: tiles with a coloured square for counts, the logo's
+   square marking the page in the menu, Satoshi tracked capitals for small labels, strong frames. */
+.admin-console .stat { border-color: var(--s-color-border-strong); position: relative; padding: 1rem 1rem 1rem 1.75rem; }
+.admin-console .stat::before { content: ''; position: absolute; left: 0.75rem; top: 1.3rem; width: 0.5rem; height: 0.5rem; background: var(--s-color-primary); }
+.admin-console .stat:nth-child(5n + 2)::before { background: var(--s-color-accent); }
+.admin-console .stat:nth-child(5n + 3)::before { background: var(--site-teal); }
+.admin-console .stat:nth-child(5n + 4)::before { background: var(--s-color-on-surface); }
+.admin-console .stat:nth-child(5n + 5)::before { background: var(--s-color-on-surface-muted); }
+.admin-console .stat-value { font-family: var(--site-display); font-weight: 400; font-size: 2.25rem; line-height: 1.1; }
+.admin-console .stat .label-text,
+.admin-console .side-nav .label-text,
+.admin-console .table th,
+.admin-console .badge { font-family: var(--site-tag); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+.admin-console .table th { font-size: 0.6875rem; color: var(--s-color-on-surface-muted); border-bottom-color: var(--s-color-border-strong); }
+.admin-console .badge { font-size: 0.6875rem; }
+.admin-console .badge:not([class*='tone-']) { border: 1px solid var(--s-color-border-strong); background: transparent; }
+.admin-console .card { border-color: var(--s-color-border-strong); }
+.admin-console .side-nav a { position: relative; padding-inline-start: 1.5rem; font-weight: 500; }
+.admin-console .side-nav a[aria-current] { box-shadow: none; background: transparent; font-weight: 600; }
+.admin-console .side-nav a[aria-current]::before { content: ''; position: absolute; left: 0.5rem; top: 50%; width: 0.5rem; height: 0.5rem; margin-top: -0.25rem; background: var(--s-color-primary); }
 /* The palette's two reserved committee colours, for the website's committee tiles only. */
 .site-type { --site-teal: #00797D; --site-lime: #8DB600; }
 .landing-key { border: 1px solid var(--s-color-border-strong); padding: 0.25rem 0.5rem; }

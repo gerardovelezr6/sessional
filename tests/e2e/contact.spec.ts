@@ -443,15 +443,15 @@ test('the logo, from anywhere on the page, plays the opening back to the first s
   await expect.poll(() => words.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
   // Far down the page, the logo brings it all back: the room to the committees, then the wordmark.
   await page.locator('#contact').scrollIntoViewIfNeeded();
-  // Note, every frame, what was seen on the way back: only the magenta fading in over the room and
-  // shrinking into the logo, never the committees.
+  // Note, every frame, what was seen on the way back: only the magenta fading in over where the
+  // visitor is and shrinking into the logo; never the opening's own reverse or the committees.
   await page.evaluate(() => {
-    const w = window as unknown as { seen: { tile: boolean; magenta: boolean; committees: boolean } };
-    w.seen = { tile: false, magenta: false, committees: false };
+    const w = window as unknown as { seen: { cover: boolean; reverse: boolean; committees: boolean } };
+    w.seen = { cover: false, reverse: false, committees: false };
     const look = () => {
+      if (document.querySelector('[data-home-cover]')) w.seen.cover = true;
       const fig = document.querySelector('figure[aria-label^="Example: one conference"]');
-      if (fig?.querySelector('div.absolute.flex.bg-primary')) w.seen.tile = true;
-      if (fig?.querySelector(':scope > div.absolute.bg-primary')) w.seen.magenta = true;
+      if (fig?.querySelector(':scope > div.absolute.bg-primary')) w.seen.reverse = true;
       const heading = [...(fig?.querySelectorAll('p') ?? [])].find((p) => p.textContent === 'Every committee, at once.');
       if (heading && Number(getComputedStyle(heading.parentElement!).opacity) > 0.5) w.seen.committees = true;
       requestAnimationFrame(look);
@@ -459,10 +459,11 @@ test('the logo, from anywhere on the page, plays the opening back to the first s
     requestAnimationFrame(look);
   });
   await page.getByRole('link', { name: 'Sessional, home' }).click();
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await expect(room).toHaveCount(0, { timeout: 6000 });
-  const seen = await page.evaluate(() => (window as unknown as { seen: { tile: boolean; magenta: boolean; committees: boolean } }).seen);
-  expect(seen).toEqual({ tile: false, magenta: true, committees: false });
+  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 3000 }).toBe(0);
+  await expect(room).toHaveCount(0);
+  await expect(page.locator('[data-home-cover]')).toHaveCount(0, { timeout: 4000 });
+  const seen = await page.evaluate(() => (window as unknown as { seen: { cover: boolean; reverse: boolean; committees: boolean } }).seen);
+  expect(seen).toEqual({ cover: true, reverse: false, committees: false });
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   expect(page.url()).not.toContain('#');
 });

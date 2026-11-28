@@ -3285,5 +3285,8 @@
   "support.mail.fromName": "Sessional Support",
   "support.ack.subject": "We have your message: {topic}",
   "support.ack.heading": "Thanks, {name}. We have your message.",
-  "support.ack.body": "You wrote to us about: {topic}.\n\nWe answer within two working days, from {address}. To add something, reply to this email.\n\nPlease don’t send personal information about students unless we ask for it."
+  "support.ack.body": "You wrote to us about: {topic}.\n\nWe answer within two working days, from {address}. To add something, reply to this email.\n\nPlease don’t send personal information about students unless we ask for it.",
+  "signup.mail.greeting": "Hi {name},",
+  "signup.mail.lead": "Use the button below to create {school}. Its address will be {address}.",
+  "signup.mail.once": "The link works once, for 24 hours. If you didn’t ask for this, ignore this email; nothing is created."
 }

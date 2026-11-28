@@ -63,7 +63,10 @@ only as "Powered by Sessional" under the preview in Settings.
 
 ## Content rules
 
-- Every email has a plain-text part with the same words and the link written out.
+- Every email has a plain-text part with the same words and the link written out, one blank line
+  between paragraphs, and the footer after a dash on its own line.
+- Paragraphs say what the button does without leaning on it (no sentence ending in a colon before
+  the button).
 - One action per email, as a button whose label says what happens ("Create Colegio Norte"); the
   link is also in the plain-text part.
 - In the reader's language (English or Mexican Spanish), never labelled by dialect.

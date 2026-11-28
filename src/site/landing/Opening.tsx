@@ -318,11 +318,16 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     window.addEventListener('resize', onResize);
     fits.addEventListener('change', onFits);
     motion.addEventListener('change', onScroll);
-    // The header's logo, from anywhere on the page: back to the top, where the opening plays its
-    // reverses (the room to the committees, then the logo's part) back to the first screen.
+    // The header's logo (HomeLink), from anywhere on the page: under its magenta, the page is put
+    // back at the top with the opening at rest, playing nothing.
     const onHome = () => {
+      since = back = moveSince = moveBack = -1;
+      played = moved = 0;
+      release?.();
+      moveRelease?.();
+      release = moveRelease = null;
       window.scrollTo({ top: 0, behavior: 'instant' });
-      onScroll();
+      show(0);
     };
     window.addEventListener('sessional:home', onHome);
     return () => {

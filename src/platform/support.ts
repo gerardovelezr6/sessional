@@ -60,7 +60,7 @@ export async function sendSupportAck(value: SupportRequest): Promise<boolean> {
     from: supportFrom(value.language),
     replyTo: address,
     subject: t('support.ack.subject', { topic }).replace(/[\r\n]+/g, ' '),
-    text: [heading, ...paragraphs, '', t('brand.mail.footer')].join('\n\n'),
+    text: [heading, ...paragraphs, `—\n${t('brand.mail.footer')}`].join('\n\n'),
     html: brandEmailHtml(value.language, { heading, paragraphs }),
   });
 }

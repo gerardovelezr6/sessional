@@ -27,15 +27,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const t = translator(DEFAULT_LOCALE);
   const base = await basePath();
   const admin = await isPlatformAdmin(await accessToken());
+  // The console wears the website's design (docs/DESIGN.md): its type, square tiles and marks.
   return (
-    <>
+    <div className="site-type admin-console flex flex-1 flex-col">
       <header className="app-header flex flex-wrap items-center gap-4">
         <a href={admin ? `${base}/` : `${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}/`} aria-label={t(admin ? 'platform.nav.schools' : 'landing.home')}>
           <Image src={wordmark} alt={t('brand.wordmarkAlt')} className="h-7 w-auto" priority />
         </a>
         {admin ? (
           <>
-            <span className="text-sm font-semibold">{t('platform.nav')}</span>
+            <span className="site-tag border border-border-strong px-2 py-1 text-on-surface">{t('platform.nav')}</span>
             <div className="ms-auto">
               <ActionForm action={adminSignOutAction} submitLabel={t('auth.signOut')} variant="secondary" />
             </div>
@@ -67,6 +68,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ) : (
         children
       )}
-    </>
+    </div>
   );
 }

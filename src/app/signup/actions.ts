@@ -55,8 +55,12 @@ export async function signupAction(_prev: SignupState, data: FormData): Promise<
       to: v.email,
       subject,
       text,
-      // The same words, in the Sessional look, with the link as a button.
-      html: brandEmailHtml(v.locale, { heading: subject, paragraphs: text.split(/\n{2,}/).filter((p) => p.trim() && p.trim() !== url && p.trim() !== 'Sessional'), button: { label: t('signup.mail.button', { school: v.school }), url } }),
+      // In the Sessional look: a greeting, what the button does, then the fine print.
+      html: brandEmailHtml(v.locale, {
+        heading: subject,
+        paragraphs: [t('signup.mail.greeting', { name: v.name }), t('signup.mail.lead', { school: v.school, address: `${v.slug}.${rootDomain()}` }), t('signup.mail.once')],
+        button: { label: t('signup.mail.button', { school: v.school }), url },
+      }),
     });
     console.info(JSON.stringify({ event: 'signup_started', sent }));
     return sent ? { status: 'sent' } : { status: 'failed', values: typed(data) };

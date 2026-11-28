@@ -38,7 +38,7 @@ export function composeEmail(config: TenantConfig, kind: EmailKind, locale: stri
   const footer = own(e.footer, locale) || messageFor('email.footer', locale).text.replace('{school}', vars.school);
   const button = { label: messageFor(`email.${kind}.button` as MessageKey, locale).text, url: vars.link };
   const html = renderEmail(buildTheme(config.theme as unknown as ThemeChoice), { schoolName: vars.school, logoUrl, heading: subject, paragraphs, button, footer });
-  const text = [...paragraphs, `${button.label}: ${vars.link}`, '', footer].join('\n\n');
+  const text = [...paragraphs, `${button.label}: ${vars.link}`, `—\n${footer}`].join('\n\n');
   return { subject, html, text };
 }
 

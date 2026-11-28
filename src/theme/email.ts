@@ -40,7 +40,7 @@ export function renderEmail(theme: Theme, content: EmailContent): string {
 ${
     content.banner
       ? `<tr><td style="padding:0;border:1px solid ${v('--s-color-border')};border-bottom:0;background:${v('--s-color-surface-raised')}"><img src="${safeUrl(content.banner.src)}" alt="${escape(content.banner.alt)}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;font-size:20px;font-weight:700;color:${v('--s-color-on-surface')}"></td></tr>`
-      : `<tr><td style="background:${v('--s-header-bg')};color:${v('--s-header-fg')};padding:16px 24px;border-radius:${v('--s-radius-surface')} ${v('--s-radius-surface')} 0 0">${header}</td></tr>`
+      : `<tr><td style="background:${v('--s-header-bg')};color:${v('--s-header-fg')};padding:16px 24px;border:1px solid ${v('--s-color-border')};border-bottom:0;border-radius:${v('--s-radius-surface')} ${v('--s-radius-surface')} 0 0">${header}</td></tr>`
   }
 <tr><td style="background:${v('--s-color-surface-raised')};padding:24px;border:1px solid ${v('--s-color-border')};border-top:0;border-radius:0 0 ${v('--s-radius-surface')} ${v('--s-radius-surface')}">
 <h1 style="margin:0;font-size:20px;color:${v('--s-color-on-surface')}">${escape(content.heading)}</h1>${paragraphs}${button}

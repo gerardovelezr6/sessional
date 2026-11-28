@@ -279,7 +279,7 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   expect(await headingShown(room, 'Every screen in the room, on one clock.')).toBe(0);
   // Scrolled to the move between them, it plays by itself, the page held still: the Security
   // Council's tile moves into the projector's place, and the room is there with no more scrolling.
-  await scrollOpening(page, 0.4);
+  await scrollOpening(page, 0.9);
   await expect(room.locator('div.absolute.bg-primary')).toHaveCount(1);
   const held = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 1200);
@@ -288,7 +288,7 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 8000 }).toBe(1);
   expect(await headingShown(room, 'Every committee, at once.')).toBe(0);
   // Scrolling back above it plays it backwards, to the committees.
-  await scrollOpening(page, 0.3);
+  await scrollOpening(page, 0.6);
   await expect.poll(() => headingShown(room, 'Every committee, at once.'), { timeout: 3000 }).toBe(1);
   await scrollOpening(page, 0.95);
   await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 8000 }).toBe(1);
@@ -443,24 +443,27 @@ test('the logo, from anywhere on the page, plays the opening back to the first s
   await expect.poll(() => words.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
   // Far down the page, the logo brings it all back: the room to the committees, then the wordmark.
   await page.locator('#contact').scrollIntoViewIfNeeded();
-  // Note, every frame, whether the moving tile (room → committees) and the magenta (logo's part)
-  // were seen on the way back.
+  // Note, every frame, what was seen on the way back: only the magenta fading in over where the
+  // visitor is and shrinking into the logo; never the opening's own reverse or the committees.
   await page.evaluate(() => {
-    const w = window as unknown as { seen: { tile: boolean; magenta: boolean } };
-    w.seen = { tile: false, magenta: false };
+    const w = window as unknown as { seen: { cover: boolean; reverse: boolean; committees: boolean } };
+    w.seen = { cover: false, reverse: false, committees: false };
     const look = () => {
+      if (document.querySelector('[data-home-cover]')) w.seen.cover = true;
       const fig = document.querySelector('figure[aria-label^="Example: one conference"]');
-      if (fig?.querySelector('div.absolute.flex.bg-primary')) w.seen.tile = true;
-      if (fig?.querySelector(':scope > div.absolute.bg-primary')) w.seen.magenta = true;
+      if (fig?.querySelector(':scope > div.absolute.bg-primary')) w.seen.reverse = true;
+      const heading = [...(fig?.querySelectorAll('p') ?? [])].find((p) => p.textContent === 'Every committee, at once.');
+      if (heading && Number(getComputedStyle(heading.parentElement!).opacity) > 0.5) w.seen.committees = true;
       requestAnimationFrame(look);
     };
     requestAnimationFrame(look);
   });
   await page.getByRole('link', { name: 'Sessional, home' }).click();
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await expect(room).toHaveCount(0, { timeout: 6000 });
-  const seen = await page.evaluate(() => (window as unknown as { seen: { tile: boolean; magenta: boolean } }).seen);
-  expect(seen).toEqual({ tile: true, magenta: true });
+  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 3000 }).toBe(0);
+  await expect(room).toHaveCount(0);
+  await expect(page.locator('[data-home-cover]')).toHaveCount(0, { timeout: 4000 });
+  const seen = await page.evaluate(() => (window as unknown as { seen: { cover: boolean; reverse: boolean; committees: boolean } }).seen);
+  expect(seen).toEqual({ cover: true, reverse: false, committees: false });
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   expect(page.url()).not.toContain('#');
 });
@@ -484,4 +487,18 @@ test('on wide screens the story’s heading stays put with the steps, and leaves
   await page.waitForTimeout(80);
   const end = await at();
   expect(Math.abs(end.pin.top - end.head.bottom - (first!.pin.top - first!.head.bottom))).toBeLessThan(3);
+});
+
+test('the opening’s buttons grow the logo’s square over the page, then go where they point', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const button = page.locator('#hero-title').locator('..').locator('.btn');
+  await button.click();
+  // The square covers the screen in magenta...
+  await expect(page.locator('body > div[aria-hidden="true"]')).toHaveCount(1);
+  // ...then the page it points to is there, and the magenta is gone.
+  const href = await button.getAttribute('href');
+  if (href?.startsWith('#')) await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(href);
+  else await page.waitForURL((u) => u.pathname === new URL(href!, 'http://x').pathname);
+  await expect(page.locator('body > div[aria-hidden="true"]')).toHaveCount(0, { timeout: 4000 });
 });

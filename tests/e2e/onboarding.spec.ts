@@ -50,6 +50,8 @@ test.describe('a stranger reaches a working demo conference', () => {
 
     await page.goto('/');
     await page.getByRole('link', { name: 'Start a free trial' }).click();
+    // The button plays the logo's transition, then opens the signup page.
+    await page.waitForURL((u) => u.pathname === '/signup');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Start a free trial');
     await askForSchool(page, { name: 'Sofía Stranger', email, school });
     await expect(page.getByRole('status')).toContainText('Check your email.');

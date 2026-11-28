@@ -9,6 +9,7 @@ import { CheckinMock, ConsoleMock, DashboardMock, PhoneMock, ProjectorMock } fro
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
 import { HomeLink } from './HomeLink';
+import { LeaveLink } from './LeaveLink';
 import { Opening, type OpeningLabels } from './Opening';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
@@ -97,7 +98,7 @@ const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae',
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 const STAGE = ['rules', 'rule.un_style', 'rule.harvard_style', 'rule.thimun_style', 'rule.reglamento_es', 'quorumNeeds', 'docNeeds', 'methods', 'method.placard', 'method.roll_call', 'method.secret', 'majority', 'committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
 // The opening's words.
-const OPENING_KEYS = ['label', 'example', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
+const OPENING_KEYS = ['label', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
 const OPENING_STATUS = ['speech', 'roll', 'vote', 'unmoderated', 'moderated', 'crisis'] as const;
 function openingLabels(locale: string): OpeningLabels {
   const raw = (k: string) => messageFor(k, locale).text;
@@ -143,6 +144,8 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
       <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:start-4 focus-visible:top-4 focus-visible:z-30 focus-visible:bg-surface-raised focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-on-surface">
         {t('landing.skip')}
       </a>
+      {/* Signing in happens on the app's own address: connect to it ahead of the click. */}
+      <link rel="preconnect" href={new URL(appUrl).origin} />
       <header className="sticky top-0 z-20 border-b border-border bg-surface">
         {/* Phones: two rows. The first is the brand and its actions (the language as a square tile,
             signing in); the second, under a hairline, is where to go on this page. */}
@@ -154,9 +157,10 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
             <SectionNav label={t('landing.nav.label')} links={sections} />
           </div>
           <div className="ms-auto flex items-center gap-4 text-sm md:ms-0">
-            <a className="border border-border-strong px-2 py-1 text-xs font-semibold text-on-surface transition-colors duration-[120ms] hover:border-on-surface hover:bg-on-surface hover:text-surface" href={other === 'es' ? '/?lang=es' : '/?lang=en'} lang={other}>
+            {/* Fetched ahead (a page link, not a reload), so switching language is immediate. */}
+            <Link className="border border-border-strong px-2 py-1 text-xs font-semibold text-on-surface transition-colors duration-[120ms] hover:border-on-surface hover:bg-on-surface hover:text-surface" href={other === 'es' ? '/?lang=es' : '/?lang=en'} lang={other}>
               {t('landing.otherLanguage')}
-            </a>
+            </Link>
             <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href={appUrl}>
               {t('landing.signIn')}
             </a>
@@ -178,21 +182,21 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                   {signup ? (
                     <>
-                      <a className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
+                      <LeaveLink className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
                         {t('landing.hero.trial')}
-                      </a>
-                      <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
+                      </LeaveLink>
+                      <LeaveLink className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
                         {t('landing.hero.write')}
-                      </a>
+                      </LeaveLink>
                     </>
                   ) : (
                     <>
-                      <a className="btn btn-primary normal-case tracking-normal" href="#contact">
+                      <LeaveLink className="btn btn-primary normal-case tracking-normal" href="#contact">
                         {t('landing.hero.write')}
-                      </a>
-                      <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
+                      </LeaveLink>
+                      <LeaveLink className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
                         {t('landing.hero.see')}
-                      </a>
+                      </LeaveLink>
                     </>
                   )}
                 </div>
@@ -319,7 +323,37 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
 
           <Section id="pricing" title={t('landing.pricing.title')} intro={t(plans?.length ? 'landing.pricing.intro' : 'landing.pricing.soon')}>
             {plans?.length ? (
-              <div className="overflow-x-auto">
+              <>
+              {/* Phones: one card per plan, every line labelled, nothing to scroll sideways. */}
+              <ul className="grid grid-cols-1 gap-4 md:hidden">
+                {plans.map((p) => (
+                  <li key={p.key} className="landing-frame flex flex-col gap-3 bg-surface-raised p-4">
+                    <h3 className="site-display text-2xl text-on-surface">{nameOf(p)}</h3>
+                    <div className="flex flex-col gap-0.5">
+                      {p.prices
+                        .filter((x) => x.currency === currency)
+                        .map((x) => (
+                          <span key={x.key} className="text-lg font-semibold text-on-surface">
+                            {t(`landing.pricing.per.${x.interval}` as MessageKey, { price: money(x.amount, x.currency) })}
+                          </span>
+                        ))}
+                      {p.per_school ? <span className="text-xs">{t('landing.pricing.perSchool')}</span> : null}
+                    </div>
+                    <dl className="grid grid-cols-[1fr_auto] gap-x-4 border-t border-border text-sm">
+                      {LIMITS.map((k) => (
+                        <div key={k} className="col-span-2 grid grid-cols-subgrid border-b border-border py-2 last:border-b-0">
+                          <dt>{t(`landing.pricing.limit.${k}` as MessageKey)}</dt>
+                          <dd className="text-end font-mono text-on-surface">
+                            {p.limits[k] === null || p.limits[k] === undefined ? t('landing.pricing.noLimit') : new Intl.NumberFormat(regional(locale)).format(p.limits[k]!)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 max-w-3xl text-sm md:hidden">{t('landing.pricing.notes')}</p>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[40rem] text-sm tabular-nums">
                   <caption className="sr-only">{t('landing.pricing.title')}</caption>
                   <thead>
@@ -362,6 +396,7 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
                 </table>
                 <p className="mt-4 max-w-3xl text-sm">{t('landing.pricing.notes')}</p>
               </div>
+              </>
             ) : null}
           </Section>
 

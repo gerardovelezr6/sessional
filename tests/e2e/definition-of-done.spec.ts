@@ -49,6 +49,8 @@ test('1. a stranger signs up and names their school', async () => {
   await page.goto(`http://localhost:${PORT}/`);
   await noPasmun(page, 'website');
   await page.getByRole('link', { name: 'Start a free trial' }).click();
+  // The button plays the logo's transition, then opens the signup page.
+  await page.waitForURL((u) => u.pathname === '/signup');
   await page.getByLabel('Your name').fill(owner.name);
   await page.getByLabel('Your email').fill(owner.email);
   await page.getByLabel('School or conference name').fill(school);

@@ -80,14 +80,14 @@ describe('presets', () => {
   it('the Sessional preset uses the brand palette exactly', () => {
     const { light } = buildTheme(DEFAULT_THEME);
     expect(light).toMatchObject({
-      '--s-color-surface': '#F4F1EA',
+      '--s-color-surface': '#FFFFFF',
       '--s-color-surface-raised': '#FFFFFF',
-      '--s-color-on-surface': '#14213D',
-      '--s-color-on-surface-muted': '#5B6577',
-      '--s-color-primary': '#14213D',
+      '--s-color-on-surface': '#111111',
+      '--s-color-on-surface-muted': '#4B5058',
+      '--s-color-primary': '#C8175D',
       '--s-color-on-primary': '#FFFFFF',
-      '--s-color-accent': '#F2A541',
-      '--s-color-border': '#DCE1E9',
+      '--s-color-accent': '#2147D6',
+      '--s-color-border': '#E3E5E8',
     });
   });
 
@@ -126,7 +126,7 @@ describe('any colours a school picks stay readable', () => {
 
   it('only reports adjustments in the colour schemes the school uses', () => {
     expect(visibleAdjustments(buildTheme(DEFAULT_THEME))).toEqual([]);
-    expect(visibleAdjustments(buildTheme(choice({ colorMode: 'dark' })))).toContain('dark:--s-color-primary');
+    expect(visibleAdjustments(buildTheme(choice({ colorMode: 'dark', brand: '#0B1020' })))).toContain('dark:--s-color-primary');
     expect(visibleAdjustments(buildTheme(choice({ colorMode: 'auto', brand: '#FDE68A' })))).toContain('light:--s-color-primary');
   });
   it('changes nothing when the choices already work', () => {
@@ -135,7 +135,7 @@ describe('any colours a school picks stay readable', () => {
 
   it('drops a preset\'s pinned colours once the school changes its colours', () => {
     const { light } = buildTheme(choice({ brand: '#7A1F2B' }));
-    expect(light['--s-color-on-surface']).not.toBe('#14213D');
+    expect(light['--s-color-on-surface']).not.toBe('#111111');
     expect(light['--s-color-primary']).toBe('#7A1F2B');
   });
 });
@@ -201,7 +201,7 @@ describe('the stylesheet', () => {
   it('automatic: light by default, dark colours only for devices that ask for dark', () => {
     const css = renderTheme(buildTheme(choice({ colorMode: 'auto' })));
     const [light, dark] = css.split('@media (prefers-color-scheme:dark)');
-    expect(light).toContain('--s-color-surface:#F4F1EA');
+    expect(light).toContain('--s-color-surface:#FFFFFF');
     expect(dark).toContain('--s-color-surface:');
     expect(dark).not.toContain('--s-radius-control');
   });

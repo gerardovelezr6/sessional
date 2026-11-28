@@ -6,8 +6,9 @@ import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/nunito';
 import '@fontsource/atkinson-hyperlegible/400.css';
 import '@fontsource/atkinson-hyperlegible/700.css';
+// The Sessional website's own type (docs/DESIGN.md): served from this site, never from a font CDN.
+// Zodiak and Switzer are declared in globals.css (files fetched at build: scripts/fetch-fonts.mjs).
 import './globals.css';
-import appIcon from '@brand/sessional-app-icon-navy.png';
 import { headers } from 'next/headers';
 import { tenantTranslator } from '@/config/store';
 import { DEFAULT_LOCALE } from '@/messages';
@@ -19,7 +20,9 @@ import { displayPrefs } from '@/a11y/display';
 
 export const metadata: Metadata = {
   title: PRODUCT_NAME,
-  icons: { icon: appIcon.src, apple: appIcon.src },
+  // Sessional's own icon (brand/); a school's site replaces it with the favicon it uploads.
+  icons: { icon: [{ url: '/favicon.ico', sizes: '16x16 32x32 48x48' }, { url: '/icon.svg', type: 'image/svg+xml' }], apple: '/apple-touch-icon.png' },
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: PRESETS.sessional.background };

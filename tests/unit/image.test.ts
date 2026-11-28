@@ -29,7 +29,7 @@ describe('inspectImage', () => {
     expect(inspectImage(webp)).toEqual({ type: 'webp', width: 300, height: 100 });
   });
   it('reads the real brand icon', () => {
-    expect(inspectImage(new Uint8Array(readFileSync('brand/sessional-app-icon-navy.png')))).toMatchObject({ type: 'png', width: 600, height: 600 });
+    expect(inspectImage(new Uint8Array(readFileSync('brand/kit/sessional-icon-1024.png')))).toMatchObject({ type: 'png', width: 1024, height: 1024 });
   });
   it.each([
     ['text', new TextEncoder().encode('hello, not an image')],

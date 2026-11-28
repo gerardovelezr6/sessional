@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import { accessToken } from '@/auth/session';
 import { DEFAULT_LOCALE, translator, type MessageKey } from '@/messages';
 import { isPlatformAdmin } from '@/platform/admin';

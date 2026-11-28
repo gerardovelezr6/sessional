@@ -57,7 +57,7 @@ test('one school\'s design does not leak into another, or into the marketing sit
   await page.goto(at('alpha.localhost', '/login'));
   expect(await style(page, 'button[type=submit]', 'background-color')).toBe('rgb(30, 64, 175)');
   await page.goto(at('localhost'));
-  expect(await style(page, 'body', 'background-color')).toBe('rgb(244, 241, 234)');
+  expect(await style(page, 'body', 'background-color')).toBe('rgb(255, 255, 255)');
 });
 
 test('an owner redesigns the school: draft, preview, publish; unreadable choices are corrected', async ({ page, browser }) => {

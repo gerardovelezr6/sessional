@@ -1,6 +1,6 @@
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import QRCode from 'qrcode';
 import { RETURN_COOKIE } from '@/auth/oauth';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator } from '@/messages';
@@ -9,6 +9,20 @@ import { mailConfigured } from '@/platform/mail';
 import { captchaClient } from '@/platform/captcha';
 import { Landing, type PlanRow } from '@/site/landing/Landing';
 import { parseTenantKey } from '@/tenancy/route';
+import { PRODUCT_NAME } from '@/platform/product';
+
+// How a shared link to the main page looks (link previews, social posts): the card from brand/kit,
+// in the page's language.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ lang?: string }> }): Promise<Metadata> {
+  const es = (await searchParams).lang === 'es';
+  const t = translator(es ? 'es' : 'en');
+  const image = { url: es ? '/og/sessional-es.png' : '/og/sessional-en.png', width: 1200, height: 630, alt: PRODUCT_NAME };
+  return {
+    metadataBase: new URL(`${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}`),
+    openGraph: { type: 'website', siteName: PRODUCT_NAME, title: t('landing.hero.title'), description: t('landing.hero.body'), locale: es ? 'es_MX' : 'en_US', images: [image] },
+    twitter: { card: 'summary_large_image', title: t('landing.hero.title'), description: t('landing.hero.body'), images: [image.url] },
+  };
+}
 
 // The main page. If the authentication service ever lands a sign-in here (its fallback address),
 // the code is handed on to the school the sign-in started from. Otherwise: what Sessional is.
@@ -24,9 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // A sign-in that landed here without a school to hand it to: a link used twice (Back, Reload,
   // an old tab) or one started before this browser was seen. Say so instead of showing nothing.
   const unfinished = !!(q.code || q.error);
-  const origin = `${isSecureOrigin() ? 'https' : 'http'}://${rootDomain()}`;
   const appUrl = `${isSecureOrigin() ? 'https' : 'http'}://app.${rootDomain()}/login`;
-  const qr = await QRCode.toString(origin, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
   // Prices come from the plans table; until billing is set up the section says so instead.
   let plans: PlanRow[] | null = null;
   try {
@@ -42,7 +54,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <p className="mt-2 text-sm">{t('home.signInUnfinished.body', { domain: rootDomain() })}</p>
         </section>
       ) : null}
-      <Landing t={t} locale={locale} appUrl={appUrl} qr={qr} plans={plans} signup={mailConfigured()} captcha={captchaClient()} />
+      <Landing t={t} locale={locale} appUrl={appUrl} plans={plans} signup={mailConfigured()} captcha={captchaClient()} />
     </div>
   );
 }

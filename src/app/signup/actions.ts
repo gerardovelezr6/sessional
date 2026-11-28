@@ -6,6 +6,7 @@ import { translator, type MessageKey } from '@/messages';
 import { passwordProblems } from '@/people/password';
 import { looksAutomated, senderKey } from '@/platform/contact';
 import { isSecureOrigin, rootDomain } from '@/platform/env';
+import { brandEmailHtml } from '@/platform/brand-email';
 import { sendMail } from '@/platform/mail';
 import { captchaPassed } from '@/platform/captcha';
 import { hashOf, isSecret, parseSignup, secret, TERMS_VERSION, type SignupField } from '@/platform/signup';
@@ -48,10 +49,14 @@ export async function signupAction(_prev: SignupState, data: FormData): Promise<
     if (/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(ref)) await rpc('signup_referral_set', { p_id: r.id, p_code: ref }, 'service').catch(() => null);
     const t = translator(v.locale);
     const url = `${scheme()}://${rootDomain()}/signup/confirm?i=${r.id}&h=${link}`;
+    const text = t('signup.mail.body', { name: v.name, school: v.school, address: `${v.slug}.${rootDomain()}`, url });
+    const subject = t('signup.mail.subject', { school: v.school });
     const sent = await sendMail({
       to: v.email,
-      subject: t('signup.mail.subject', { school: v.school }),
-      text: t('signup.mail.body', { name: v.name, school: v.school, address: `${v.slug}.${rootDomain()}`, url }),
+      subject,
+      text,
+      // The same words, in the Sessional look, with the link as a button.
+      html: brandEmailHtml(v.locale, { heading: subject, paragraphs: text.split(/\n{2,}/).filter((p) => p.trim() && p.trim() !== url && p.trim() !== 'Sessional'), button: { label: t('signup.mail.button', { school: v.school }), url } }),
     });
     console.info(JSON.stringify({ event: 'signup_started', sent }));
     return sent ? { status: 'sent' } : { status: 'failed', values: typed(data) };

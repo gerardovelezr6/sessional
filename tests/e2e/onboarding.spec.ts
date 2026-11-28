@@ -19,6 +19,10 @@ async function linkFor(page: Page, email: string): Promise<string> {
       return url;
     })
     .not.toBe('');
+  // The same email in the Sessional look: the header banner, and the link as a button.
+  const [last] = ((await (await page.request.get(`${MOCK}/__test/outbox?to=${encodeURIComponent(email)}`)).json()) as { html: string | null }[]).slice(-1);
+  expect(last!.html).toContain('/email/sessional-header.png');
+  expect(last!.html).toContain(url.replace(/&/g, '&amp;'));
   return url;
 }
 

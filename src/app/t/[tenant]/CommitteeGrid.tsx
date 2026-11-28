@@ -35,7 +35,7 @@ export function StatusBadge({ status, label }: { status: Status; label: string }
   const tone = status === 'in_session' ? 'tone-live' : status === 'between_sessions' ? 'tone-paused' : 'tone-idle';
   return (
     <span className={`badge ${tone}`}>
-      {status === 'in_session' ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" /> : null}
+      {status === 'in_session' ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-control bg-success" aria-hidden="true" /> : null}
       {label}
     </span>
   );
@@ -70,7 +70,7 @@ export function CommitteeGrid({ groups, L }: { groups: GridGroup[]; L: Record<st
       {shown.map((g) => (
         <section key={g.key} aria-labelledby={`grid-${g.key}`} className="flex flex-col gap-3">
           <h3 id={`grid-${g.key}`} className="label-text flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: g.color ?? 'var(--s-color-border-strong)' }} aria-hidden="true" />
+            <span className="inline-block h-2.5 w-2.5 rounded-control" style={{ backgroundColor: g.color ?? 'var(--s-color-border-strong)' }} aria-hidden="true" />
             {g.title} <span className="font-normal normal-case">({g.cards.length})</span>
           </h3>
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label={g.title}>

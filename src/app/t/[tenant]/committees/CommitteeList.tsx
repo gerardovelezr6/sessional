@@ -76,7 +76,7 @@ export function CommitteeList({ groups: initial, reorder, canReorder, L }: { gro
       {groups.map((g, gi) => (
         <section key={g.key} aria-labelledby={`cat-${g.key}`} className="flex flex-col gap-2">
           <h2 id={`cat-${g.key}`} className="flex items-center gap-2 text-lg font-bold text-on-surface">
-            {g.color ? <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: g.color }} aria-hidden="true" /> : null}
+            {g.color ? <span className="inline-block h-3 w-3 rounded-control" style={{ backgroundColor: g.color }} aria-hidden="true" /> : null}
             {g.title}
           </h2>
           <ol className="flex flex-col gap-2" aria-label={g.title}>

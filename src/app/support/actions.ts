@@ -2,7 +2,7 @@
 import { headers } from 'next/headers';
 import { captchaPassed } from '@/platform/captcha';
 import { looksAutomated, senderKey } from '@/platform/contact';
-import { fileSupport, parseSupport, sendSupportEmail, type SupportField } from '@/platform/support';
+import { fileSupport, parseSupport, sendSupportAck, sendSupportEmail, type SupportField } from '@/platform/support';
 
 export interface SupportState {
   status: 'idle' | 'sent' | 'invalid' | 'rate' | 'failed' | 'captcha';
@@ -24,7 +24,7 @@ export async function supportAction(_prev: SupportState, data: FormData): Promis
   try {
     const r = await fileSupport(parsed.value, senderKey(address));
     if ('error' in r) return { status: 'rate', values: typed(data) };
-    await sendSupportEmail(parsed.value).catch(() => false);
+    await Promise.all([sendSupportEmail(parsed.value).catch(() => false), sendSupportAck(parsed.value).catch(() => false)]);
     return { status: 'sent' };
   } catch {
     return { status: 'failed', values: typed(data) };

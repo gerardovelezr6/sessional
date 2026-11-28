@@ -29,6 +29,18 @@ test('the support page is linked from the website and the help center, and files
   await humanPause(page);
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByRole('status')).toContainText('Thanks. We have your message.');
+  await expect(page.getByRole('status')).toContainText('from support@sessional.app');
+
+  // The person gets a confirmation from the support address (not the sign-up sender), in the
+  // Sessional look; replying to it reaches support.
+  const outbox = async () => (await (await page.request.get('http://localhost:3199/__test/outbox?to=rosa%40school.test')).json()) as { from: string; subject: string; text: string; html: string | null; reply_to: string | null }[];
+  await expect.poll(async () => (await outbox()).length).toBeGreaterThan(0);
+  const ack = (await outbox()).at(-1)!;
+  expect(ack.from).toBe('Sessional Support <support@sessional.app>');
+  expect(ack.reply_to).toBe('support@sessional.app');
+  expect(ack.subject).toBe('We have your message: A plan, a payment or an invoice');
+  expect(ack.text).toContain('from support@sessional.app');
+  expect(ack.html).toContain('/email/sessional-header.png');
 
   const adminPage = await (await page.context().browser()!.newContext()).newPage();
   await adminPage.goto(admin('/login'));

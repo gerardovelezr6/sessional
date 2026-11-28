@@ -1,15 +1,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import { countryCodes, countryName } from '@/i18n/countries';
 import { regional } from '@/i18n/regional';
 import { messageFor, type MessageKey, type Translate } from '@/messages';
 import { ContactForm, type ContactLabels } from './ContactForm';
-import { PhoneMock, PlacardMock, ProjectorMock } from './Mocks';
-import { Reveal } from './Reveal';
+import { CheckinMock, ConsoleMock, DashboardMock, PhoneMock, ProjectorMock } from './Mocks';
 import { Scene, ScenePause } from './Scene';
 import { Story, type StoryLabels } from './Story';
-import { SecretariatBoard, type BoardLabels } from './Secretariat';
+import { HomeLink } from './HomeLink';
+import { Opening, type OpeningLabels } from './Opening';
 import { STORY_STEPS } from './story-steps';
 import { SectionNav } from './SectionNav';
 import { Tabs } from './Tabs';
@@ -30,7 +30,6 @@ interface Props {
   t: Translate;
   locale: 'en' | 'es';
   appUrl: string;
-  qr: string;
   plans: PlanRow[] | null;
   // Self-serve signup works only when email can be sent (to prove the address).
   signup: boolean;
@@ -46,16 +45,16 @@ const FAQ = ['accounts', 'wifi', 'rules', 'spanish', 'data', 'cost'] as const;
 const LIMITS = ['committees', 'delegates', 'staff', 'active_conferences'] as const;
 const NOT_COUNTRIES = new Set(['EU', 'UN']);
 
-function Section({ id, title, intro, children, reveal = true }: { id: string; title: string; intro?: string; children: React.ReactNode; reveal?: boolean }) {
+function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: React.ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="landing-rule flex flex-col gap-6 py-12">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[18rem_1fr]">
-        <h2 id={`${id}-title`} className="landing-serif text-balance text-3xl font-semibold text-on-surface">
+        <h2 id={`${id}-title`} className="site-display text-balance text-3xl text-on-surface">
           {title}
         </h2>
         {intro ? <p className="max-w-2xl text-base">{intro}</p> : null}
       </div>
-      {reveal ? <Reveal>{children}</Reveal> : children}
+      {children}
     </section>
   );
 }
@@ -96,21 +95,22 @@ function contactLabels(t: Translate): ContactLabels {
 
 const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae', 'gh', 'al', 'ec', 'ch', 'mt'];
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
-const STAGE = ['committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'motion_extend', 'motion_moderated', 'motion_unmoderated', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
-// The Secretariat board's words, placeholders left for the client to fill.
-const BOARD_KINDS = ['speech', 'moderated', 'unmoderated', 'vote', 'roll', 'recess', 'crisis'] as const;
-const BOARD_CODES = ['fr', 'cn', 'gb', 'br', 'ke', 'mx', 'jp', 'ch', 'gh', 'al', 'ec', 'us', 'ru'];
-function boardLabels(locale: string): BoardLabels {
+const STAGE = ['rules', 'rule.un_style', 'rule.harvard_style', 'rule.thimun_style', 'rule.reglamento_es', 'quorumNeeds', 'docNeeds', 'methods', 'method.placard', 'method.roll_call', 'method.secret', 'majority', 'committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
+// The opening's words.
+const OPENING_KEYS = ['label', 'example', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
+const OPENING_STATUS = ['speech', 'roll', 'vote', 'unmoderated', 'moderated', 'crisis'] as const;
+function openingLabels(locale: string): OpeningLabels {
   const raw = (k: string) => messageFor(k, locale).text;
+  const words = Object.fromEntries(OPENING_KEYS.map((k) => [k, raw(`landing.opening.${k}`)])) as Record<(typeof OPENING_KEYS)[number], string>;
   return {
-    label: raw('landing.board.label'), title: raw('landing.board.title'), live: raw('landing.board.live'), example: raw('landing.board.example'),
-    pause: raw('landing.board.pause'), play: raw('landing.board.play'), summary: raw('landing.board.summary'), present: raw('landing.board.present'),
-    names: Object.fromEntries(['sc', 'disec', 'hrc', 'who', 'ecosoc', 'crisis'].map((k) => [k, raw(`landing.board.name.${k}`)])),
-    status: Object.fromEntries([...BOARD_KINDS, 'passed'].map((k) => [k, raw(`landing.board.status.${k}`)])) as BoardLabels['status'],
-    detail: Object.fromEntries(BOARD_KINDS.map((k) => [k, raw(`landing.board.detail.${k}`)])) as BoardLabels['detail'],
+    ...words,
+    names: {
+      ...Object.fromEntries(['sc', 'disec', 'hrc', 'who', 'ecosoc', 'crisis'].map((k) => [k, raw(`landing.opening.name.${k}`)])),
+      ...Object.fromEntries(['fr', 'br', 'ke'].map((c) => [c, countryName(c.toUpperCase(), locale)])),
+    },
+    status: Object.fromEntries(OPENING_STATUS.map((k) => [k, raw(`landing.opening.status.${k}`)])),
   };
 }
-const boardCountries = (locale: string) => Object.fromEntries(BOARD_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 // The story's words, with ICU placeholders left for the client to fill.
 function storyLabels(t: Translate, locale: string): StoryLabels {
   const raw = (k: string) => messageFor(k, locale).text;
@@ -121,7 +121,7 @@ function storyLabels(t: Translate, locale: string): StoryLabels {
   };
 }
 
-export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props) {
+export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
   const lang = locale === 'es' ? '?lang=es' : '';
   const nameOf = (p: PlanRow) => p.name[locale] ?? p.name.en ?? p.key;
   const money = (amount: number, currency: string) => `${new Intl.NumberFormat(regional(locale), { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: 'narrowSymbol', maximumFractionDigits: amount % 100 ? 2 : 0 }).format(amount / 100)} ${currency.toUpperCase()}`;
@@ -139,20 +139,22 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
     { id: 'contact', text: t('landing.nav.contact') },
   ];
   return (
-    <div className="landing-page flex flex-1 flex-col bg-surface text-on-surface-muted">
+    <div className="landing-page site-type flex flex-1 flex-col overflow-x-clip bg-surface text-on-surface-muted">
       <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:start-4 focus-visible:top-4 focus-visible:z-30 focus-visible:bg-surface-raised focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-on-surface">
         {t('landing.skip')}
       </a>
       <header className="sticky top-0 z-20 border-b border-border bg-surface">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-5 py-3">
-          <Link href={locale === 'es' ? '/?lang=es' : '/'} aria-label={t('landing.home')}>
+        {/* Phones: two rows. The first is the brand and its actions (the language as a square tile,
+            signing in); the second, under a hairline, is where to go on this page. */}
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-5 pt-3 pb-2 md:py-3">
+          <HomeLink href={locale === 'es' ? '/?lang=es' : '/'} label={t('landing.home')}>
             <Image src={wordmark} alt={t('brand.wordmarkAlt')} priority className="h-7 w-auto" />
-          </Link>
-          <div className="order-last w-full min-w-0 md:order-none md:w-auto md:flex-1">
+          </HomeLink>
+          <div className="order-last -mx-5 w-[calc(100%+2.5rem)] min-w-0 border-t border-border px-5 pt-2 md:order-none md:mx-0 md:w-auto md:flex-1 md:border-t-0 md:px-0 md:pt-0">
             <SectionNav label={t('landing.nav.label')} links={sections} />
           </div>
           <div className="ms-auto flex items-center gap-4 text-sm md:ms-0">
-            <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href={other === 'es' ? '/?lang=es' : '/?lang=en'} lang={other}>
+            <a className="border border-border-strong px-2 py-1 text-xs font-semibold text-on-surface transition-colors duration-[120ms] hover:border-on-surface hover:bg-on-surface hover:text-surface" href={other === 'es' ? '/?lang=es' : '/?lang=en'} lang={other}>
               {t('landing.otherLanguage')}
             </a>
             <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href={appUrl}>
@@ -162,53 +164,54 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
         </div>
       </header>
 
-        <main id="main" className="mx-auto w-full max-w-6xl px-5">
-          {/* The opening: what Sessional does, and one main action. */}
-          {/* Beside it on wide screens (below it on narrow ones): the Secretariat's live view. */}
-          <section className="grid grid-cols-1 items-center gap-10 pb-14 pt-12 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="hero-title">
-            <div className="max-w-3xl">
-            <div className="flex flex-col gap-5">
-              <p className="self-start rounded-full border border-border-strong bg-surface-raised px-3 py-1 text-sm text-on-surface">{t('landing.hero.pill')}</p>
-              <h1 id="hero-title" className="landing-serif text-balance text-4xl font-semibold leading-tight text-on-surface sm:text-5xl">
+        <main id="main">
+          {/* The opening: the wordmark and what Sessional does, with one main action. Scrolling on
+              plays the logo's square out into a conference (see Opening). */}
+          <Opening L={openingLabels(locale)}>
+            <div className="grid grid-cols-1 gap-x-12 gap-y-5 lg:grid-cols-[1.15fr_1fr] lg:items-end">
+              <h1 id="hero-title" className="site-display text-balance text-[2rem] leading-tight text-on-surface sm:text-5xl">
                 {t('landing.hero.title')}
               </h1>
-              <p className="max-w-xl text-lg">{t('landing.hero.body')}</p>
-              {/* One main action. */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                {signup ? (
-                  <>
-                    <a className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
-                      {t('landing.hero.trial')}
-                    </a>
-                    <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
-                      {t('landing.hero.write')}
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <a className="btn btn-primary normal-case tracking-normal" href="#contact">
-                      {t('landing.hero.write')}
-                    </a>
-                    <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
-                      {t('landing.hero.see')}
-                    </a>
-                  </>
-                )}
+              <div className="flex flex-col gap-5">
+                <p className="max-w-xl text-base sm:text-lg">{t('landing.hero.body')}</p>
+                {/* One main action. */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  {signup ? (
+                    <>
+                      <a className="btn btn-primary normal-case tracking-normal" href={`/signup${lang}`}>
+                        {t('landing.hero.trial')}
+                      </a>
+                      <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#contact">
+                        {t('landing.hero.write')}
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <a className="btn btn-primary normal-case tracking-normal" href="#contact">
+                        {t('landing.hero.write')}
+                      </a>
+                      <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href="#session">
+                        {t('landing.hero.see')}
+                      </a>
+                    </>
+                  )}
+                </div>
+                {/* Said again in "Your conference, your words"; left out on phones so the opening fits. */}
+                <p className="max-w-xl text-sm max-sm:hidden">{t('landing.hero.note')}</p>
               </div>
-              <p className="max-w-xl text-sm">{t('landing.hero.note')}</p>
             </div>
-            </div>
-            <SecretariatBoard L={boardLabels(locale)} countries={boardCountries(locale)} locale={locale} />
-          </section>
+          </Opening>
 
+          <div className="mx-auto w-full max-w-6xl px-5">
           {/* How a session runs: the stage plays each step beside its text as you scroll. */}
-          <section className="landing-rule pb-16 pt-12" aria-labelledby="session-title">
+          <section className="landing-rule pb-4 pt-12" aria-labelledby="session-title">
             <Story
+              locale={locale}
               names={storyNames(locale)}
               L={storyLabels(t, locale)}
               heading={
                 <div id="session" className="flex scroll-mt-24 flex-col gap-3">
-                  <h2 id="session-title" className="landing-serif text-balance text-3xl font-semibold text-on-surface">
+                  <h2 id="session-title" className="site-display text-balance text-3xl text-on-surface">
                     {t('landing.session.title')}
                   </h2>
                   <p className="max-w-xl text-base">{t('landing.session.intro')}</p>
@@ -219,24 +222,34 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
 
           <Section id="screens" title={t('landing.screens.title')} intro={t('landing.screens.intro')}>
             <Scene>
-              <div className="mb-4 flex justify-end">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-xl text-sm font-semibold text-on-surface">{t('landing.screens.try')}</p>
                 <ScenePause pause={t('landing.screens.pause')} play={t('landing.screens.play')} />
               </div>
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.6fr_1fr]">
-              <div className="flex flex-col gap-3">
-                <ProjectorMock t={t} locale={locale} />
-                <p className="max-w-xl text-sm">{t('landing.screens.projector')}</p>
-              </div>
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col gap-3">
-                  <PhoneMock t={t} locale={locale} />
-                  <p className="text-sm">{t('landing.screens.phone')}</p>
+              {/* The console first: everything else follows it. */}
+              <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-12">
+                <div className="flex flex-col gap-3 lg:col-span-7">
+                  <ConsoleMock t={t} locale={locale} />
+                  <p className="max-w-xl text-sm">{t('landing.screens.console')}</p>
                 </div>
-                <div className="flex flex-col gap-3">
-                  <PlacardMock t={t} locale={locale} qr={qr} />
-                  <p className="text-sm">{t('landing.screens.placard')}</p>
+                <div className="flex flex-col gap-3 lg:col-span-5">
+                  <DashboardMock t={t} locale={locale} />
+                  <p className="text-sm">{t('landing.screens.dashboard')}</p>
                 </div>
-              </div>
+                <div className="flex flex-col gap-3 lg:col-span-7">
+                  <ProjectorMock t={t} locale={locale} />
+                  <p className="max-w-xl text-sm">{t('landing.screens.projector')}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:col-span-5">
+                  <div className="flex flex-col gap-3">
+                    <PhoneMock t={t} locale={locale} />
+                    <p className="text-sm">{t('landing.screens.phone')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <CheckinMock t={t} locale={locale} />
+                    <p className="text-sm">{t('landing.screens.checkin')}</p>
+                  </div>
+                </div>
               </div>
             </Scene>
           </Section>
@@ -250,7 +263,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
                     <div key={o} className="landing-frame flex flex-col gap-2 bg-surface-raised p-4">
                       <dt className="font-semibold text-on-surface">{t(`landing.org.${o}.title` as MessageKey)}</dt>
                       <dd className="text-sm">{t(`landing.org.${o}.body` as MessageKey)}</dd>
-                      <dd className="mt-auto border-t border-border pt-2 font-mono text-xs text-on-surface">{t(`landing.org.${o}.detail` as MessageKey)}</dd>
+                      <dd className="site-tag mt-auto border-t border-border pt-2 text-on-surface">{t(`landing.org.${o}.detail` as MessageKey)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -289,10 +302,16 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
           </Section>
 
           <Section id="students" title={t('landing.students.title')} intro={t('landing.students.intro')}>
-            <ul className="grid grid-cols-1 gap-x-10 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
-              {(['accounts', 'names', 'staff', 'log', 'least', 'export'] as const).map((s) => (
-                <li key={s} className="border-t border-border pt-3 text-sm">
-                  {t(`landing.students.${s}` as MessageKey)}
+            {/* Six promises, each led by its point in a few words and marked with the logo's square, in
+                the committee colours. */}
+            <ul className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
+              {(['accounts', 'names', 'staff', 'log', 'least', 'export'] as const).map((s, i) => (
+                <li key={s} className="flex gap-3 border-t border-border pt-4 text-sm">
+                  <span aria-hidden="true" className={`mt-1.5 h-2.5 w-2.5 shrink-0 ${['bg-primary', 'bg-accent', 'bg-(--site-teal)', 'bg-on-surface'][i % 4]}`} />
+                  <span>
+                    <span className="block text-base font-semibold text-on-surface">{t(`landing.students.${s}.lead` as MessageKey)}</span>
+                    <span className="mt-1 block">{t(`landing.students.${s}` as MessageKey)}</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -307,7 +326,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
                     <tr className="border-b border-border-strong">
                       <td className="py-3" />
                       {plans.map((p) => (
-                        <th key={p.key} scope="col" className="landing-serif py-3 text-start text-xl font-semibold text-on-surface">
+                        <th key={p.key} scope="col" className="site-display py-3 text-start text-xl text-on-surface">
                           {nameOf(p)}
                         </th>
                       ))}
@@ -347,9 +366,9 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
           </Section>
 
           {/* The page's one bright moment: writing to us. */}
-          <section id="contact" aria-labelledby="contact-title" className="my-12 grid grid-cols-1 gap-8 rounded-sm bg-accent px-6 py-10 text-on-accent sm:px-8 lg:grid-cols-[1fr_1.6fr]">
+          <section id="contact" aria-labelledby="contact-title" className="my-12 grid grid-cols-1 gap-8 bg-accent px-6 py-10 text-on-accent sm:px-8 lg:grid-cols-[1fr_1.6fr]">
             <div className="flex flex-col gap-3">
-              <h2 id="contact-title" className="landing-serif text-balance text-3xl font-semibold">{t('landing.contact.title')}</h2>
+              <h2 id="contact-title" className="site-display text-balance text-3xl">{t('landing.contact.title')}</h2>
               <p>{t('landing.contact.body')}</p>
               <p className="text-sm">
                 <a className="font-semibold underline underline-offset-4 hover:decoration-2" href={appUrl}>
@@ -372,6 +391,7 @@ export function Landing({ t, locale, appUrl, qr, plans, signup, captcha }: Props
               ))}
             </div>
           </Section>
+          </div>
         </main>
 
       <footer className="border-t border-border">

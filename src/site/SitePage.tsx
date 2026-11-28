@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import wordmark from '@brand/sessional-wordmark-navy.png';
+import wordmark from '@brand/sessional-wordmark.png';
 import type { Translate } from '@/messages';
 
 // The frame of the main website's inner pages (signup, changelog): the wordmark back home, the
@@ -8,7 +8,7 @@ import type { Translate } from '@/messages';
 export function SitePage({ t, locale, title, intro, path, children }: { t: Translate; locale: 'en' | 'es'; title: string; intro?: string; path: string; children: React.ReactNode }) {
   const other = locale === 'es' ? 'en' : 'es';
   return (
-    <div lang={locale} className="flex flex-1 flex-col bg-surface text-on-surface-muted">
+    <div lang={locale} className="site-type flex flex-1 flex-col bg-surface text-on-surface-muted">
       <header className="border-b border-border">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-5 py-3">
           <Link href={locale === 'es' ? '/?lang=es' : '/'} aria-label={t('landing.home')}>
@@ -21,8 +21,8 @@ export function SitePage({ t, locale, title, intro, path, children }: { t: Trans
       </header>
       <main id="main" className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10">
         <div className="flex flex-col gap-3">
-          <h1 className="landing-serif text-balance text-4xl font-semibold text-on-surface">{title}</h1>
-          {intro ? <p className="text-lg">{intro}</p> : null}
+          <h1 className="site-display text-balance text-4xl text-on-surface">{title}</h1>
+          {intro ? <p className="max-w-[68ch] text-lg">{intro}</p> : null}
         </div>
         {children}
       </main>

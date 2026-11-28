@@ -128,6 +128,18 @@ To also get each request by email, add in Vercel → Environment Variables (serv
 
 Replies go straight to the person who wrote (their address is the email's reply-to).
 
+Support (`/support`) has its own address, separate from the one that sends sign-up links and
+invitations:
+
+- `SUPPORT_EMAIL` (default `support@sessional.app`): the person gets a confirmation from this
+  address, and replying to it reaches it. Answer support requests from this mailbox too. It needs
+  `sessional.app` verified in Resend to send, and a real inbox (or forwarding) to receive replies.
+- The request itself still goes to `CONTACT_TO_EMAIL` with the person's address as reply-to;
+  pointing `CONTACT_TO_EMAIL` at the support inbox keeps everything in one place.
+
+Sessional's own emails (the sign-up link, the support confirmation) use the Session tiles look
+with the header banner, served from `/email/sessional-header.png` (see `docs/EMAIL.md`).
+
 ## 4d. Self-serve signup (Phase 14)
 
 Schools can sign up on their own at `sessional.app/signup` once email works (step 4c: at least

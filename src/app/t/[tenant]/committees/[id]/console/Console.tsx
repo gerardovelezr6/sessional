@@ -474,7 +474,7 @@ export function Console(p: Props) {
           <div className="flex flex-col items-end gap-2">
             <div className="flex flex-wrap items-center justify-end gap-2">
               <span className={`badge ${session ? 'tone-live' : 'tone-idle'}`}>
-                {session ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" /> : null}
+                {session ? <span className="me-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-control bg-success" aria-hidden="true" /> : null}
                 {session ? L.inSession : L.notInSession}
               </span>
               {session ? <span className="badge tone-idle text-primary">{fmt(L.sessionBadge, locale, { number: session.number })}</span> : null}

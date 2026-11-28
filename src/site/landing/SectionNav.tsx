@@ -25,7 +25,7 @@ export function SectionNav({ label, links }: { label: string; links: { id: strin
     };
   }, [links]);
   return (
-    <nav aria-label={label} className="-mx-1 flex gap-x-5 overflow-x-auto whitespace-nowrap px-1 text-sm">
+    <nav aria-label={label} className="-mx-1 flex justify-between gap-x-3 overflow-x-auto px-1 text-[13px] whitespace-nowrap min-[400px]:text-sm sm:justify-start sm:gap-x-5">
       {links.map((l) => (
         <a
           key={l.id}

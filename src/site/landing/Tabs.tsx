@@ -2,7 +2,8 @@
 import { useRef, useState } from 'react';
 
 // Tabs that follow the ARIA pattern: arrow keys, Home and End move between them, Tab goes into the
-// panel. Used where a long list reads better in groups.
+// panel. Used where a long list reads better in groups. Each tab is a square tile; the chosen one is
+// filled, and its panel swaps in at once (a cut, no fade).
 export function Tabs({ label, tabs, children }: { label: string; tabs: { id: string; text: string }[]; children: React.ReactNode[] }) {
   const [active, setActive] = useState(0);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -13,7 +14,8 @@ export function Tabs({ label, tabs, children }: { label: string; tabs: { id: str
   };
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label={label} className="flex flex-wrap gap-2 border-b border-border">
+      {/* Phones: the tabs share one row in equal tiles. */}
+      <div role="tablist" aria-label={label} className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
         {tabs.map((t, i) => (
           <button
             key={t.id}
@@ -35,14 +37,14 @@ export function Tabs({ label, tabs, children }: { label: string; tabs: { id: str
               else return;
               e.preventDefault();
             }}
-            className="-mb-px border-b-2 border-transparent px-1 py-2 text-sm font-semibold hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-selected:border-on-surface aria-selected:text-on-surface"
+            className="border border-border-strong px-2 py-2 text-center text-sm font-semibold sm:px-4 transition-colors duration-[120ms] hover:border-on-surface hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-selected:border-on-surface aria-selected:bg-on-surface aria-selected:text-surface"
           >
             {t.text}
           </button>
         ))}
       </div>
       {tabs.map((t, i) => (
-        <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={i !== active} tabIndex={0} className={i === active ? 'tab-panel-in' : undefined}>
+        <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={i !== active} tabIndex={0}>
           {children[i]}
         </div>
       ))}

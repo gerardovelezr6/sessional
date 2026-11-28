@@ -57,6 +57,10 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
   const [started, setStarted] = useState(false);
   const steps = useRef<(HTMLLIElement | null)[]>([]);
   const stage = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLDivElement>(null);
+  const headBox = useRef<HTMLDivElement>(null);
+  const headSpace = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const pinned = useRef<HTMLDivElement>(null);
 
@@ -66,6 +70,23 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
   // of what the header leaves of the screen, centred on the stage (one fixed size), never so low
   // that the open step runs off the bottom. On phones the open step's text has a fixed height.
   const geo = useRef({ top: 0, height: 1 });
+  // The heading's sticky box ends where the block lets go, so the two leave together. Refitted when
+  // the open step changes the block's height (this moves nothing the steps depend on).
+  const fitHeading = useCallback(() => {
+    const pin = pinned.current;
+    const cover = headBox.current;
+    const space = headSpace.current;
+    if (!pin || !cover || !space) return;
+    if (window.matchMedia('(min-width: 1024px)').matches && root.current && track.current) {
+      space.style.height = `${head.current?.offsetHeight ?? 0}px`;
+      const trackEnd = track.current.getBoundingClientRect().bottom - root.current.getBoundingClientRect().top;
+      cover.style.height = `${Math.max(0, Math.round(trackEnd - pin.offsetHeight - 32))}px`;
+    } else {
+      cover.style.height = '';
+      space.style.height = '';
+    }
+  }, []);
+  useEffect(() => fitHeading(), [step, fitHeading]);
   const place = useCallback(() => {
     const pin = pinned.current;
     if (!pin) return;
@@ -73,10 +94,13 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
     const h = header?.offsetHeight ?? 64;
     const box = stage.current?.offsetHeight ?? pin.offsetHeight;
     const centre = Math.min(h + (window.innerHeight - h - box) / 2, window.innerHeight - pin.offsetHeight - 12);
-    const top = Math.round(Math.max(h + 12, centre));
+    // Wide screens: the section's heading stays under the header, and the block pins right below it.
+    const wide = window.matchMedia('(min-width: 1024px)').matches;
+    const top = Math.round(wide ? h + (head.current?.offsetHeight ?? 0) + 32 : Math.max(h + 12, centre));
     if (pin.style.top !== `${top}px`) pin.style.top = `${top}px`;
     geo.current = { top, height: pin.offsetHeight };
-  }, []);
+    fitHeading();
+  }, [fitHeading]);
 
   useEffect(() => {
     // One read per scroll frame: where the track is. How far the pinned block has travelled
@@ -133,8 +157,16 @@ export function Story({ L, names, heading, locale }: { L: StoryLabels; names: Re
   const S = L.stage;
   const key = STORY_STEPS[step]!;
   return (
-    <div className="flex flex-col gap-8">
-      {heading}
+    <div ref={root} className="relative flex flex-col gap-8">
+      {/* Wide screens: the heading and its line stay put with the steps while the section plays.
+          It lies over the section in a box that ends where the block lets go (see place), with a
+          spacer holding its place in the flow. */}
+      <div ref={headBox} className="lg:pointer-events-none lg:absolute lg:inset-x-0 lg:top-0 lg:z-10">
+        <div ref={head} className="lg:pointer-events-auto lg:sticky lg:top-[var(--landing-header,4rem)] lg:bg-surface lg:pt-4">
+          {heading}
+        </div>
+      </div>
+      <div ref={headSpace} aria-hidden="true" className="hidden lg:block" />
       {/* The track gives the pinned block its scroll length: about half a screen per step. The block
           sits right under the heading, then pins centred below the header (see measure). */}
       <div ref={track} className="story-track h-[300vh] lg:h-[320vh]">

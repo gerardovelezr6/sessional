@@ -170,7 +170,9 @@ whole magenta screen fade away.
   560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.
   With less motion nothing plays by itself and the square doesn't grow: scrolling moves all of
   it, and the screen cuts straight to magenta.
-- **The story** follows a set of rules the viewer picks (UN-style, Harvard, THIMUN, Spanish-language:
+- **The story**, on wide screens, keeps its heading and line under the header while the steps
+  play; the steps pin right below it and the two leave together. On phones the heading scrolls
+  away as before. It follows a set of rules the viewer picks (UN-style, Harvard, THIMUN, Spanish-language:
   the product's own presets in `src/protocol/presets.ts`; Spanish pages start on Spanish-language).
   The roll-call answers, quorum, speaking time, motions with the majority each needs, sponsors and
   signatories, and ways to vote all come from the chosen preset. It plays its stage as you scroll,

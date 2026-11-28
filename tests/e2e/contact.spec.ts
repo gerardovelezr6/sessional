@@ -464,3 +464,24 @@ test('the logo, from anywhere on the page, plays the opening back to the first s
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   expect(page.url()).not.toContain('#');
 });
+
+test('on wide screens the story’s heading stays put with the steps, and leaves with them', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  const t = await page.locator('.story-track').evaluate((el) => ({ top: el.getBoundingClientRect().top + window.scrollY, height: (el as HTMLElement).offsetHeight }));
+  const at = () => page.evaluate(() => ({ head: document.querySelector('#session')!.getBoundingClientRect(), pin: document.querySelector('.story-pinned')!.getBoundingClientRect() }));
+  let first: { head: DOMRect; pin: DOMRect } | null = null;
+  for (let y = t.top; y < t.top + t.height - 900; y += 200) {
+    await page.evaluate((y) => window.scrollTo(0, y), y);
+    await page.waitForTimeout(80);
+    const r = await at();
+    first ??= r;
+    expect(Math.abs(r.head.top - first.head.top), `heading stays at ${y}`).toBeLessThan(2);
+    expect(r.pin.top, `steps below the heading at ${y}`).toBeGreaterThan(r.head.bottom);
+  }
+  // Past the end they go on together, the same gap between them.
+  await page.evaluate((y) => window.scrollTo(0, y), t.top + t.height);
+  await page.waitForTimeout(80);
+  const end = await at();
+  expect(Math.abs(end.pin.top - end.head.bottom - (first!.pin.top - first!.head.bottom))).toBeLessThan(3);
+});

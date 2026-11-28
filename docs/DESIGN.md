@@ -170,6 +170,15 @@ whole magenta screen fade away.
   560px tall; without JavaScript, and on short screens, it is just the wordmark and headline.
   With less motion nothing plays by itself and the square doesn't grow: scrolling moves all of
   it, and the screen cuts straight to magenta.
+- **The opening's buttons** ("Start a free trial", "Write to us", "See how a session runs") grow
+  the logo's square over the screen (750 ms, sine in-out), then go where they point: a place on the
+  page is there under the magenta, which fades away; another page opens (fetched ahead) and the
+  magenta fades over it. Plain links for less motion. Going back to the top (scrolling, or the
+  header's logo) only fades the magenta in over whatever is on screen and shrinks it into the logo.
+  The committee tiles colour in over most of the opening's scroll, so the room arrives near its end.
+- **Buttons waiting on the server** show it at once: a thin bar runs along the foot of the button
+  (still, for less motion).
+- **Pricing** is a table on wide screens and one card per plan on phones.
 - **The story**, on wide screens, keeps its heading and line under the header while the steps
   play; the steps pin right below it and the two leave together. On phones the heading scrolls
   away as before. It follows a set of rules the viewer picks (UN-style, Harvard, THIMUN, Spanish-language:

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
 import { RETURN_COOKIE } from '@/auth/oauth';
 import { rpc } from '@/data/rpc';
 import { DEFAULT_LOCALE, translator } from '@/messages';
@@ -24,6 +25,10 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   };
 }
 
+// The plans and prices change rarely: kept for five minutes, so the main page doesn't wait on the
+// database for every visit.
+const publicPlans = unstable_cache(async () => rpc<PlanRow[]>('plans_public', {}, 'service'), ['plans_public'], { revalidate: 300 });
+
 // The main page. If the authentication service ever lands a sign-in here (its fallback address),
 // the code is handed on to the school the sign-in started from. Otherwise: what Sessional is.
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ code?: string; error?: string; error_code?: string; lang?: string }> }) {
@@ -42,7 +47,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // Prices come from the plans table; until billing is set up the section says so instead.
   let plans: PlanRow[] | null = null;
   try {
-    plans = await rpc<PlanRow[]>('plans_public', {}, 'service');
+    plans = await publicPlans();
   } catch {
     plans = null;
   }

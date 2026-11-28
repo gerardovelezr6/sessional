@@ -54,6 +54,9 @@ const CLOCK_FROM = 45;
 // committee tiles and the room then follow the scroll, over the rest of the opening's track. For
 // people who ask for less motion nothing plays by itself: the whole opening follows the scroll.
 const START_AT = 0.03;
+// After the logo's part, the committee tiles colour in over the scroll up to here; past it the move
+// to the room plays, and the room is there for the rest of the opening's (short) scroll.
+const MORPH_AT = 0.85;
 const TIMELINE: [number, number][] = [[0, AT.grow], [1.1, AT.field], [3.8, AT.split]];
 const progressAt = (sec: number) => {
   for (let i = 1; i < TIMELINE.length; i++) {
@@ -111,12 +114,16 @@ function holdScroll() {
 type Frame =
   | { kind: 'rest' }
   | { kind: 'grow'; step: number }
-  | { kind: 'field'; shown: number; cover: number }
+  | { kind: 'field'; shown: number; cover: number; under: Under }
   | { kind: 'committees'; coloured: number }
   | { kind: 'morph'; t: number }
   | { kind: 'room' };
 
-function frameAt(p: number, reduce: boolean, quiet = false): Frame {
+// What the magenta covers: the committee tiles still magenta (playing forwards), or, playing back
+// to the wordmark, whatever was on screen (the committees or the room).
+type Under = 'magenta' | 'committees' | 'room';
+
+function frameAt(p: number, reduce: boolean, quiet = false, under: Under = 'magenta'): Frame {
   if (p < AT.grow) return { kind: 'rest' };
   if (p < AT.field) return reduce ? { kind: 'rest' } : { kind: 'grow', step: Math.min(GROW_STEPS - 1, Math.floor(((p - AT.grow) / (AT.field - AT.grow)) * GROW_STEPS)) };
   if (p < AT.split) {
@@ -127,7 +134,7 @@ function frameAt(p: number, reduce: boolean, quiet = false): Frame {
       const c = Math.max(0, Math.min(1, x));
       return Math.round(c * c * (3 - 2 * c) * 100) / 100;
     };
-    return { kind: 'field', shown: quiet ? 0 : soft(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: soft((1 - u) / 0.4) };
+    return { kind: 'field', shown: quiet ? 0 : soft(Math.min(u / 0.2, (0.55 - u) / 0.2)), cover: soft((1 - u) / 0.4), under };
   }
   if (p < AT.morph) return { kind: 'committees', coloured: Math.min(COMMITTEES.length, Math.floor(((p - AT.split) / (AT.colours - AT.split)) * (COMMITTEES.length + 1))) };
   // From the committees to the room: the Security Council's tile becomes the room's projector.
@@ -172,11 +179,12 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
     let moveSince = -1;
     let moveBack = -1;
     let moveRelease: (() => void) | null = null;
+    let under: Under = 'magenta';
     const show = (at: number, quiet = false, move?: number) => {
       const st = stage.current;
       const sq = square.current;
       if (!st || !sq) return;
-      const next: Frame = move !== undefined ? { kind: 'morph', t: Math.round(move * 100) / 100 } : frameAt(at, motion.matches, quiet);
+      const next: Frame = move !== undefined ? { kind: 'morph', t: Math.round(move * 100) / 100 } : frameAt(at, motion.matches, quiet, quiet ? under : 'magenta');
       setFrame((f) => (same(f, next) ? f : next));
       if (next.kind === 'rest' || next.kind === 'grow') {
         const sr = st.getBoundingClientRect();
@@ -225,20 +233,23 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
             back = -1;
           }
         }
-      } else if (played >= AT.split && scrolled < START_AT && moved === 0 && moveBack < 0 && moveSince < 0) {
-        // Back up at the top: it plays backwards to the wordmark, without the words (after the
-        // room has gone back to the committees, when it had got that far).
+      } else if (played >= AT.split && scrolled < START_AT && moveSince < 0) {
+        // Back up at the top: the magenta fades in over whatever is on screen (the committees or
+        // the room), then shrinks back into the logo, without the words.
+        under = moved > 0.5 ? 'room' : 'committees';
+        moveBack = -1;
         back = now;
       }
-      // After the logo's part, the rest of the scroll walks through the committees and the room.
-      const manual = AT.split + (Math.max(0, scrolled - START_AT) / (1 - START_AT)) * (1 - AT.split);
+      // After the logo's part, the scroll walks through the committees colouring in; past MORPH_AT
+      // the move to the room plays (below).
+      const manual = AT.split + clamp01((scrolled - START_AT) / (MORPH_AT - START_AT)) * (AT.morph - 0.001 - AT.split);
       let move: number | undefined;
       let at = played === 0 ? 0 : played < AT.split ? played : manual;
       if (played === 0) {
         moved = 0;
         moveSince = moveBack = -1;
       } else if (played >= AT.split && since < 0 && back < 0) {
-        const past = manual >= AT.morph;
+        const past = scrolled >= MORPH_AT;
         if (moveSince < 0 && moveBack < 0) {
           if (past && moved === 0) {
             // Played only while the opening is on screen; arriving at its end (a reload, a link
@@ -270,10 +281,10 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
           }
         }
         if (moveSince >= 0 || moveBack >= 0) move = moved;
-        else if (moved === 1 && past) at = Math.max(manual, AT.room);
+        else if (moved === 1 && past) at = AT.room;
         else if (past) at = AT.morph - 0.001;
       }
-      show(at, back >= 0, move);
+      show(back >= 0 ? played : at, back >= 0, move);
       // Keep going while something plays, or while a reverse to the wordmark is still due.
       const due = played >= AT.split && scrolled < START_AT;
       if (since >= 0 || back >= 0 || moveSince >= 0 || moveBack >= 0 || due) raf = window.requestAnimationFrame(frameLoop);
@@ -389,7 +400,8 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
 // the Security Council's magenta tile moves and resizes into the room's projector while the other
 // committees fade out and the laptop and phones fade in (scroll-driven, eased sine in-out).
 function Conference({ L, frame }: { L: OpeningLabels; frame: Frame }) {
-  const room = frame.kind === 'room';
+  const under = frame.kind === 'field' ? frame.under : null;
+  const room = frame.kind === 'room' || under === 'room';
   const t = frame.kind === 'morph' ? frame.t : room ? 1 : 0;
   const box = useRef<HTMLDivElement>(null);
   const from = useRef<HTMLLIElement>(null);
@@ -410,7 +422,7 @@ function Conference({ L, frame }: { L: OpeningLabels; frame: Frame }) {
   const left = useClock(room);
   const mix = (x: number, y: number) => x + (y - x) * t;
   const moving = frame.kind === 'morph' && frame.t > 0 && rects;
-  const coloured = frame.kind === 'committees' ? frame.coloured : frame.kind === 'field' ? 0 : COMMITTEES.length;
+  const coloured = frame.kind === 'committees' ? frame.coloured : under === 'magenta' ? 0 : COMMITTEES.length;
   const out = Math.max(0, 1 - t * 2); // committees fade over the first half
   const inn = Math.max(0, t * 2 - 1); // the room fades in over the second half
   return (
@@ -419,7 +431,7 @@ function Conference({ L, frame }: { L: OpeningLabels; frame: Frame }) {
         {/* Hidden under the magenta; once the tiles show, it fades in (600 ms, sine in-out). */}
         <div
           className={`col-start-1 row-start-1 flex flex-col gap-1 ${frame.kind === 'committees' || frame.kind === 'field' ? 'transition-opacity duration-[600ms] ease-[cubic-bezier(0.37,0,0.63,1)] motion-reduce:transition-none' : ''}`}
-          style={{ opacity: frame.kind === 'field' ? 0 : out }}
+          style={{ opacity: under === 'magenta' ? 0 : out }}
           aria-hidden={room}
         >
           <p className="site-display text-3xl sm:text-5xl">{L.two}</p>

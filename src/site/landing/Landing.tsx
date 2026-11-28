@@ -144,15 +144,17 @@ export function Landing({ t, locale, appUrl, plans, signup, captcha }: Props) {
         {t('landing.skip')}
       </a>
       <header className="sticky top-0 z-20 border-b border-border bg-surface">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-5 py-3">
+        {/* Phones: two rows. The first is the brand and its actions (the language as a square tile,
+            signing in); the second, under a hairline, is where to go on this page. */}
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-5 pt-3 pb-2 md:py-3">
           <HomeLink href={locale === 'es' ? '/?lang=es' : '/'} label={t('landing.home')}>
             <Image src={wordmark} alt={t('brand.wordmarkAlt')} priority className="h-7 w-auto" />
           </HomeLink>
-          <div className="order-last w-full min-w-0 md:order-none md:w-auto md:flex-1">
+          <div className="order-last -mx-5 w-[calc(100%+2.5rem)] min-w-0 border-t border-border px-5 pt-2 md:order-none md:mx-0 md:w-auto md:flex-1 md:border-t-0 md:px-0 md:pt-0">
             <SectionNav label={t('landing.nav.label')} links={sections} />
           </div>
           <div className="ms-auto flex items-center gap-4 text-sm md:ms-0">
-            <a className="hover:text-on-surface hover:underline hover:underline-offset-4" href={other === 'es' ? '/?lang=es' : '/?lang=en'} lang={other}>
+            <a className="border border-border-strong px-2 py-1 text-xs font-semibold text-on-surface transition-colors duration-[120ms] hover:border-on-surface hover:bg-on-surface hover:text-surface" href={other === 'es' ? '/?lang=es' : '/?lang=en'} lang={other}>
               {t('landing.otherLanguage')}
             </a>
             <a className="font-semibold text-on-surface underline underline-offset-4 hover:decoration-2" href={appUrl}>

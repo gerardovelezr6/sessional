@@ -14,7 +14,8 @@ export function Tabs({ label, tabs, children }: { label: string; tabs: { id: str
   };
   return (
     <div className="flex flex-col gap-4">
-      <div role="tablist" aria-label={label} className="flex flex-wrap gap-2">
+      {/* Phones: the tabs share one row in equal tiles. */}
+      <div role="tablist" aria-label={label} className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
         {tabs.map((t, i) => (
           <button
             key={t.id}
@@ -36,7 +37,7 @@ export function Tabs({ label, tabs, children }: { label: string; tabs: { id: str
               else return;
               e.preventDefault();
             }}
-            className="border border-border-strong px-4 py-2 text-sm font-semibold transition-colors duration-[120ms] hover:border-on-surface hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-selected:border-on-surface aria-selected:bg-on-surface aria-selected:text-surface"
+            className="border border-border-strong px-2 py-2 text-center text-sm font-semibold sm:px-4 transition-colors duration-[120ms] hover:border-on-surface hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-selected:border-on-surface aria-selected:bg-on-surface aria-selected:text-surface"
           >
             {t.text}
           </button>

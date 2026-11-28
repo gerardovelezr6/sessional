@@ -341,7 +341,7 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
 
   return (
     <section ref={track} aria-labelledby="hero-title" className={`opening ${pinned ? '-mt-(--landing-header) h-[220svh]' : ''}`}>
-      <div ref={stage} className={`opening-stage relative overflow-hidden ${pinned ? 'sticky top-0 h-svh' : ''}`}>
+      <div ref={stage} className={`opening-stage relative overflow-hidden ${pinned ? 'sticky top-0 h-dvh' : ''}`}>
         {/* At rest: the wordmark at poster size, and the headline. */}
         <div className={`mx-auto flex w-full max-w-6xl flex-col justify-center px-5 pb-6 sm:pb-10 ${pinned ? 'h-full pt-[calc(var(--landing-header,4rem)+1rem)] sm:pt-[calc(var(--landing-header,4rem)+1.5rem)]' : 'pt-8 sm:pt-14'}`}>
           <div ref={content} className="flex shrink-0 flex-col gap-6 sm:gap-8">

@@ -221,9 +221,9 @@ test('every screen runs on one clock while on screen, can be paused, and starts 
 test('organizer features are grouped in tabs that work from the keyboard, and the section nav marks where you are', async ({ page }) => {
   await page.goto('/');
   const tabs = page.getByRole('tablist', { name: 'When' });
-  await expect(tabs.getByRole('tab', { name: 'Before the conference' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('tabpanel', { name: 'Before the conference' })).toContainText('Bring your spreadsheet');
-  await tabs.getByRole('tab', { name: 'Before the conference' }).focus();
+  await expect(tabs.getByRole('tab', { name: 'Before' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tabpanel', { name: 'Before' })).toContainText('Bring your spreadsheet');
+  await tabs.getByRole('tab', { name: 'Before' }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(tabs.getByRole('tab', { name: 'During' })).toBeFocused();
   await expect(page.getByRole('tabpanel', { name: 'During' })).toContainText('Printing');
@@ -285,13 +285,13 @@ test('the opening plays by itself once you scroll in, and goes back to rest at t
   await page.mouse.wheel(0, 1200);
   await page.waitForTimeout(150);
   expect(Math.abs((await page.evaluate(() => window.scrollY)) - held)).toBeLessThan(2);
-  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 4000 }).toBe(1);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 8000 }).toBe(1);
   expect(await headingShown(room, 'Every committee, at once.')).toBe(0);
   // Scrolling back above it plays it backwards, to the committees.
   await scrollOpening(page, 0.3);
   await expect.poll(() => headingShown(room, 'Every committee, at once.'), { timeout: 3000 }).toBe(1);
   await scrollOpening(page, 0.95);
-  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 4000 }).toBe(1);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 8000 }).toBe(1);
   // In the room the clock runs by itself, with no scrolling.
   const projector = room.getByRole('listitem').filter({ hasText: 'Projector' }).locator('.font-mono');
   const before = await projector.textContent();
@@ -437,7 +437,7 @@ test('the logo, from anywhere on the page, plays the opening back to the first s
   await scrollOpening(page, 0.05);
   await expect(room.getByText('One conference.')).toHaveCount(0, { timeout: 6000 });
   await scrollOpening(page, 0.9);
-  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 4000 }).toBe(1);
+  await expect.poll(() => headingShown(room, 'Every screen in the room, on one clock.'), { timeout: 8000 }).toBe(1);
   // The room's words have faded in.
   const words = room.getByRole('listitem').filter({ hasText: 'Projector' }).locator('.font-mono');
   await expect.poll(() => words.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);

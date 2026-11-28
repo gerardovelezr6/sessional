@@ -17,7 +17,6 @@ import { WORDMARK_PATHS, WORDMARK_SQUARE, WORDMARK_VIEWBOX } from './wordmark';
 
 export interface OpeningLabels {
   label: string;
-  example: string;
   one: string;
   two: string;
   twoNote: string;
@@ -382,14 +381,12 @@ export function Opening({ L, children }: { L: OpeningLabels; children: React.Rea
           <figure aria-label={L.label} className="absolute inset-0 bg-surface text-on-surface">
             <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
               <Conference L={L} frame={frame} />
-              <figcaption className="text-xs text-on-surface-muted">{L.example}</figcaption>
             </div>
             {/* The magenta screen sits over the committees and fades away to show them. */}
             {frame.kind === 'field' ? (
               <div className="absolute inset-0 bg-primary text-on-primary" style={{ opacity: frame.cover }}>
                 <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-5 pb-6 pt-[calc(var(--landing-header,4rem)+1.5rem)]">
                   <p className="site-display my-auto text-5xl sm:text-7xl" style={{ opacity: frame.shown }}>{L.one}</p>
-                  <span className="text-xs" aria-hidden="true">{L.example}</span>
                 </div>
               </div>
             ) : null}

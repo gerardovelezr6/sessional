@@ -98,7 +98,7 @@ const STORY_CODES = ['us', 'cn', 'ru', 'fr', 'gb', 'br', 'ke', 'jp', 'mx', 'ae',
 const storyNames = (locale: string) => Object.fromEntries(STORY_CODES.map((c) => [c, countryName(c.toUpperCase(), locale)]));
 const STAGE = ['rules', 'rule.un_style', 'rule.harvard_style', 'rule.thimun_style', 'rule.reglamento_es', 'quorumNeeds', 'docNeeds', 'methods', 'method.placard', 'method.roll_call', 'method.secret', 'majority', 'committee', 'answered', 'present', 'voting', 'absent', 'quorum', 'met', 'notMet', 'speaking', 'of', 'yieldChair', 'next', 'list', 'floorOpen', 'ordered', 'orderWhy', 'movedBy', 'docPaper', 'docResolution', 'docSubmitted', 'docApproved', 'docAmended', 'docNumbered', 'docSponsors', 'docClause1', 'docClause2Old', 'docClause2New', 'docAmendment', 'voteOn', 'needed', 'yes', 'no', 'abstain', 'passed', 'gradesTitle', 'awardsTitle', 'award_best', 'award_outstanding', 'award_mention', 'scrollHint'] as const;
 // The opening's words.
-const OPENING_KEYS = ['label', 'example', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
+const OPENING_KEYS = ['label', 'one', 'two', 'twoNote', 'three', 'threeNote', 'laptop', 'projector', 'phone', 'speaking', 'next', 'committee'] as const;
 const OPENING_STATUS = ['speech', 'roll', 'vote', 'unmoderated', 'moderated', 'crisis'] as const;
 function openingLabels(locale: string): OpeningLabels {
   const raw = (k: string) => messageFor(k, locale).text;

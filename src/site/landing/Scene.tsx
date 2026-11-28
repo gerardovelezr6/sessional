@@ -158,13 +158,13 @@ export function ConsoleLive({ L, names }: { L: { label: string; title: string; m
   // Switzerland is the one delegation not yet in; checking it in at the door counts it here.
   const present = L.present.replace('{n}', String(checkedIn ? 15 : 14));
   return (
-    <figure className="landing-frame bg-surface-raised" aria-label={L.label}>
+    <figure className="landing-frame overflow-hidden bg-surface-raised" aria-label={L.label}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2 text-xs">
         <span className="font-semibold text-on-surface">{L.title}</span>
         <span aria-live="polite">{present}</span>
       </div>
       <div className="grid grid-cols-1 gap-5 p-4 sm:grid-cols-[1.5fr_1fr]">
-        <div className="flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.09em]">{L.mode}</span>
           <span className="flex items-center gap-3">
             <Flag choice={{ kind: 'country', code: now! }} className="h-6! w-9! bg-cover!" />
@@ -173,7 +173,7 @@ export function ConsoleLive({ L, names }: { L: { label: string; title: string; m
           </span>
           <Bar left={left} track="bg-border" fill="bg-accent" />
           {/* These work: try them, and watch the other screens follow. */}
-          <span className="flex flex-wrap gap-2 text-xs font-semibold">
+          <span className="flex flex-wrap gap-2 text-xs font-semibold [&>button]:flex-1 [&>button]:whitespace-nowrap">
             <button type="button" onClick={next} className="border border-border-strong px-2.5 py-1.5 text-on-surface transition-colors duration-[120ms] hover:border-on-surface">{L.yield}</button>
             <button type="button" onClick={next} className="border border-primary bg-primary px-2.5 py-1.5 text-on-primary transition-colors duration-[120ms] hover:bg-on-surface hover:border-on-surface">{L.next}</button>
             <button type="button" onClick={toggle} aria-pressed={paused} className="border border-border-strong px-2.5 py-1.5 text-on-surface transition-colors duration-[120ms] hover:border-on-surface aria-pressed:bg-on-surface aria-pressed:text-surface">{paused ? L.resume : L.pause}</button>
